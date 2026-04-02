@@ -294,6 +294,28 @@ export async function deployToPlatform(
     throw new DeploymentNotFoundError(deploymentId);
   }
 
+  // Build platform-specific config from campaign's expanded fields
+  const existingConfig = (deployment.platformSpecificConfig ?? {}) as Record<string, unknown>;
+  const platformSpecificConfig: Record<string, unknown> = {
+    ...existingConfig,
+  };
+
+  if (campaign.targetingConfig) {
+    platformSpecificConfig['targeting'] = campaign.targetingConfig;
+  }
+  if (campaign.landingPageUrl) {
+    platformSpecificConfig['landingPageUrl'] = campaign.landingPageUrl;
+  }
+  if (campaign.bidStrategy) {
+    platformSpecificConfig['bidStrategy'] = campaign.bidStrategy;
+  }
+  if (campaign.targetRoas) {
+    platformSpecificConfig['targetRoas'] = campaign.targetRoas;
+  }
+  if (campaign.targetCpa) {
+    platformSpecificConfig['targetCpa'] = Number(campaign.targetCpa);
+  }
+
   try {
     const result = await adapter.createCampaign(
       connection.platformAccountId,
@@ -304,6 +326,7 @@ export async function deployToPlatform(
         endDate: campaign.endDate ? new Date(campaign.endDate) : undefined,
         totalBudget: Number(campaign.totalBudget),
         dailyBudget: Number(deployment.platformBudget),
+        platformSpecificConfig,
       },
       accessToken,
     );

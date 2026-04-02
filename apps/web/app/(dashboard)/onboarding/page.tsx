@@ -6,10 +6,14 @@ import {
   ArrowRight,
   BrainCircuit,
   Check,
+  ChevronDown,
+  Edit3,
   Eye,
   Globe,
   Home,
   LayoutDashboard,
+  Link2,
+  Loader2,
   Megaphone,
   MousePointerClick,
   BarChart3,
@@ -17,6 +21,7 @@ import {
   Rocket,
   ShoppingCart,
   Sparkles,
+  Target,
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +32,7 @@ import { cn } from '@/lib/utils';
 
 type OnboardingStep = 0 | 1 | 2 | 3;
 type CampaignObjective = 'awareness' | 'traffic' | 'conversion' | 'retargeting';
+type ConversionGoal = 'purchase' | 'lead' | 'app_install';
 
 interface PlatformCard {
   id: string;
@@ -40,6 +46,14 @@ interface ObjectiveCard {
   label: string;
   description: string;
   icon: React.ReactNode;
+}
+
+interface AiGeneratedPlan {
+  objective: string;
+  targeting: string;
+  budget: string;
+  creative: string;
+  platforms: string;
 }
 
 // ============================================================
@@ -62,6 +76,16 @@ const PLATFORMS: PlatformCard[] = [
   { id: 'amazon', name: 'Amazon Ads', icon: <Globe size={28} />, color: 'border-orange-200 hover:border-orange-400 dark:border-orange-800' },
   { id: 'microsoft', name: 'Microsoft Ads', icon: <Globe size={28} />, color: 'border-cyan-200 hover:border-cyan-400 dark:border-cyan-800' },
 ];
+
+const CONVERSION_GOALS: { value: ConversionGoal; label: string }[] = [
+  { value: 'purchase', label: 'メインサイト購入' },
+  { value: 'lead', label: 'リード獲得フォーム' },
+  { value: 'app_install', label: 'アプリインストール' },
+];
+
+const ONBOARDING_AGE_OPTIONS = ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
+
+const ONBOARDING_REGION_OPTIONS = ['東京', '大阪', '名古屋', '福岡', '札幌', '横浜', '京都', '神戸', '仙台', '広島'] as const;
 
 const OBJECTIVES: ObjectiveCard[] = [
   { id: 'awareness', label: '認知拡大', description: 'ブランドの認知度を高め、より多くの人にリーチ', icon: <Eye size={28} className="text-blue-500" /> },
@@ -265,6 +289,48 @@ function CampaignStep({
   const [budget, setBudget] = useState('');
   const [aiMode, setAiMode] = useState(false);
   const [businessGoal, setBusinessGoal] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiPlan, setAiPlan] = useState<AiGeneratedPlan | null>(null);
+  const [editingPlanField, setEditingPlanField] = useState<keyof AiGeneratedPlan | null>(null);
+
+  // New fields
+  const [landingPageUrl, setLandingPageUrl] = useState('');
+  const [conversionGoal, setConversionGoal] = useState<ConversionGoal>('purchase');
+  const [targetCpa, setTargetCpa] = useState('');
+  const [targetRoas, setTargetRoas] = useState('');
+  const [ageMin, setAgeMin] = useState('18');
+  const [ageMax, setAgeMax] = useState('65+');
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+
+  const inputCls = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
+  const labelCls = 'mb-1 block text-sm font-medium text-foreground';
+
+  function toggleRegion(region: string): void {
+    setSelectedRegions((prev) =>
+      prev.includes(region) ? prev.filter((r) => r !== region) : [...prev, region],
+    );
+  }
+
+  function handleAiGenerate(): void {
+    if (!businessGoal.trim()) return;
+    setAiGenerating(true);
+    // Simulate AI generation
+    setTimeout(() => {
+      setAiPlan({
+        objective: 'コンバージョン最大化',
+        targeting: '20-35歳女性、東京・大阪・名古屋、スキンケア・美容に興味あり',
+        budget: '日次 ¥16,000 / 月間 ¥500,000 (Google 40%, Meta 35%, TikTok 25%)',
+        creative: '動画広告3本 + 静止画カルーセル2セット (AIが自動生成)',
+        platforms: 'Google Ads, Meta (Instagram), TikTok',
+      });
+      setAiGenerating(false);
+    }, 2500);
+  }
+
+  function handleEditPlanField(field: keyof AiGeneratedPlan, value: string): void {
+    if (!aiPlan) return;
+    setAiPlan({ ...aiPlan, [field]: value });
+  }
 
   return (
     <div>
@@ -282,7 +348,7 @@ function CampaignStep({
           </div>
           <button
             type="button"
-            onClick={() => setAiMode(!aiMode)}
+            onClick={() => { setAiMode(!aiMode); setAiPlan(null); }}
             className={cn(
               'relative h-6 w-11 rounded-full transition-colors',
               aiMode ? 'bg-primary' : 'bg-muted',
@@ -300,17 +366,83 @@ function CampaignStep({
         <p className="mt-1 text-xs text-muted-foreground">
           目標を入力するだけでAIが最適なキャンペーンを設計します
         </p>
-        {aiMode && (
-          <div className="mt-3">
+        {aiMode && !aiPlan && (
+          <div className="mt-3 space-y-3">
             <label htmlFor="business-goal" className="sr-only">ビジネス目標</label>
             <textarea
               id="business-goal"
               value={businessGoal}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBusinessGoal(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className={inputCls}
               rows={3}
               placeholder="例: 新しいスキンケア製品のオンライン販売を月間100件達成したい。ターゲットは20-35歳の女性。予算は月50万円。"
             />
+            <button
+              type="button"
+              onClick={handleAiGenerate}
+              disabled={aiGenerating || !businessGoal.trim()}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {aiGenerating ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <BrainCircuit size={14} />
+              )}
+              {aiGenerating ? 'AI分析中...' : 'AIで設計'}
+            </button>
+          </div>
+        )}
+
+        {/* AI Generated Plan Display */}
+        {aiMode && aiPlan && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Check size={16} className="text-green-500" />
+              <span className="text-sm font-semibold text-green-600">キャンペーンプラン生成完了</span>
+            </div>
+            {(Object.entries(aiPlan) as [keyof AiGeneratedPlan, string][]).map(([key, value]) => {
+              const fieldLabels: Record<keyof AiGeneratedPlan, string> = {
+                objective: '目的',
+                targeting: 'ターゲティング',
+                budget: '予算配分',
+                creative: 'クリエイティブ',
+                platforms: 'プラットフォーム',
+              };
+              const isEditing = editingPlanField === key;
+              return (
+                <div key={key} className="rounded-md border border-border bg-background p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">{fieldLabels[key]}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingPlanField(isEditing ? null : key)}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+                      aria-label={`${fieldLabels[key]}を編集`}
+                    >
+                      <Edit3 size={10} />
+                      {isEditing ? '完了' : '編集'}
+                    </button>
+                  </div>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={value}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEditPlanField(key, e.target.value)}
+                      className={cn(inputCls, 'mt-1')}
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm text-foreground">{value}</p>
+                  )}
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setAiPlan(null)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              再生成する
+            </button>
           </div>
         )}
       </div>
@@ -319,7 +451,7 @@ function CampaignStep({
         <div className="mt-6 space-y-6">
           {/* Campaign name */}
           <div>
-            <label htmlFor="onboarding-campaign-name" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="onboarding-campaign-name" className={labelCls}>
               キャンペーン名
             </label>
             <input
@@ -327,7 +459,7 @@ function CampaignStep({
               type="text"
               value={campaignName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignName(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className={inputCls}
               placeholder="春のプロモーションキャンペーン"
             />
           </div>
@@ -360,7 +492,7 @@ function CampaignStep({
 
           {/* Budget */}
           <div>
-            <label htmlFor="onboarding-budget" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="onboarding-budget" className={labelCls}>
               月間予算 (JPY)
             </label>
             <input
@@ -368,10 +500,146 @@ function CampaignStep({
               type="number"
               value={budget}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBudget(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className={inputCls}
               placeholder="500000"
               min="1"
             />
+          </div>
+
+          {/* Landing Page URL */}
+          <div>
+            <label htmlFor="onboarding-lp-url" className={labelCls}>
+              <span className="flex items-center gap-1.5">
+                <Link2 size={14} />
+                ランディングページURL
+              </span>
+            </label>
+            <input
+              id="onboarding-lp-url"
+              type="url"
+              value={landingPageUrl}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLandingPageUrl(e.target.value)}
+              className={inputCls}
+              placeholder="https://example.com/landing"
+            />
+          </div>
+
+          {/* Conversion Goal */}
+          <div>
+            <label htmlFor="onboarding-conversion-goal" className={labelCls}>
+              <span className="flex items-center gap-1.5">
+                <Target size={14} />
+                コンバージョンゴール
+              </span>
+            </label>
+            <div className="relative">
+              <select
+                id="onboarding-conversion-goal"
+                value={conversionGoal}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConversionGoal(e.target.value as ConversionGoal)}
+                className={cn(inputCls, 'appearance-none pr-8')}
+              >
+                {CONVERSION_GOALS.map((cg) => (
+                  <option key={cg.value} value={cg.value}>{cg.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Target CPA / ROAS */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="onboarding-target-cpa" className={labelCls}>目標CPA (JPY)</label>
+              <input
+                id="onboarding-target-cpa"
+                type="number"
+                value={targetCpa}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetCpa(e.target.value)}
+                className={inputCls}
+                placeholder="3000"
+                min="1"
+              />
+            </div>
+            <div>
+              <label htmlFor="onboarding-target-roas" className={labelCls}>目標ROAS (倍)</label>
+              <input
+                id="onboarding-target-roas"
+                type="number"
+                value={targetRoas}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetRoas(e.target.value)}
+                className={inputCls}
+                placeholder="3.0"
+                min="0"
+                step="0.1"
+              />
+            </div>
+          </div>
+
+          {/* Basic Targeting */}
+          <div className="rounded-lg border border-border p-4">
+            <h4 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Users size={14} />
+              基本ターゲティング
+            </h4>
+
+            {/* Age range */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="onboarding-age-min" className={labelCls}>年齢（下限）</label>
+                <div className="relative">
+                  <select
+                    id="onboarding-age-min"
+                    value={ageMin}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMin(e.target.value)}
+                    className={cn(inputCls, 'appearance-none pr-8')}
+                  >
+                    {ONBOARDING_AGE_OPTIONS.map((age) => (
+                      <option key={age} value={age}>{age}歳</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="onboarding-age-max" className={labelCls}>年齢（上限）</label>
+                <div className="relative">
+                  <select
+                    id="onboarding-age-max"
+                    value={ageMax}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMax(e.target.value)}
+                    className={cn(inputCls, 'appearance-none pr-8')}
+                  >
+                    {ONBOARDING_AGE_OPTIONS.map((age) => (
+                      <option key={age} value={age}>{age}歳</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+
+            {/* Region */}
+            <div className="mt-3">
+              <span className={labelCls}>地域</span>
+              <div className="flex flex-wrap gap-1.5">
+                {ONBOARDING_REGION_OPTIONS.map((region) => (
+                  <button
+                    key={region}
+                    type="button"
+                    onClick={() => toggleRegion(region)}
+                    className={cn(
+                      'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+                      selectedRegions.includes(region)
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50',
+                    )}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

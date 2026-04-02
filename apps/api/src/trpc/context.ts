@@ -1,4 +1,6 @@
 import type { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
+import { verifyToken } from "@omni-ad/auth";
+import type { JwtPayload } from "@omni-ad/auth";
 
 export interface Context {
   organizationId: string | null;
@@ -7,8 +9,8 @@ export interface Context {
 }
 
 function extractBearerPayload(
-  authHeader: string | undefined
-): { userId: string; organizationId: string; userRole: string } | null {
+  authHeader: string | undefined,
+): JwtPayload | null {
   if (!authHeader?.startsWith("Bearer ")) {
     return null;
   }
@@ -18,39 +20,10 @@ function extractBearerPayload(
     return null;
   }
 
-  // TODO: Replace with real JWT verification via @omni-ad/auth
-  // For now, decode the token payload without verification for skeleton wiring.
   try {
-    const parts = token.split(".");
-    const payloadPart = parts[1];
-    if (!payloadPart) {
-      return null;
-    }
-    const decoded: unknown = JSON.parse(
-      Buffer.from(payloadPart, "base64url").toString("utf-8")
-    );
-
-    if (
-      typeof decoded === "object" &&
-      decoded !== null &&
-      "sub" in decoded &&
-      "org" in decoded &&
-      "role" in decoded
-    ) {
-      const payload = decoded as {
-        sub: string;
-        org: string;
-        role: string;
-      };
-      return {
-        userId: payload.sub,
-        organizationId: payload.org,
-        userRole: payload.role,
-      };
-    }
-
-    return null;
+    return verifyToken(token);
   } catch {
+    // Invalid or expired token -- public procedures still work
     return null;
   }
 }

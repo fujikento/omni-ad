@@ -32,6 +32,31 @@ const DbPlatform = z.enum([
   "microsoft",
 ]);
 
+const BidStrategySchema = z.enum([
+  "auto_maximize_conversions",
+  "auto_target_cpa",
+  "auto_target_roas",
+  "manual_cpc",
+]);
+
+const TargetingConfigSchema = z.object({
+  ageMin: z.number().int().min(13).max(100).optional(),
+  ageMax: z.number().int().min(13).max(100).optional(),
+  genders: z.array(z.string()).optional(),
+  locations: z.array(z.string()).optional(),
+  interests: z.array(z.string()).optional(),
+  devices: z.array(z.string()).optional(),
+  placements: z.array(z.string()).optional(),
+  excludedAudiences: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
+});
+
+const KpiAlertsSchema = z.object({
+  cpaThreshold: z.number().positive().optional(),
+  roasThreshold: z.number().positive().optional(),
+  ctrThreshold: z.number().positive().optional(),
+});
+
 const CreateCampaignInput = z.object({
   name: z.string().min(1).max(200),
   objective: CampaignObjective,
@@ -40,6 +65,13 @@ const CreateCampaignInput = z.object({
   totalBudget: z.string().min(1),
   dailyBudget: z.string().min(1),
   funnelId: z.string().uuid().optional(),
+  targetRoas: z.number().positive().optional(),
+  targetCpa: z.string().optional(),
+  bidStrategy: BidStrategySchema.optional(),
+  landingPageUrl: z.string().url().optional(),
+  conversionEndpointId: z.string().uuid().optional(),
+  targetingConfig: TargetingConfigSchema.optional(),
+  kpiAlerts: KpiAlertsSchema.optional(),
 });
 
 const UpdateCampaignInput = z.object({
@@ -52,6 +84,13 @@ const UpdateCampaignInput = z.object({
   dailyBudget: z.string().optional(),
   status: z.enum(["draft", "active", "paused", "completed", "error"]).optional(),
   funnelId: z.string().uuid().nullable().optional(),
+  targetRoas: z.number().positive().nullable().optional(),
+  targetCpa: z.string().nullable().optional(),
+  bidStrategy: BidStrategySchema.nullable().optional(),
+  landingPageUrl: z.string().url().nullable().optional(),
+  conversionEndpointId: z.string().uuid().nullable().optional(),
+  targetingConfig: TargetingConfigSchema.nullable().optional(),
+  kpiAlerts: KpiAlertsSchema.nullable().optional(),
 });
 
 const DeployCampaignInput = z.object({

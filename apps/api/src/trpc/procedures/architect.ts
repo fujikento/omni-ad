@@ -71,6 +71,7 @@ const CampaignPlanSchema = z.object({
 
 const DeployPlanInput = z.object({
   plan: CampaignPlanSchema,
+  productUrl: z.string().url().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -114,6 +115,7 @@ export const architectRouter = router({
           ctx.organizationId,
           input.plan as CampaignPlan,
           ctx.userId,
+          input.productUrl,
         );
       } catch (error) {
         handleServiceError(error);

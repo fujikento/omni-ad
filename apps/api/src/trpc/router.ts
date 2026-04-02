@@ -3,6 +3,7 @@ import { analyticsRouter } from "./procedures/analytics.js";
 import { approvalsRouter } from "./procedures/approvals.js";
 import { architectRouter } from "./procedures/architect.js";
 import { audiencesRouter } from "./procedures/audiences.js";
+import { authRouter } from "./procedures/auth.js";
 import { budgetsRouter } from "./procedures/budgets.js";
 import { campaignsRouter } from "./procedures/campaigns.js";
 import { conversionsRouter } from "./procedures/conversions.js";
@@ -19,6 +20,7 @@ import { aiAutopilotRouter } from "./procedures/ai-autopilot.js";
 import { competitiveIntelRouter } from "./procedures/competitive-intel.js";
 
 export const appRouter = router({
+  auth: authRouter,
   campaigns: campaignsRouter,
   creatives: creativesRouter,
   analytics: analyticsRouter,

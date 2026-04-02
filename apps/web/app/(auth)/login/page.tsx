@@ -1,14 +1,53 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+
+interface LoginErrorResponse {
+  message?: string;
+}
 
 export default function LoginPage(): React.ReactElement {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
-    // TODO: implement authentication
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3001/trpc/auth.login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ json: { email, password } }),
+      });
+
+      if (!response.ok) {
+        const body: unknown = await response.json().catch(() => null);
+        const parsed = body as { error?: { json?: LoginErrorResponse } } | null;
+        const message =
+          parsed?.error?.json?.message ?? 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+        setError(message);
+        return;
+      }
+
+      const data: unknown = await response.json();
+      const result = data as { result?: { data?: { json?: { token?: string } } } };
+      const token = result?.result?.data?.json?.token;
+
+      if (token) {
+        localStorage.setItem('omni-ad-token', token);
+      }
+
+      window.location.href = '/home';
+    } catch {
+      setError('サーバーに接続できませんでした。しばらくしてからもう一度お試しください。');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -72,10 +111,18 @@ export default function LoginPage(): React.ReactElement {
               />
             </div>
 
+            {error && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              disabled={isLoading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50"
             >
+              {isLoading && <Loader2 size={16} className="animate-spin" />}
               ログイン
             </button>
           </div>

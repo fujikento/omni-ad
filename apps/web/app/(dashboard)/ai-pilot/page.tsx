@@ -29,6 +29,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 
 // ============================================================
 // Types
@@ -711,14 +712,40 @@ function PerformanceImpactSection({
 export default function AiPilotPage(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [decisions, setDecisions] = useState<AiDecision[]>(MOCK_DECISIONS);
-  const [triggering, setTriggering] = useState(false);
+  const [localDecisionOverrides, setLocalDecisionOverrides] = useState<
+    Record<string, DecisionStatus>
+  >({});
 
-  const isActive = true;
+  // tRPC queries with fallback to mock
+  const decisionsQuery = trpc.aiAutopilot.decisions.list.useQuery({}, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const settingsQuery = trpc.aiAutopilot.settings.get.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-  // TODO: Wire to tRPC when backend is ready
-  // const { data, isLoading } = trpc.aiAutopilot.status.useQuery();
-  // const triggerMutation = trpc.aiAutopilot.trigger.useMutation();
+  const triggerMutation = trpc.aiAutopilot.trigger.useMutation();
+  const approveMutation = trpc.aiAutopilot.decisions.approve.useMutation();
+  const rejectMutation = trpc.aiAutopilot.decisions.reject.useMutation();
+
+  // Resolve data with fallback
+  const rawDecisions: AiDecision[] = decisionsQuery.error
+    ? MOCK_DECISIONS
+    : (decisionsQuery.data as unknown as AiDecision[] | undefined) ?? MOCK_DECISIONS;
+
+  // Apply local optimistic overrides
+  const decisions = rawDecisions.map((d) => {
+    const override = localDecisionOverrides[d.id];
+    return override ? { ...d, status: override } : d;
+  });
+
+  const isActive = settingsQuery.error
+    ? true
+    : (settingsQuery.data as { isActive?: boolean } | undefined)?.isActive ?? true;
+
+  const triggering = triggerMutation.isPending;
 
   const filteredDecisions = decisions.filter((d) => {
     if (statusFilter !== 'all' && d.status !== statusFilter) return false;
@@ -727,25 +754,51 @@ export default function AiPilotPage(): React.ReactElement {
   });
 
   function handleApprove(id: string): void {
-    setDecisions((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, status: 'executed' as DecisionStatus } : d,
-      ),
+    // Optimistic update
+    setLocalDecisionOverrides((prev) => ({ ...prev, [id]: 'executed' as DecisionStatus }));
+    approveMutation.mutate(
+      { decisionId: id },
+      {
+        onSuccess: () => {
+          decisionsQuery.refetch().catch(() => { /* fallback */ });
+        },
+        onError: () => {
+          // Revert optimistic update on error
+          setLocalDecisionOverrides((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        },
+      },
     );
   }
 
   function handleReject(id: string): void {
-    setDecisions((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, status: 'rejected' as DecisionStatus } : d,
-      ),
+    setLocalDecisionOverrides((prev) => ({ ...prev, [id]: 'rejected' as DecisionStatus }));
+    rejectMutation.mutate(
+      { decisionId: id },
+      {
+        onSuccess: () => {
+          decisionsQuery.refetch().catch(() => { /* fallback */ });
+        },
+        onError: () => {
+          setLocalDecisionOverrides((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        },
+      },
     );
   }
 
   function handleManualTrigger(): void {
-    setTriggering(true);
-    // TODO: triggerMutation.mutate()
-    setTimeout(() => setTriggering(false), 2000);
+    triggerMutation.mutate(undefined, {
+      onSuccess: () => {
+        decisionsQuery.refetch().catch(() => { /* fallback */ });
+      },
+    });
   }
 
   const pendingCount = decisions.filter(

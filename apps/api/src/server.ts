@@ -1,12 +1,17 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
+import fastifyStatic from "@fastify/static";
+import fastifyMultipart from "@fastify/multipart";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import type { FastifyTRPCPluginOptions } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./trpc/router.js";
 import type { AppRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
 import { registerConversionTrackingRoutes } from "./routes/conversion-tracking.js";
+import { registerUploadRoutes } from "./routes/upload.js";
+import { resolve } from "node:path";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 const HOST = process.env["HOST"] ?? "0.0.0.0";
@@ -38,6 +43,43 @@ function buildServer(): ReturnType<typeof Fastify> {
     contentSecurityPolicy: false,
   });
 
+  // --- Rate Limiting ---
+
+  void server.register(rateLimit, {
+    global: true,
+    max: (request) => {
+      // Exempt health and pixel tracking routes
+      if (
+        request.url === "/health" ||
+        request.url.startsWith("/track/")
+      ) {
+        return 0; // 0 = unlimited (exempt)
+      }
+      // Authenticated requests get higher limit
+      const hasAuth = Boolean(request.headers.authorization);
+      return hasAuth ? 100 : 20;
+    },
+    timeWindow: 60_000, // 1 minute
+    keyGenerator: (request) => request.ip,
+  });
+
+  // --- Multipart (file uploads) ---
+
+  void server.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+      files: 1,
+    },
+  });
+
+  // --- Static file serving (uploads) ---
+
+  void server.register(fastifyStatic, {
+    root: resolve(process.cwd(), "uploads"),
+    prefix: "/uploads/",
+    decorateReply: false,
+  });
+
   // --- tRPC ---
 
   void server.register(fastifyTRPCPlugin, {
@@ -67,6 +109,10 @@ function buildServer(): ReturnType<typeof Fastify> {
   // --- Conversion Tracking Routes ---
 
   registerConversionTrackingRoutes(server);
+
+  // --- Upload Routes ---
+
+  registerUploadRoutes(server);
 
   // --- Webhook Routes ---
 

@@ -3,6 +3,11 @@ import {
   campaigns,
   campaignPlatformDeployments,
 } from '@omni-ad/db/schema';
+import type {
+  CampaignTargetingConfig,
+  CampaignKpiAlerts,
+  BidStrategy,
+} from '@omni-ad/db/schema';
 import { getQueue, QUEUE_NAMES } from '@omni-ad/queue';
 import type { SyncCampaignJob } from '@omni-ad/queue';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -24,6 +29,13 @@ interface CreateCampaignInput {
   totalBudget: string;
   dailyBudget: string;
   funnelId?: string;
+  targetRoas?: number;
+  targetCpa?: string;
+  bidStrategy?: BidStrategy;
+  landingPageUrl?: string;
+  conversionEndpointId?: string;
+  targetingConfig?: CampaignTargetingConfig;
+  kpiAlerts?: CampaignKpiAlerts;
 }
 
 interface UpdateCampaignInput {
@@ -35,6 +47,13 @@ interface UpdateCampaignInput {
   dailyBudget?: string;
   status?: CampaignInsert['status'];
   funnelId?: string | null;
+  targetRoas?: number | null;
+  targetCpa?: string | null;
+  bidStrategy?: BidStrategy | null;
+  landingPageUrl?: string | null;
+  conversionEndpointId?: string | null;
+  targetingConfig?: CampaignTargetingConfig | null;
+  kpiAlerts?: CampaignKpiAlerts | null;
 }
 
 type Platform = typeof campaignPlatformDeployments.$inferInsert['platform'];
@@ -87,6 +106,13 @@ export async function createCampaign(
       totalBudget: input.totalBudget,
       dailyBudget: input.dailyBudget,
       funnelId: input.funnelId ?? null,
+      targetRoas: input.targetRoas ?? null,
+      targetCpa: input.targetCpa ?? null,
+      bidStrategy: input.bidStrategy ?? null,
+      landingPageUrl: input.landingPageUrl ?? null,
+      conversionEndpointId: input.conversionEndpointId ?? null,
+      targetingConfig: input.targetingConfig ?? null,
+      kpiAlerts: input.kpiAlerts ?? null,
       createdBy: userId,
     })
     .returning();
@@ -118,6 +144,17 @@ export async function updateCampaign(
     updateSet['dailyBudget'] = input.dailyBudget;
   if (input.status !== undefined) updateSet['status'] = input.status;
   if (input.funnelId !== undefined) updateSet['funnelId'] = input.funnelId;
+  if (input.targetRoas !== undefined) updateSet['targetRoas'] = input.targetRoas;
+  if (input.targetCpa !== undefined) updateSet['targetCpa'] = input.targetCpa;
+  if (input.bidStrategy !== undefined) updateSet['bidStrategy'] = input.bidStrategy;
+  if (input.landingPageUrl !== undefined)
+    updateSet['landingPageUrl'] = input.landingPageUrl;
+  if (input.conversionEndpointId !== undefined)
+    updateSet['conversionEndpointId'] = input.conversionEndpointId;
+  if (input.targetingConfig !== undefined)
+    updateSet['targetingConfig'] = input.targetingConfig;
+  if (input.kpiAlerts !== undefined)
+    updateSet['kpiAlerts'] = input.kpiAlerts;
 
   const [updated] = await db
     .update(campaigns)

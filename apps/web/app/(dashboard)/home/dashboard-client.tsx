@@ -11,6 +11,7 @@ import {
   Clock,
   FlaskConical,
   Lightbulb,
+  RefreshCw,
   ShieldAlert,
   TrendingUp,
   Trophy,
@@ -24,6 +25,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 
 // ============================================================
 // Types
@@ -641,13 +643,53 @@ function ActivityFeed({ activities }: { activities: ActivityItem[] }): React.Rea
 // Main Dashboard Page
 // ============================================================
 
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return `${seconds}秒前`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  return `${days}日前`;
+}
+
 export function DashboardClient(): React.ReactElement {
   const [alertDetail, setAlertDetail] = useState<Alert | null>(null);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [stoppedAlerts, setStoppedAlerts] = useState<Set<string>>(new Set());
 
+  // tRPC queries with fallback to mock data
+  const overviewQuery = trpc.dashboard.overview.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  const healthQuery = trpc.dashboard.healthScores.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  const activityQuery = trpc.dashboard.activity.useQuery({}, { retry: false, refetchOnWindowFocus: false });
+
+  // Determine last update time from the most recently fetched query
+  const lastFetchedAt = overviewQuery.dataUpdatedAt || healthQuery.dataUpdatedAt || activityQuery.dataUpdatedAt;
+  const lastUpdatedLabel = lastFetchedAt > 0
+    ? formatTimeAgo(new Date(lastFetchedAt))
+    : null;
+
+  // Use real data if available, otherwise fall back to mock
+  const kpiData: KpiCardData[] = overviewQuery.error
+    ? MOCK_KPI
+    : (overviewQuery.data as KpiCardData[] | undefined) ?? MOCK_KPI;
+
+  const campaignHealth: CampaignHealth[] = healthQuery.error
+    ? MOCK_CAMPAIGN_HEALTH
+    : (healthQuery.data as CampaignHealth[] | undefined) ?? MOCK_CAMPAIGN_HEALTH;
+
+  const activityData: ActivityItem[] = activityQuery.error
+    ? MOCK_ACTIVITY
+    : (activityQuery.data as unknown as ActivityItem[] | undefined) ?? MOCK_ACTIVITY;
+
+  function handleRefresh(): void {
+    overviewQuery.refetch().catch(() => { /* fallback to mock */ });
+    healthQuery.refetch().catch(() => { /* fallback to mock */ });
+    activityQuery.refetch().catch(() => { /* fallback to mock */ });
+  }
+
   function handleStopCampaign(alert: Alert): void {
-    // Mock: trpc.emergency.stopCampaign would be called here
     setStoppedAlerts((prev) => new Set([...prev, alert.id]));
   }
 
@@ -662,13 +704,37 @@ export function DashboardClient(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          おはようございます
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          本日のマーケティング状況をお知らせします
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            おはようございます
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            本日のマーケティング状況をお知らせします
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastUpdatedLabel && (
+            <span className="text-xs text-muted-foreground">
+              最終更新: {lastUpdatedLabel}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={overviewQuery.isFetching || healthQuery.isFetching || activityQuery.isFetching}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+            aria-label="データを更新"
+          >
+            <RefreshCw
+              size={12}
+              className={cn(
+                (overviewQuery.isFetching || healthQuery.isFetching || activityQuery.isFetching) && 'animate-spin',
+              )}
+            />
+            更新
+          </button>
+        </div>
       </div>
 
       {/* Alert Banner */}
@@ -676,7 +742,7 @@ export function DashboardClient(): React.ReactElement {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {MOCK_KPI.map((card) => (
+        {kpiData.map((card) => (
           <KpiCard key={card.label} card={card} />
         ))}
       </div>
@@ -689,7 +755,7 @@ export function DashboardClient(): React.ReactElement {
           <div>
             <h2 className="mb-3 text-lg font-semibold text-foreground">キャンペーンヘルス</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {MOCK_CAMPAIGN_HEALTH.map((campaign) => (
+              {campaignHealth.map((campaign) => (
                 <CampaignHealthCard key={campaign.id} campaign={campaign} />
               ))}
             </div>
@@ -719,7 +785,7 @@ export function DashboardClient(): React.ReactElement {
       </div>
 
       {/* Activity Feed */}
-      <ActivityFeed activities={MOCK_ACTIVITY} />
+      <ActivityFeed activities={activityData} />
 
       {/* Alert detail modal */}
       {alertDetail && (

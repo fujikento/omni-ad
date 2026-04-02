@@ -11,6 +11,7 @@ import { processAnomalyDetection } from './processors/anomaly-detection.js';
 import { processRulesEvaluation } from './processors/rules-evaluation.js';
 import { processAiAutopilot } from './processors/ai-autopilot.js';
 import { processCompetitorMonitor } from './processors/competitor-monitor.js';
+import { registerSchedulers } from './schedulers/index.js';
 
 const workers: Worker[] = [];
 
@@ -39,8 +40,11 @@ function createWorker(
   return worker;
 }
 
-function startWorkers(): void {
+async function startWorkers(): Promise<void> {
   console.log('Starting OMNI-AD workers...');
+
+  // Register recurring job schedulers
+  await registerSchedulers();
 
   workers.push(
     createWorker(
@@ -110,7 +114,10 @@ async function shutdown(): Promise<void> {
   process.exit(0);
 }
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', () => void shutdown());
+process.on('SIGINT', () => void shutdown());
 
-startWorkers();
+void startWorkers().catch((err: unknown) => {
+  console.error('Failed to start workers:', err);
+  process.exit(1);
+});

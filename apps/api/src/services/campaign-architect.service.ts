@@ -293,6 +293,7 @@ export async function deployCampaignPlan(
   organizationId: string,
   plan: CampaignPlan,
   userId: string,
+  productUrl?: string,
 ): Promise<CampaignWithDeployments[]> {
   const createdCampaigns: CampaignWithDeployments[] = [];
 
@@ -313,6 +314,20 @@ export async function deployCampaignPlan(
     // Calculate total budget from daily over 30 days
     const totalBudget = (planned.dailyBudget * 30).toFixed(2);
 
+    // Map AI targeting to campaign targetingConfig
+    const targetingConfig = {
+      ageMin: planned.targeting.ageMin,
+      ageMax: planned.targeting.ageMax,
+      genders: planned.targeting.genders,
+      interests: planned.targeting.interests,
+      locations: planned.targeting.locations,
+    };
+
+    // Default bid strategy based on campaign objective
+    const bidStrategy = objective === 'conversion' || objective === 'retargeting'
+      ? 'auto_maximize_conversions' as const
+      : undefined;
+
     const campaign = await createCampaign(
       {
         name: planned.name,
@@ -321,10 +336,22 @@ export async function deployCampaignPlan(
         endDate,
         totalBudget,
         dailyBudget: planned.dailyBudget.toFixed(2),
+        targetingConfig,
+        bidStrategy,
+        landingPageUrl: productUrl,
       },
       organizationId,
       userId,
     );
+
+    // TODO: Auto-generate creatives from AI recommendations
+    if (planned.creativeRecommendations.length > 0) {
+      // Log for now; a future iteration will pipe these into creative generation
+      console.log(
+        `[campaign-architect] Creative recommendations for ${campaign.id}:`,
+        planned.creativeRecommendations,
+      );
+    }
 
     // Deploy to the specified platform
     const deployments = await deployCampaign(

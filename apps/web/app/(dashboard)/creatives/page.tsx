@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
   BrainCircuit,
   ChevronDown,
+  FileVideo,
   Image,
   Loader2,
   Sparkles,
   Star,
+  Upload,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -499,11 +501,241 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
   );
 }
 
+// -- File Upload Section --
+
+const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/quicktime'];
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  previewUrl: string | null;
+  progress: number;
+  status: 'uploading' | 'complete' | 'error';
+  errorMessage?: string;
+}
+
+function FileUploadSection({
+  onUploadComplete,
+}: {
+  onUploadComplete: () => void;
+}): React.ReactElement {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validateFile = useCallback((file: File): string | null => {
+    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+      return `${file.name}: 対応していないファイル形式です（jpg, png, gif, mp4, mov のみ）`;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return `${file.name}: ファイルサイズが${MAX_FILE_SIZE_MB}MBを超えています`;
+    }
+    return null;
+  }, []);
+
+  const processFile = useCallback((file: File) => {
+    const error = validateFile(file);
+    const isImage = file.type.startsWith('image/');
+    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+
+    const uploadedFile: UploadedFile = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      previewUrl,
+      progress: error ? 0 : 0,
+      status: error ? 'error' : 'uploading',
+      errorMessage: error ?? undefined,
+    };
+
+    setFiles((prev) => [...prev, uploadedFile]);
+
+    if (!error) {
+      // Simulate upload progress (mock -- replace with real API)
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 30 + 10;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === uploadedFile.id
+                ? { ...f, progress: 100, status: 'complete' as const }
+                : f,
+            ),
+          );
+          onUploadComplete();
+        } else {
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === uploadedFile.id ? { ...f, progress: Math.min(progress, 99) } : f,
+            ),
+          );
+        }
+      }, 300);
+    }
+  }, [validateFile, onUploadComplete]);
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+    setIsDragOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+    setIsDragOver(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    droppedFiles.forEach(processFile);
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>): void {
+    const selectedFiles = Array.from(e.target.files ?? []);
+    selectedFiles.forEach(processFile);
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  }
+
+  function removeFile(id: string): void {
+    setFiles((prev) => {
+      const file = prev.find((f) => f.id === id);
+      if (file?.previewUrl) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+      return prev.filter((f) => f.id !== id);
+    });
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-foreground">ファイルアップロード</h2>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          'flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-colors',
+          isDragOver
+            ? 'border-primary bg-primary/5'
+            : 'border-border bg-card hover:border-primary/30',
+        )}
+      >
+        <Upload size={32} className="text-muted-foreground/50" />
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground">
+            ファイルをドラッグ&ドロップ
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            または
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Upload size={14} />
+          ファイルを選択
+        </button>
+        <p className="text-xs text-muted-foreground">
+          jpg, png, gif, mp4, mov -- 最大{MAX_FILE_SIZE_MB}MB
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.gif,.mp4,.mov"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+          aria-label="ファイルを選択"
+        />
+      </div>
+
+      {/* Upload progress list */}
+      {files.length > 0 && (
+        <div className="space-y-2">
+          {files.map((file) => (
+            <div
+              key={file.id}
+              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
+            >
+              {/* Preview */}
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-muted/50 overflow-hidden">
+                {file.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={file.previewUrl}
+                    alt={file.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : file.type.startsWith('video/') ? (
+                  <FileVideo size={20} className="text-muted-foreground/50" />
+                ) : (
+                  <Image size={20} className="text-muted-foreground/50" />
+                )}
+              </div>
+
+              {/* Info + progress */}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                {file.status === 'uploading' && (
+                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${file.progress}%` }}
+                    />
+                  </div>
+                )}
+                {file.status === 'error' && file.errorMessage && (
+                  <p className="mt-1 text-xs text-destructive">{file.errorMessage}</p>
+                )}
+                {file.status === 'complete' && (
+                  <p className="mt-1 text-xs font-medium text-green-600">アップロード完了</p>
+                )}
+              </div>
+
+              {/* Remove */}
+              <button
+                type="button"
+                onClick={() => removeFile(file.id)}
+                className="flex-shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+                aria-label={`${file.name}を削除`}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // -- Main Page --
 
 export default function CreativesPage(): React.ReactElement {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [uploadRefreshKey, setUploadRefreshKey] = useState(0);
 
   const creativesQuery = trpc.creatives.list.useQuery(undefined, { retry: false });
 
@@ -534,6 +766,17 @@ export default function CreativesPage(): React.ReactElement {
           AI生成
         </button>
       </div>
+
+      {/* File Upload */}
+      <FileUploadSection
+        key={uploadRefreshKey}
+        onUploadComplete={() => {
+          setUploadRefreshKey((prev) => prev + 1);
+          creativesQuery.refetch().catch(() => {
+            // Refetch silently fails when API is unavailable
+          });
+        }}
+      />
 
       {/* Gallery grid */}
       {isLoading ? (

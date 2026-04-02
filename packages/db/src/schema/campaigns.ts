@@ -4,11 +4,13 @@ import {
   jsonb,
   numeric,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import { conversionEndpoints } from './conversions';
 import { creatives } from './creatives';
 import {
   campaignObjectiveEnum,
@@ -17,6 +19,34 @@ import {
 } from './enums';
 import { funnels } from './funnels';
 import { organizations, users } from './organizations';
+
+// ---------------------------------------------------------------------------
+// JSONB types for campaign targeting and KPI alerts
+// ---------------------------------------------------------------------------
+
+export interface CampaignTargetingConfig {
+  ageMin?: number;
+  ageMax?: number;
+  genders?: string[];
+  locations?: string[];
+  interests?: string[];
+  devices?: string[];
+  placements?: string[];
+  excludedAudiences?: string[];
+  languages?: string[];
+}
+
+export interface CampaignKpiAlerts {
+  cpaThreshold?: number;
+  roasThreshold?: number;
+  ctrThreshold?: number;
+}
+
+export type BidStrategy =
+  | 'auto_maximize_conversions'
+  | 'auto_target_cpa'
+  | 'auto_target_roas'
+  | 'manual_cpc';
 
 export const campaigns = pgTable('campaigns', {
   id: uuid('id')
@@ -35,6 +65,16 @@ export const campaigns = pgTable('campaigns', {
   funnelId: uuid('funnel_id').references(() => funnels.id, {
     onDelete: 'set null',
   }),
+  targetRoas: real('target_roas'),
+  targetCpa: numeric('target_cpa', { precision: 14, scale: 2 }),
+  bidStrategy: text('bid_strategy').$type<BidStrategy>(),
+  landingPageUrl: text('landing_page_url'),
+  conversionEndpointId: uuid('conversion_endpoint_id').references(
+    () => conversionEndpoints.id,
+    { onDelete: 'set null' },
+  ),
+  targetingConfig: jsonb('targeting_config').$type<CampaignTargetingConfig>(),
+  kpiAlerts: jsonb('kpi_alerts').$type<CampaignKpiAlerts>(),
   createdBy: uuid('created_by')
     .notNull()
     .references(() => users.id, { onDelete: 'restrict' }),
@@ -125,6 +165,10 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   funnel: one(funnels, {
     fields: [campaigns.funnelId],
     references: [funnels.id],
+  }),
+  conversionEndpoint: one(conversionEndpoints, {
+    fields: [campaigns.conversionEndpointId],
+    references: [conversionEndpoints.id],
   }),
   creator: one(users, {
     fields: [campaigns.createdBy],

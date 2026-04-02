@@ -1,5 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import { hasPermission } from "@omni-ad/auth";
+import type { Permission, UserRole } from "@omni-ad/auth";
 import type { Context } from "./context.js";
 
 const t = initTRPC.context<Context>().create({
@@ -29,7 +31,7 @@ const enforceAuth = t.middleware(({ ctx, next }) => {
     ctx: {
       ...ctx,
       userId: ctx.userId,
-      userRole: ctx.userRole ?? "member",
+      userRole: (ctx.userRole ?? "analyst") as UserRole,
     },
   });
 });
@@ -57,7 +59,7 @@ const enforceOrganization = t.middleware(({ ctx, next }) => {
     ctx: {
       ...ctx,
       userId: ctx.userId,
-      userRole: ctx.userRole ?? "member",
+      userRole: (ctx.userRole ?? "analyst") as UserRole,
       organizationId: ctx.organizationId,
     },
   });
@@ -65,3 +67,23 @@ const enforceOrganization = t.middleware(({ ctx, next }) => {
 
 export const protectedProcedure = t.procedure.use(enforceAuth);
 export const organizationProcedure = t.procedure.use(enforceOrganization);
+
+/**
+ * Factory that creates a procedure requiring a specific RBAC permission.
+ * The user must be authenticated, belong to an organization, and their
+ * role must include the requested permission.
+ */
+export function rbacProcedure(permission: Permission): typeof organizationProcedure {
+  return organizationProcedure.use(({ ctx, next }) => {
+    const role = ctx.userRole as UserRole;
+
+    if (!hasPermission(role, permission)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `Missing permission: ${permission}`,
+      });
+    }
+
+    return next({ ctx });
+  });
+}

@@ -1,17 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   ArrowUpDown,
+  Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   FolderKanban,
+  Globe,
+  Image,
+  Link2,
   Loader2,
+  Monitor,
   Pause,
   Play,
   Plus,
   Search,
+  Sliders,
+  Smartphone,
+  Sparkles,
+  Tablet,
+  Target,
   Trash2,
+  Users,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +38,11 @@ import { ExportButton } from '@/app/components/export-button';
 type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
 type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
 type Objective = 'awareness' | 'traffic' | 'engagement' | 'leads' | 'conversion' | 'retargeting';
+type BidStrategy = 'auto_maximize_conversions' | 'auto_target_cpa' | 'auto_target_roas' | 'manual_cpc';
+type Gender = 'male' | 'female' | 'unspecified';
+type Device = 'mobile' | 'desktop' | 'tablet' | 'all';
+type CampaignTab = 0 | 1 | 2 | 3 | 4;
+
 type SortField = 'name' | 'status' | 'budget' | 'roas' | 'updatedAt';
 type SortDirection = 'asc' | 'desc';
 
@@ -100,6 +118,40 @@ const EXPORT_COLUMNS = [
   { key: 'roas' as const, label: 'ROAS', format: (v: Campaign[keyof Campaign]) => `${Number(v).toFixed(1)}x` },
   { key: 'objective' as const, label: '目的', format: (v: Campaign[keyof Campaign]) => OBJECTIVE_LABELS[v as Objective] ?? String(v) },
   { key: 'updatedAt' as const, label: '更新日' },
+];
+
+const CAMPAIGN_TABS: { label: string; icon: React.ReactNode }[] = [
+  { label: '基本情報', icon: <Globe size={14} /> },
+  { label: 'コンバージョン設定', icon: <Target size={14} /> },
+  { label: 'ターゲティング', icon: <Users size={14} /> },
+  { label: 'クリエイティブ', icon: <Image size={14} /> },
+  { label: 'プラットフォーム', icon: <Sliders size={14} /> },
+];
+
+const BID_STRATEGY_OPTIONS: { value: BidStrategy; label: string; description: string }[] = [
+  { value: 'auto_maximize_conversions', label: 'コンバージョン最大化', description: '自動で最大のコンバージョンを目指します' },
+  { value: 'auto_target_cpa', label: '目標CPA', description: '目標CPAに合わせて自動入札' },
+  { value: 'auto_target_roas', label: '目標ROAS', description: '目標ROASに合わせて自動入札' },
+  { value: 'manual_cpc', label: '手動CPC', description: 'クリック単価を手動で設定' },
+];
+
+const CONVERSION_POINTS = ['メインサイト購入', 'リード獲得フォーム', 'アプリインストール'] as const;
+
+const AGE_OPTIONS = ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
+
+const REGION_SUGGESTIONS = ['東京', '大阪', '名古屋', '福岡', '札幌', '横浜', '京都', '神戸', '仙台', '広島'] as const;
+
+const INTEREST_SUGGESTIONS = ['不動産投資', '資産運用', 'スキンケア', 'フィットネス', '旅行', 'テクノロジー', 'ファッション', '料理', 'ペット', '教育'] as const;
+
+const EXCLUSION_AUDIENCES = ['既存購入者', '既存リード', 'メルマガ解除者'] as const;
+
+const MOCK_EXISTING_CREATIVES = [
+  { id: 'c1', name: '春の新作コレクション', thumbnail: '' },
+  { id: 'c2', name: '期間限定30%OFF', thumbnail: '' },
+  { id: 'c3', name: '新生活応援キャンペーン', thumbnail: '' },
+  { id: 'c4', name: '会員限定セール', thumbnail: '' },
+  { id: 'c5', name: '無料配送キャンペーン', thumbnail: '' },
+  { id: 'c6', name: 'レビュー投稿でポイント付与', thumbnail: '' },
 ];
 
 // ============================================================
@@ -299,21 +351,152 @@ function CampaignDetailModal({ campaign, onClose }: CampaignDetailModalProps): R
   );
 }
 
-// -- Create Campaign Modal --
+// -- Create Campaign Modal (Expanded Wizard) --
 
 interface CreateCampaignModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+function TagInput({
+  label,
+  tags,
+  onAdd,
+  onRemove,
+  suggestions,
+  placeholder,
+  id,
+}: {
+  label: string;
+  tags: string[];
+  onAdd: (tag: string) => void;
+  onRemove: (tag: string) => void;
+  suggestions: readonly string[];
+  placeholder: string;
+  id: string;
+}): React.ReactElement {
+  const [inputValue, setInputValue] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const filteredSuggestions = suggestions.filter(
+    (s) => !tags.includes(s) && s.includes(inputValue),
+  );
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      onAdd(inputValue.trim());
+      setInputValue('');
+    }
+  }
+
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-foreground">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type="text"
+          value={inputValue}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setInputValue(e.target.value);
+            setShowSuggestions(true);
+          }}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onKeyDown={handleKeyDown}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder={placeholder}
+        />
+        {showSuggestions && filteredSuggestions.length > 0 && (
+          <div className="absolute left-0 z-10 mt-1 max-h-32 w-full overflow-auto rounded-md border border-border bg-card shadow-lg">
+            {filteredSuggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                  e.preventDefault();
+                  onAdd(s);
+                  setInputValue('');
+                  setShowSuggestions(false);
+                }}
+                className="w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-muted"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => onRemove(tag)}
+                className="rounded-full p-0.5 hover:bg-primary/20"
+                aria-label={`${tag}を削除`}
+              >
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React.ReactElement | null {
+  const [currentTab, setCurrentTab] = useState<CampaignTab>(0);
+
+  // Tab 1: Basic Info
   const [name, setName] = useState('');
   const [objective, setObjective] = useState<Objective>('conversion');
   const [budgetTotal, setBudgetTotal] = useState('');
   const [dailyLimit, setDailyLimit] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [landingPageUrl, setLandingPageUrl] = useState('');
+  const [bidStrategy, setBidStrategy] = useState<BidStrategy>('auto_maximize_conversions');
+  const [targetCpa, setTargetCpa] = useState('');
+  const [targetRoas, setTargetRoas] = useState('');
+
+  // Tab 2: Conversion Settings
+  const [conversionPoint, setConversionPoint] = useState<string>(CONVERSION_POINTS[0]);
+  const [cpaAlertLimit, setCpaAlertLimit] = useState('');
+  const [roasAlertMin, setRoasAlertMin] = useState('');
+  const [ctrAlertMin, setCtrAlertMin] = useState('');
+
+  // Tab 3: Targeting
+  const [ageMin, setAgeMin] = useState('18');
+  const [ageMax, setAgeMax] = useState('65+');
+  const [genders, setGenders] = useState<Gender[]>(['unspecified']);
+  const [regions, setRegions] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [devices, setDevices] = useState<Device[]>(['all']);
+  const [exclusionAudiences, setExclusionAudiences] = useState<string[]>([]);
+
+  // Tab 4: Creative
+  const [selectedCreativeIds, setSelectedCreativeIds] = useState<string[]>([]);
+  const [aiAutoGenerate, setAiAutoGenerate] = useState(false);
+  const [utmSource, setUtmSource] = useState('');
+  const [utmMedium, setUtmMedium] = useState('cpc');
+  const [utmCampaign, setUtmCampaign] = useState('');
+  const [utmContent, setUtmContent] = useState('');
+
+  // Tab 5: Platforms
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
+  const [platformBudgetAllocation, setPlatformBudgetAllocation] = useState<Record<Platform, number>>({
+    google: 0, meta: 0, tiktok: 0, line: 0, x: 0, yahoo_japan: 0,
+  });
 
   const createMutation = trpc.campaigns.create.useMutation({
     onSuccess: () => {
@@ -321,14 +504,89 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
     },
   });
 
+  // Auto-generate UTM when campaign name changes
+  const updateUtmFromName = useCallback((campaignName: string) => {
+    const slug = campaignName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    setUtmCampaign(slug || '');
+  }, []);
+
   function togglePlatform(platform: Platform): void {
-    setSelectedPlatforms((prev) =>
-      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform],
+    setSelectedPlatforms((prev) => {
+      const next = prev.includes(platform)
+        ? prev.filter((p) => p !== platform)
+        : [...prev, platform];
+      // Redistribute budget allocation evenly
+      if (next.length > 0) {
+        const evenShare = Math.floor(100 / next.length);
+        const remainder = 100 - evenShare * next.length;
+        const newAllocation = { ...platformBudgetAllocation };
+        ALL_PLATFORMS.forEach((p) => {
+          newAllocation[p] = next.includes(p) ? evenShare : 0;
+        });
+        const firstPlatform = next[0];
+        if (next.length > 0 && firstPlatform) {
+          newAllocation[firstPlatform] += remainder;
+        }
+        setPlatformBudgetAllocation(newAllocation);
+      }
+      return next;
+    });
+  }
+
+  function toggleGender(g: Gender): void {
+    setGenders((prev) =>
+      prev.includes(g) ? prev.filter((v) => v !== g) : [...prev, g],
     );
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
-    e.preventDefault();
+  function toggleDevice(d: Device): void {
+    if (d === 'all') {
+      setDevices(['all']);
+      return;
+    }
+    setDevices((prev) => {
+      const withoutAll = prev.filter((v) => v !== 'all');
+      const next = withoutAll.includes(d)
+        ? withoutAll.filter((v) => v !== d)
+        : [...withoutAll, d];
+      return next.length === 0 ? ['all'] : next;
+    });
+  }
+
+  function toggleCreative(id: string): void {
+    setSelectedCreativeIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id],
+    );
+  }
+
+  function toggleExclusionAudience(audience: string): void {
+    setExclusionAudiences((prev) =>
+      prev.includes(audience) ? prev.filter((v) => v !== audience) : [...prev, audience],
+    );
+  }
+
+  function handlePlatformBudgetChange(platform: Platform, value: number): void {
+    setPlatformBudgetAllocation((prev) => ({ ...prev, [platform]: value }));
+  }
+
+  function canAdvanceTab(tab: CampaignTab): boolean {
+    switch (tab) {
+      case 0:
+        return Boolean(name && budgetTotal && startDate);
+      case 1:
+        return true;
+      case 2:
+        return true;
+      case 3:
+        return true;
+      case 4:
+        return selectedPlatforms.length > 0;
+      default:
+        return true;
+    }
+  }
+
+  function handleSubmit(): void {
     if (!name || !budgetTotal || selectedPlatforms.length === 0 || !startDate) return;
 
     createMutation.mutate({
@@ -343,139 +601,687 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
   if (!open) return null;
 
+  const inputCls = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
+  const labelCls = 'mb-1 block text-sm font-medium text-foreground';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-xl">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="flex w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl" style={{ maxHeight: '90vh' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">新規キャンペーン作成</h2>
           <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="campaign-name" className="mb-1 block text-sm font-medium text-foreground">
-              キャンペーン名
-            </label>
-            <input
-              id="campaign-name"
-              type="text"
-              value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="春のプロモーションキャンペーン"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="campaign-objective" className="mb-1 block text-sm font-medium text-foreground">
-              目的
-            </label>
-            <div className="relative">
-              <select
-                id="campaign-objective"
-                value={objective}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setObjective(e.target.value as Objective)}
-                className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        {/* Step indicator */}
+        <div className="flex border-b border-border" role="tablist" aria-label="キャンペーン作成ステップ">
+          {CAMPAIGN_TABS.map((tab, index) => {
+            const tabIndex = index as CampaignTab;
+            const isCurrent = currentTab === tabIndex;
+            const isCompleted = currentTab > tabIndex;
+            return (
+              <button
+                key={tab.label}
+                type="button"
+                role="tab"
+                aria-selected={isCurrent}
+                aria-controls={`campaign-tab-panel-${index}`}
+                onClick={() => setCurrentTab(tabIndex)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 border-b-2 py-3 text-xs font-medium transition-colors',
+                  isCurrent
+                    ? 'border-primary text-primary'
+                    : isCompleted
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                )}
               >
-                {OBJECTIVE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            </div>
-          </div>
+                {isCompleted ? <Check size={12} className="text-green-500" /> : tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="campaign-budget" className="mb-1 block text-sm font-medium text-foreground">
-                総予算 (JPY)
-              </label>
-              <input
-                id="campaign-budget"
-                type="number"
-                value={budgetTotal}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBudgetTotal(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="500000"
-                min="1"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="campaign-daily-limit" className="mb-1 block text-sm font-medium text-foreground">
-                日次上限 (任意)
-              </label>
-              <input
-                id="campaign-daily-limit"
-                type="number"
-                value={dailyLimit}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDailyLimit(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="50000"
-                min="1"
-              />
-            </div>
-          </div>
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Tab 1: Basic Info */}
+          {currentTab === 0 && (
+            <div className="space-y-4" id="campaign-tab-panel-0" role="tabpanel">
+              <div>
+                <label htmlFor="campaign-name" className={labelCls}>キャンペーン名</label>
+                <input
+                  id="campaign-name"
+                  type="text"
+                  value={name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setName(e.target.value);
+                    updateUtmFromName(e.target.value);
+                  }}
+                  className={inputCls}
+                  placeholder="春のプロモーションキャンペーン"
+                  required
+                />
+              </div>
 
-          <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">配信プラットフォーム</span>
-            <div className="flex flex-wrap gap-2">
-              {(Object.entries(PLATFORM_CONFIG) as [Platform, { label: string; color: string }][]).map(
-                ([key, config]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => togglePlatform(key)}
-                    className={cn(
-                      'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                      selectedPlatforms.includes(key)
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border text-muted-foreground hover:border-primary/50',
-                    )}
+              <div>
+                <label htmlFor="campaign-objective" className={labelCls}>目的</label>
+                <div className="relative">
+                  <select
+                    id="campaign-objective"
+                    value={objective}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setObjective(e.target.value as Objective)}
+                    className={cn(inputCls, 'appearance-none pr-8')}
                   >
-                    {config.label}
-                  </button>
-                ),
-              )}
-            </div>
-          </div>
+                    {OBJECTIVE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="campaign-start" className="mb-1 block text-sm font-medium text-foreground">
-                開始日
-              </label>
-              <input
-                id="campaign-start"
-                type="date"
-                value={startDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="campaign-end" className="mb-1 block text-sm font-medium text-foreground">
-                終了日 (任意)
-              </label>
-              <input
-                id="campaign-end"
-                type="date"
-                value={endDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="campaign-budget" className={labelCls}>総予算 (JPY)</label>
+                  <input
+                    id="campaign-budget"
+                    type="number"
+                    value={budgetTotal}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBudgetTotal(e.target.value)}
+                    className={inputCls}
+                    placeholder="500000"
+                    min="1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="campaign-daily-limit" className={labelCls}>日次上限 (任意)</label>
+                  <input
+                    id="campaign-daily-limit"
+                    type="number"
+                    value={dailyLimit}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDailyLimit(e.target.value)}
+                    className={inputCls}
+                    placeholder="50000"
+                    min="1"
+                  />
+                </div>
+              </div>
 
-          {createMutation.error && (
-            <p className="text-sm text-destructive">{createMutation.error.message}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="campaign-start" className={labelCls}>開始日</label>
+                  <input
+                    id="campaign-start"
+                    type="date"
+                    value={startDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="campaign-end" className={labelCls}>終了日 (任意)</label>
+                  <input
+                    id="campaign-end"
+                    type="date"
+                    value={endDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="campaign-lp-url" className={labelCls}>
+                  <span className="flex items-center gap-1.5">
+                    <Link2 size={14} />
+                    ランディングページURL
+                  </span>
+                </label>
+                <input
+                  id="campaign-lp-url"
+                  type="url"
+                  value={landingPageUrl}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLandingPageUrl(e.target.value)}
+                  className={inputCls}
+                  placeholder="https://example.com/landing"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  有効なURL形式で入力してください（例: https://example.com）
+                </p>
+              </div>
+
+              <div>
+                <span className="mb-2 block text-sm font-medium text-foreground">入札戦略</span>
+                <div className="space-y-2">
+                  {BID_STRATEGY_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className={cn(
+                        'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors',
+                        bidStrategy === option.value
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/30',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="bid-strategy"
+                        value={option.value}
+                        checked={bidStrategy === option.value}
+                        onChange={() => setBidStrategy(option.value)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{option.label}</p>
+                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {bidStrategy === 'auto_target_cpa' && (
+                  <div className="mt-3">
+                    <label htmlFor="bid-target-cpa" className={labelCls}>目標CPA (JPY)</label>
+                    <input
+                      id="bid-target-cpa"
+                      type="number"
+                      value={targetCpa}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetCpa(e.target.value)}
+                      className={inputCls}
+                      placeholder="3000"
+                      min="1"
+                    />
+                  </div>
+                )}
+                {bidStrategy === 'auto_target_roas' && (
+                  <div className="mt-3">
+                    <label htmlFor="bid-target-roas" className={labelCls}>目標ROAS (倍)</label>
+                    <input
+                      id="bid-target-roas"
+                      type="number"
+                      value={targetRoas}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetRoas(e.target.value)}
+                      className={inputCls}
+                      placeholder="3.0"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-2">
+          {/* Tab 2: Conversion Settings */}
+          {currentTab === 1 && (
+            <div className="space-y-5" id="campaign-tab-panel-1" role="tabpanel">
+              <div>
+                <label htmlFor="conversion-point" className={labelCls}>コンバージョンポイント</label>
+                <div className="relative">
+                  <select
+                    id="conversion-point"
+                    value={conversionPoint}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setConversionPoint(e.target.value)
+                    }
+                    className={cn(inputCls, 'appearance-none pr-8')}
+                  >
+                    {CONVERSION_POINTS.map((cp) => (
+                      <option key={cp} value={cp}>{cp}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+
+              {bidStrategy === 'auto_target_cpa' && (
+                <div>
+                  <label htmlFor="cv-target-cpa" className={labelCls}>目標CPA (JPY)</label>
+                  <input
+                    id="cv-target-cpa"
+                    type="number"
+                    value={targetCpa}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetCpa(e.target.value)}
+                    className={inputCls}
+                    placeholder="3000"
+                    min="1"
+                  />
+                </div>
+              )}
+
+              {bidStrategy === 'auto_target_roas' && (
+                <div>
+                  <label htmlFor="cv-target-roas" className={labelCls}>目標ROAS (倍)</label>
+                  <input
+                    id="cv-target-roas"
+                    type="number"
+                    value={targetRoas}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetRoas(e.target.value)}
+                    className={inputCls}
+                    placeholder="3.0"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+              )}
+
+              <div className="rounded-lg border border-border p-4">
+                <h4 className="mb-3 text-sm font-semibold text-foreground">KPIアラート設定</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="alert-cpa-limit" className={labelCls}>
+                      CPA上限 (JPY)
+                    </label>
+                    <input
+                      id="alert-cpa-limit"
+                      type="number"
+                      value={cpaAlertLimit}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCpaAlertLimit(e.target.value)}
+                      className={inputCls}
+                      placeholder="5000"
+                      min="1"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">この値を超えたら通知</p>
+                  </div>
+                  <div>
+                    <label htmlFor="alert-roas-min" className={labelCls}>ROAS下限 (倍)</label>
+                    <input
+                      id="alert-roas-min"
+                      type="number"
+                      value={roasAlertMin}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoasAlertMin(e.target.value)}
+                      className={inputCls}
+                      placeholder="2.0"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="alert-ctr-min" className={labelCls}>CTR下限 (%)</label>
+                    <input
+                      id="alert-ctr-min"
+                      type="number"
+                      value={ctrAlertMin}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCtrAlertMin(e.target.value)}
+                      className={inputCls}
+                      placeholder="1.5"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Targeting */}
+          {currentTab === 2 && (
+            <div className="space-y-5" id="campaign-tab-panel-2" role="tabpanel">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="age-min" className={labelCls}>年齢（下限）</label>
+                  <div className="relative">
+                    <select
+                      id="age-min"
+                      value={ageMin}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMin(e.target.value)}
+                      className={cn(inputCls, 'appearance-none pr-8')}
+                    >
+                      {AGE_OPTIONS.map((age) => (
+                        <option key={age} value={age}>{age}歳</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="age-max" className={labelCls}>年齢（上限）</label>
+                  <div className="relative">
+                    <select
+                      id="age-max"
+                      value={ageMax}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMax(e.target.value)}
+                      className={cn(inputCls, 'appearance-none pr-8')}
+                    >
+                      {AGE_OPTIONS.map((age) => (
+                        <option key={age} value={age}>{age}歳</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="mb-2 block text-sm font-medium text-foreground">性別</span>
+                <div className="flex gap-2">
+                  {([
+                    { value: 'male' as Gender, label: '男性' },
+                    { value: 'female' as Gender, label: '女性' },
+                    { value: 'unspecified' as Gender, label: '指定なし' },
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleGender(option.value)}
+                      className={cn(
+                        'rounded-md border px-4 py-2 text-sm font-medium transition-colors',
+                        genders.includes(option.value)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/50',
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <TagInput
+                id="targeting-regions"
+                label="地域"
+                tags={regions}
+                onAdd={(tag) => setRegions((prev) => [...prev, tag])}
+                onRemove={(tag) => setRegions((prev) => prev.filter((t) => t !== tag))}
+                suggestions={REGION_SUGGESTIONS}
+                placeholder="地域を入力してEnter..."
+              />
+
+              <TagInput
+                id="targeting-interests"
+                label="興味関心"
+                tags={interests}
+                onAdd={(tag) => setInterests((prev) => [...prev, tag])}
+                onRemove={(tag) => setInterests((prev) => prev.filter((t) => t !== tag))}
+                suggestions={INTEREST_SUGGESTIONS}
+                placeholder="興味関心を入力してEnter..."
+              />
+
+              <div>
+                <span className="mb-2 block text-sm font-medium text-foreground">デバイス</span>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'all' as Device, label: 'すべて', icon: <Globe size={14} /> },
+                    { value: 'mobile' as Device, label: 'モバイル', icon: <Smartphone size={14} /> },
+                    { value: 'desktop' as Device, label: 'デスクトップ', icon: <Monitor size={14} /> },
+                    { value: 'tablet' as Device, label: 'タブレット', icon: <Tablet size={14} /> },
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleDevice(option.value)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                        devices.includes(option.value)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/50',
+                      )}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="mb-2 block text-sm font-medium text-foreground">除外オーディエンス</span>
+                <div className="flex flex-wrap gap-2">
+                  {EXCLUSION_AUDIENCES.map((audience) => (
+                    <button
+                      key={audience}
+                      type="button"
+                      onClick={() => toggleExclusionAudience(audience)}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                        exclusionAudiences.includes(audience)
+                          ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400'
+                          : 'border-border text-muted-foreground hover:border-red-300/50',
+                      )}
+                    >
+                      {audience}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Creative */}
+          {currentTab === 3 && (
+            <div className="space-y-5" id="campaign-tab-panel-3" role="tabpanel">
+              <div>
+                <span className="mb-2 block text-sm font-medium text-foreground">既存クリエイティブから選択</span>
+                <div className="grid grid-cols-3 gap-3">
+                  {MOCK_EXISTING_CREATIVES.map((creative) => {
+                    const isSelected = selectedCreativeIds.includes(creative.id);
+                    return (
+                      <button
+                        key={creative.id}
+                        type="button"
+                        onClick={() => toggleCreative(creative.id)}
+                        className={cn(
+                          'group relative rounded-lg border-2 p-2 text-left transition-all',
+                          isSelected
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/30',
+                        )}
+                      >
+                        <div className="flex h-20 items-center justify-center rounded-md bg-muted/50">
+                          <Image size={24} className="text-muted-foreground/30" />
+                        </div>
+                        <p className="mt-1.5 text-xs font-medium text-foreground line-clamp-1">
+                          {creative.name}
+                        </p>
+                        {isSelected && (
+                          <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                            <Check size={12} className="text-primary-foreground" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-primary" />
+                    <span className="text-sm font-semibold text-foreground">AIで自動生成</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAiAutoGenerate(!aiAutoGenerate)}
+                    className={cn(
+                      'relative h-6 w-11 rounded-full transition-colors',
+                      aiAutoGenerate ? 'bg-primary' : 'bg-muted',
+                    )}
+                    role="switch"
+                    aria-checked={aiAutoGenerate}
+                    aria-label="AI自動生成を有効にする"
+                  >
+                    <span className={cn(
+                      'absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
+                      aiAutoGenerate && 'translate-x-5',
+                    )} />
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  AIが最適なクリエイティブを自動生成します
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border p-4">
+                <h4 className="mb-3 text-sm font-semibold text-foreground">UTMパラメータ</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="utm-source" className={labelCls}>utm_source</label>
+                    <input
+                      id="utm-source"
+                      type="text"
+                      value={utmSource}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUtmSource(e.target.value)}
+                      className={inputCls}
+                      placeholder="google"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="utm-medium" className={labelCls}>utm_medium</label>
+                    <input
+                      id="utm-medium"
+                      type="text"
+                      value={utmMedium}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUtmMedium(e.target.value)}
+                      className={inputCls}
+                      placeholder="cpc"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="utm-campaign" className={labelCls}>utm_campaign</label>
+                    <input
+                      id="utm-campaign"
+                      type="text"
+                      value={utmCampaign}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUtmCampaign(e.target.value)}
+                      className={inputCls}
+                      placeholder="spring_promotion"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="utm-content" className={labelCls}>utm_content</label>
+                    <input
+                      id="utm-content"
+                      type="text"
+                      value={utmContent}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUtmContent(e.target.value)}
+                      className={inputCls}
+                      placeholder="banner_a"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 5: Platforms */}
+          {currentTab === 4 && (
+            <div className="space-y-5" id="campaign-tab-panel-4" role="tabpanel">
+              <div>
+                <span className="mb-2 block text-sm font-medium text-foreground">配信プラットフォーム</span>
+                <div className="flex flex-wrap gap-2">
+                  {(Object.entries(PLATFORM_CONFIG) as [Platform, { label: string; color: string }][]).map(
+                    ([key, config]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => togglePlatform(key)}
+                        className={cn(
+                          'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                          selectedPlatforms.includes(key)
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-muted-foreground hover:border-primary/50',
+                        )}
+                      >
+                        {config.label}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              {selectedPlatforms.length > 0 && (
+                <div className="rounded-lg border border-border p-4">
+                  <h4 className="mb-3 text-sm font-semibold text-foreground">予算配分 (%)</h4>
+                  <div className="space-y-3">
+                    {selectedPlatforms.map((platform) => (
+                      <div key={platform} className="flex items-center gap-3">
+                        <span className="w-16 text-sm font-medium text-foreground">
+                          {PLATFORM_CONFIG[platform].label}
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={platformBudgetAllocation[platform]}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            handlePlatformBudgetChange(platform, Number(e.target.value))
+                          }
+                          className="flex-1 accent-primary"
+                          aria-label={`${PLATFORM_CONFIG[platform].label}の予算配分`}
+                        />
+                        <span className="w-12 text-right text-sm font-semibold text-foreground">
+                          {platformBudgetAllocation[platform]}%
+                        </span>
+                      </div>
+                    ))}
+                    {(() => {
+                      const total = selectedPlatforms.reduce(
+                        (sum, p) => sum + platformBudgetAllocation[p], 0,
+                      );
+                      return (
+                        <div className={cn(
+                          'flex items-center justify-between border-t border-border pt-2 text-sm font-semibold',
+                          total === 100 ? 'text-green-600' : 'text-yellow-600',
+                        )}>
+                          <span>合計</span>
+                          <span>{total}%</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {selectedPlatforms.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-foreground">プラットフォーム固有設定</h4>
+                  <div className="space-y-2">
+                    {selectedPlatforms.map((platform) => (
+                      <details
+                        key={platform}
+                        className="rounded-lg border border-border"
+                      >
+                        <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/30">
+                          <span className={cn(
+                            'inline-flex h-5 items-center rounded px-1.5 text-[10px] font-medium text-white',
+                            PLATFORM_CONFIG[platform].color,
+                          )}>
+                            {PLATFORM_CONFIG[platform].label}
+                          </span>
+                          固有設定
+                        </summary>
+                        <div className="border-t border-border px-4 py-3">
+                          <p className="text-xs text-muted-foreground">
+                            {PLATFORM_CONFIG[platform].label}固有の設定は、キャンペーン作成後に詳細画面から設定できます。
+                          </p>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border px-6 py-4">
+          <button
+            type="button"
+            onClick={() => currentTab > 0 && setCurrentTab((currentTab - 1) as CampaignTab)}
+            disabled={currentTab === 0}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-30"
+          >
+            <ChevronLeft size={14} />
+            戻る
+          </button>
+
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onClose}
@@ -483,16 +1289,35 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
             >
               キャンセル
             </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || !name || !budgetTotal || selectedPlatforms.length === 0 || !startDate}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-              作成
-            </button>
+            {currentTab < 4 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentTab((currentTab + 1) as CampaignTab)}
+                disabled={!canAdvanceTab(currentTab)}
+                className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                次へ
+                <ChevronRight size={14} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={createMutation.isPending || !name || !budgetTotal || selectedPlatforms.length === 0 || !startDate}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                作成
+              </button>
+            )}
           </div>
-        </form>
+        </div>
+
+        {createMutation.error && (
+          <div className="border-t border-border px-6 py-3">
+            <p className="text-sm text-destructive">{createMutation.error.message}</p>
+          </div>
+        )}
       </div>
     </div>
   );
