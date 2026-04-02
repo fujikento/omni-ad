@@ -6,6 +6,10 @@ import {
   getForecast,
   triggerOptimization,
 } from "../../services/budget.service.js";
+import {
+  getDailyPacing,
+  getMonthlyPacing,
+} from "../../services/pacing.service.js";
 import { organizationProcedure, router } from "../trpc.js";
 
 const DbPlatform = z.enum([
@@ -96,4 +100,16 @@ export const budgetsRouter = router({
         handleServiceError(error);
       }
     }),
+
+  pacing: organizationProcedure.query(async ({ ctx }) => {
+    try {
+      const [daily, monthly] = await Promise.all([
+        getDailyPacing(ctx.organizationId),
+        getMonthlyPacing(ctx.organizationId),
+      ]);
+      return { daily, monthly };
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
 });

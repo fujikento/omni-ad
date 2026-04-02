@@ -6,3 +6,7 @@ export * as budgetService from './budget.service.js';
 export * as audienceService from './audience.service.js';
 export * as funnelService from './funnel.service.js';
 export * as reportService from './report.service.js';
+export * as rulesEngineService from './rules-engine.service.js';
+export * as notificationService from './notification.service.js';
+export * as campaignArchitectService from './campaign-architect.service.js';
+export * as pacingService from './pacing.service.js';

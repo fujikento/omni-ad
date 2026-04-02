@@ -9,3 +9,5 @@ export * from './audiences';
 export * from './attribution';
 export * from './budget-allocations';
 export * from './audit-log';
+export * from './automation-rules';
+export * from './notifications';

@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { ExportButton } from '@/app/components/export-button';
 
 // -- Types --
 
@@ -218,6 +219,21 @@ export default function AnalyticsPage(): React.ReactElement {
           </p>
         </div>
 
+        <div className="flex items-center gap-3">
+        {/* Export button */}
+        <ExportButton
+          data={topCampaigns}
+          columns={[
+            { key: 'name' as const, label: 'キャンペーン名' },
+            { key: 'platform' as const, label: 'プラットフォーム' },
+            { key: 'impressions' as const, label: 'インプレッション', format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+            { key: 'clicks' as const, label: 'クリック', format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+            { key: 'conversions' as const, label: 'CV', format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+            { key: 'roas' as const, label: 'ROAS', format: (v: TopCampaign[keyof TopCampaign]) => `${Number(v).toFixed(1)}x` },
+          ]}
+          filename="analytics"
+        />
+
         {/* Date range selector */}
         <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
           {DATE_RANGE_OPTIONS.map((option) => (
@@ -235,6 +251,7 @@ export default function AnalyticsPage(): React.ReactElement {
               {option.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 

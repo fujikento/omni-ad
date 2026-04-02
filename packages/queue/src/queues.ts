@@ -9,6 +9,7 @@ export const QUEUE_NAMES = {
   PLATFORM_WEBHOOKS: 'platform-webhooks',
   METRICS_PULL: 'metrics-pull',
   ANOMALY_DETECTION: 'anomaly-detection',
+  RULES_EVALUATION: 'rules-evaluation',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -113,6 +114,17 @@ export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
     defaultJobOptions: {
       attempts: 2,
       backoff: { type: 'fixed', delay: 5_000 },
+      removeOnComplete: { count: 500 },
+      removeOnFail: { count: 1000 },
+    },
+  },
+  [QUEUE_NAMES.RULES_EVALUATION]: {
+    name: QUEUE_NAMES.RULES_EVALUATION,
+    options: {},
+    concurrency: 2,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 10_000 },
       removeOnComplete: { count: 500 },
       removeOnFail: { count: 1000 },
     },

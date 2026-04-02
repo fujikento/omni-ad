@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { ExportButton } from '@/app/components/export-button';
 
 // -- Types --
 
@@ -262,14 +263,27 @@ export default function AudiencesPage(): React.ReactElement {
             クロスチャネルのオーディエンスデータを統合・可視化
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <Plus size={16} />
-          新規セグメント作成
-        </button>
+        <div className="flex items-center gap-3">
+          <ExportButton
+            data={segments}
+            columns={[
+              { key: 'name' as const, label: 'セグメント名' },
+              { key: 'platform' as const, label: 'プラットフォーム', format: (v: AudienceSegment[keyof AudienceSegment]) => PLATFORM_LABELS[v as Platform] ?? String(v) },
+              { key: 'size' as const, label: 'サイズ', format: (v: AudienceSegment[keyof AudienceSegment]) => String(v) },
+              { key: 'fatigueScore' as const, label: '疲労度', format: (v: AudienceSegment[keyof AudienceSegment]) => `${v}%` },
+              { key: 'description' as const, label: '説明' },
+            ]}
+            filename="audiences"
+          />
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <Plus size={16} />
+            新規セグメント作成
+          </button>
+        </div>
       </div>
 
       {/* Search */}

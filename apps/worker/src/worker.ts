@@ -8,6 +8,7 @@ import { processAudienceSync } from './processors/audience-sync.js';
 import { processPlatformWebhook } from './processors/platform-webhooks.js';
 import { processMetricsPull } from './processors/metrics-pull.js';
 import { processAnomalyDetection } from './processors/anomaly-detection.js';
+import { processRulesEvaluation } from './processors/rules-evaluation.js';
 
 const workers: Worker[] = [];
 
@@ -79,6 +80,11 @@ function startWorkers(): void {
       QUEUE_NAMES.ANOMALY_DETECTION,
       processAnomalyDetection,
       QUEUE_CONFIGS[QUEUE_NAMES.ANOMALY_DETECTION].concurrency
+    ),
+    createWorker(
+      QUEUE_NAMES.RULES_EVALUATION,
+      processRulesEvaluation,
+      QUEUE_CONFIGS[QUEUE_NAMES.RULES_EVALUATION].concurrency
     )
   );
 

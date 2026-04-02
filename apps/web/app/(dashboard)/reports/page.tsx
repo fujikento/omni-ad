@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { ExportButton } from '@/app/components/export-button';
 
 // -- Types --
 
@@ -325,14 +326,27 @@ export default function ReportsPage(): React.ReactElement {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">自動レポート</h1>
           <p className="mt-1 text-sm text-muted-foreground">AIによるレポート自動生成とスケジュール配信</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setGenerateOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <Plus size={16} />
-          レポート生成
-        </button>
+        <div className="flex items-center gap-3">
+          <ExportButton
+            data={reports}
+            columns={[
+              { key: 'title' as const, label: 'タイトル' },
+              { key: 'type' as const, label: 'タイプ', format: (v: Report[keyof Report]) => REPORT_TYPE_LABELS[v as ReportType] ?? String(v) },
+              { key: 'dateRange' as const, label: '期間' },
+              { key: 'status' as const, label: 'ステータス', format: (v: Report[keyof Report]) => STATUS_CONFIG[v as ReportStatus]?.label ?? String(v) },
+              { key: 'format' as const, label: 'フォーマット' },
+            ]}
+            filename="reports"
+          />
+          <button
+            type="button"
+            onClick={() => setGenerateOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <Plus size={16} />
+            レポート生成
+          </button>
+        </div>
       </div>
 
       {/* Report list table */}

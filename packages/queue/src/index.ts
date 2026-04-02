@@ -22,6 +22,7 @@ export {
   computeOverlapJobSchema,
   processWebhookJobSchema,
   anomalyDetectionJobSchema,
+  evaluateRulesJobSchema,
   type SyncCampaignJob,
   type SyncAdGroupJob,
   type PullMetricsJob,
@@ -38,4 +39,5 @@ export {
   type ComputeOverlapJob,
   type ProcessWebhookJob,
   type AnomalyDetectionJob,
+  type EvaluateRulesJob,
 } from './jobs.js';
