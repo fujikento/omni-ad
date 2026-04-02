@@ -13,3 +13,4 @@ export * from './automation-rules';
 export * from './notifications';
 export * from './conversions';
 export * from './approvals';
+export * from './ai-settings';

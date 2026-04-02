@@ -9,6 +9,7 @@ import { processPlatformWebhook } from './processors/platform-webhooks.js';
 import { processMetricsPull } from './processors/metrics-pull.js';
 import { processAnomalyDetection } from './processors/anomaly-detection.js';
 import { processRulesEvaluation } from './processors/rules-evaluation.js';
+import { processAiAutopilot } from './processors/ai-autopilot.js';
 
 const workers: Worker[] = [];
 
@@ -85,6 +86,11 @@ function startWorkers(): void {
       QUEUE_NAMES.RULES_EVALUATION,
       processRulesEvaluation,
       QUEUE_CONFIGS[QUEUE_NAMES.RULES_EVALUATION].concurrency
+    ),
+    createWorker(
+      QUEUE_NAMES.AI_AUTOPILOT,
+      processAiAutopilot,
+      QUEUE_CONFIGS[QUEUE_NAMES.AI_AUTOPILOT].concurrency
     )
   );
 

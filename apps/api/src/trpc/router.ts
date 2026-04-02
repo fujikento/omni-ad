@@ -12,6 +12,7 @@ import { notificationsRouter } from "./procedures/notifications.js";
 import { platformsRouter } from "./procedures/platforms.js";
 import { reportsRouter } from "./procedures/reports.js";
 import { rulesRouter } from "./procedures/rules.js";
+import { aiAutopilotRouter } from "./procedures/ai-autopilot.js";
 
 export const appRouter = router({
   campaigns: campaignsRouter,
@@ -27,6 +28,7 @@ export const appRouter = router({
   architect: architectRouter,
   conversions: conversionsRouter,
   approvals: approvalsRouter,
+  aiAutopilot: aiAutopilotRouter,
 });
 
 export type AppRouter = typeof appRouter;

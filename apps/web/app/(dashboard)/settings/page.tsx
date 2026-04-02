@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import {
+  ArrowRight,
   Check,
   Copy,
   Crown,
@@ -12,6 +13,7 @@ import {
   Loader2,
   RefreshCw,
   Shield,
+  Sparkles,
   Trash2,
   Unlink,
   UserPlus,
@@ -22,7 +24,7 @@ import { cn } from '@/lib/utils';
 
 // -- Types --
 
-type SettingsTab = 'platforms' | 'team' | 'billing' | 'api';
+type SettingsTab = 'platforms' | 'team' | 'billing' | 'api' | 'ai';
 type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
 type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'expired';
 type UserRole = 'admin' | 'editor' | 'viewer';
@@ -51,6 +53,7 @@ const TABS: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { key: 'team', label: 'チーム管理', icon: <Users size={16} /> },
   { key: 'billing', label: '請求', icon: <Crown size={16} /> },
   { key: 'api', label: 'API', icon: <Key size={16} /> },
+  { key: 'ai', label: 'AI設定', icon: <Sparkles size={16} /> },
 ];
 
 const STATUS_CONFIG: Record<ConnectionStatus, { label: string; className: string }> = {
@@ -412,6 +415,55 @@ function ApiTab(): React.ReactElement {
   );
 }
 
+function AiTab(): React.ReactElement {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Claude APIキーの設定とAIオートパイロットの管理
+      </p>
+      <a
+        href="/settings/ai"
+        className="flex items-center justify-between rounded-lg border border-border p-5 transition-colors hover:border-primary/30 hover:bg-muted/30"
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Sparkles size={20} className="text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">AI設定を開く</p>
+            <p className="text-xs text-muted-foreground">
+              APIキー、オートパイロットモード、最適化設定を管理
+            </p>
+          </div>
+        </div>
+        <ArrowRight size={16} className="text-muted-foreground" />
+      </a>
+
+      {/* Quick status */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-border p-4">
+          <p className="text-xs font-medium text-muted-foreground">API接続</p>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            <span className="text-sm font-medium text-foreground">接続済み</span>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <p className="text-xs font-medium text-muted-foreground">オートパイロット</p>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+            <span className="text-sm font-medium text-foreground">稼働中（承認モード）</span>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <p className="text-xs font-medium text-muted-foreground">今日の判断</p>
+          <p className="mt-1 text-sm font-medium text-foreground">7件 (5実行, 2提案中)</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // -- Main Page --
 
 export default function SettingsPage(): React.ReactElement {
@@ -422,6 +474,7 @@ export default function SettingsPage(): React.ReactElement {
     team: <TeamTab />,
     billing: <BillingTab />,
     api: <ApiTab />,
+    ai: <AiTab />,
   };
 
   return (

@@ -17,6 +17,7 @@ import {
   Menu,
   ScrollText,
   Settings,
+  Sparkles,
   Swords,
   User,
   Users,
@@ -36,6 +37,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   badge?: number;
+  activeIndicator?: boolean;
 }
 
 type NotificationSeverity = 'critical' | 'warning' | 'info';
@@ -55,6 +57,7 @@ interface Notification {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'ダッシュボード', href: '/home', icon: <Home size={20} /> },
+  { label: 'AIオートパイロット', href: '/ai-pilot', icon: <Sparkles size={20} />, activeIndicator: true },
   { label: 'キャンペーン', href: '/campaigns', icon: <LayoutDashboard size={20} /> },
   { label: 'クリエイティブ', href: '/creatives', icon: <BrainCircuit size={20} /> },
   { label: '分析', href: '/analytics', icon: <BarChart3 size={20} /> },
@@ -374,6 +377,12 @@ export default function DashboardLayout({
                     {item.badge}
                   </span>
                 )}
+                {item.activeIndicator && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                  </span>
+                )}
               </span>
               {sidebarOpen && (
                 <span className="flex flex-1 items-center justify-between">
@@ -381,6 +390,12 @@ export default function DashboardLayout({
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                       {item.badge}
+                    </span>
+                  )}
+                  {item.activeIndicator && (
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
                     </span>
                   )}
                 </span>

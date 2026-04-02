@@ -12,3 +12,4 @@ export * as campaignArchitectService from './campaign-architect.service.js';
 export * as pacingService from './pacing.service.js';
 export * as conversionService from './conversion.service.js';
 export * as approvalService from './approval.service.js';
+export * as aiAutopilotService from './ai-autopilot.service.js';

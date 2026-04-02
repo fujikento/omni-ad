@@ -10,6 +10,7 @@ export const QUEUE_NAMES = {
   METRICS_PULL: 'metrics-pull',
   ANOMALY_DETECTION: 'anomaly-detection',
   RULES_EVALUATION: 'rules-evaluation',
+  AI_AUTOPILOT: 'ai-autopilot',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -127,6 +128,17 @@ export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
       backoff: { type: 'exponential', delay: 10_000 },
       removeOnComplete: { count: 500 },
       removeOnFail: { count: 1000 },
+    },
+  },
+  [QUEUE_NAMES.AI_AUTOPILOT]: {
+    name: QUEUE_NAMES.AI_AUTOPILOT,
+    options: {},
+    concurrency: 1,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 30_000 },
+      removeOnComplete: { count: 200 },
+      removeOnFail: { count: 500 },
     },
   },
 };

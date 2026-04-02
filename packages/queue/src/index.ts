@@ -23,6 +23,7 @@ export {
   processWebhookJobSchema,
   anomalyDetectionJobSchema,
   evaluateRulesJobSchema,
+  autopilotCycleJobSchema,
   type SyncCampaignJob,
   type SyncAdGroupJob,
   type PullMetricsJob,
@@ -40,4 +41,5 @@ export {
   type ProcessWebhookJob,
   type AnomalyDetectionJob,
   type EvaluateRulesJob,
+  type AutopilotCycleJob,
 } from './jobs.js';
