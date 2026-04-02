@@ -6,6 +6,7 @@ import type { FastifyTRPCPluginOptions } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./trpc/router.js";
 import type { AppRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
+import { registerConversionTrackingRoutes } from "./routes/conversion-tracking.js";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 const HOST = process.env["HOST"] ?? "0.0.0.0";
@@ -62,6 +63,10 @@ function buildServer(): ReturnType<typeof Fastify> {
       uptime: process.uptime(),
     });
   });
+
+  // --- Conversion Tracking Routes ---
+
+  registerConversionTrackingRoutes(server);
 
   // --- Webhook Routes ---
 

@@ -10,3 +10,5 @@ export * as rulesEngineService from './rules-engine.service.js';
 export * as notificationService from './notification.service.js';
 export * as campaignArchitectService from './campaign-architect.service.js';
 export * as pacingService from './pacing.service.js';
+export * as conversionService from './conversion.service.js';
+export * as approvalService from './approval.service.js';

@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   BrainCircuit,
+  CheckSquare,
   ChevronDown,
   ChevronLeft,
   FlaskConical,
@@ -34,6 +35,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  badge?: number;
 }
 
 type NotificationSeverity = 'critical' | 'warning' | 'info';
@@ -62,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'レポート', href: '/reports', icon: <ScrollText size={20} /> },
   { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} /> },
   { label: '自動ルール', href: '/auto-rules', icon: <Workflow size={20} /> },
+  { label: '承認管理', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
   { label: '競合分析', href: '/competitors', icon: <Swords size={20} /> },
   { label: '設定', href: '/settings', icon: <Settings size={20} /> },
 ];
@@ -364,8 +367,24 @@ export default function DashboardLayout({
               )}
               onClick={() => setMobileMenuOpen(false)}
             >
-              <span className="flex-shrink-0">{item.icon}</span>
-              {sidebarOpen && <span>{item.label}</span>}
+              <span className="relative flex-shrink-0">
+                {item.icon}
+                {!sidebarOpen && item.badge !== undefined && item.badge > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </span>
+              {sidebarOpen && (
+                <span className="flex flex-1 items-center justify-between">
+                  <span>{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
+              )}
             </a>
           ))}
         </nav>
