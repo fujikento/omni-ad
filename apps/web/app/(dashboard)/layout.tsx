@@ -40,6 +40,11 @@ interface NavItem {
   activeIndicator?: boolean;
 }
 
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
 type NotificationSeverity = 'critical' | 'warning' | 'info';
 
 interface Notification {
@@ -55,21 +60,46 @@ interface Notification {
 // Constants
 // ============================================================
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'ダッシュボード', href: '/home', icon: <Home size={20} /> },
-  { label: 'AIオートパイロット', href: '/ai-pilot', icon: <Sparkles size={20} />, activeIndicator: true },
-  { label: 'キャンペーン', href: '/campaigns', icon: <LayoutDashboard size={20} /> },
-  { label: 'クリエイティブ', href: '/creatives', icon: <BrainCircuit size={20} /> },
-  { label: '分析', href: '/analytics', icon: <BarChart3 size={20} /> },
-  { label: 'オーディエンス', href: '/audiences', icon: <Users size={20} /> },
-  { label: '予算最適化', href: '/budgets', icon: <Gauge size={20} /> },
-  { label: 'ファネル', href: '/funnels', icon: <GitFork size={20} /> },
-  { label: 'レポート', href: '/reports', icon: <ScrollText size={20} /> },
-  { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} /> },
-  { label: '自動ルール', href: '/auto-rules', icon: <Workflow size={20} /> },
-  { label: '承認管理', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
-  { label: '競合インテリジェンス', href: '/competitors', icon: <Swords size={20} />, badge: 3 },
-  { label: '設定', href: '/settings', icon: <Settings size={20} /> },
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: '',
+    items: [
+      { label: 'ダッシュボード', href: '/home', icon: <Home size={20} /> },
+    ],
+  },
+  {
+    title: 'AI運用',
+    items: [
+      { label: 'AIオートパイロット', href: '/ai-pilot', icon: <Sparkles size={20} />, activeIndicator: true },
+      { label: '競合インテリジェンス', href: '/competitors', icon: <Swords size={20} />, badge: 3 },
+      { label: '自動ルール', href: '/auto-rules', icon: <Workflow size={20} /> },
+    ],
+  },
+  {
+    title: '広告管理',
+    items: [
+      { label: 'キャンペーン', href: '/campaigns', icon: <LayoutDashboard size={20} /> },
+      { label: 'クリエイティブ', href: '/creatives', icon: <BrainCircuit size={20} /> },
+      { label: 'オーディエンス', href: '/audiences', icon: <Users size={20} /> },
+      { label: 'ファネル', href: '/funnels', icon: <GitFork size={20} /> },
+    ],
+  },
+  {
+    title: '分析・最適化',
+    items: [
+      { label: '分析', href: '/analytics', icon: <BarChart3 size={20} /> },
+      { label: '予算最適化', href: '/budgets', icon: <Gauge size={20} /> },
+      { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} /> },
+      { label: 'レポート', href: '/reports', icon: <ScrollText size={20} /> },
+    ],
+  },
+  {
+    title: '管理',
+    items: [
+      { label: '承認管理', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
+      { label: '設定', href: '/settings', icon: <Settings size={20} /> },
+    ],
+  },
 ];
 
 const MOCK_NOTIFICATIONS: Notification[] = [
@@ -358,49 +388,65 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="メインナビゲーション">
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
-                'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                !sidebarOpen && 'justify-center px-2',
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <span className="relative flex-shrink-0">
-                {item.icon}
-                {!sidebarOpen && item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-                    {item.badge}
+        <nav className="flex-1 overflow-y-auto p-3" aria-label="メインナビゲーション">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title || '_top'} className={cn(group.title && 'mt-4 first:mt-0')}>
+              {group.title && sidebarOpen && (
+                <div className="mb-1.5 px-3 pt-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                    {group.title}
                   </span>
-                )}
-                {item.activeIndicator && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5">
-                    <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-                  </span>
-                )}
-              </span>
-              {sidebarOpen && (
-                <span className="flex flex-1 items-center justify-between">
-                  <span>{item.label}</span>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                      {item.badge}
-                    </span>
-                  )}
-                  {item.activeIndicator && (
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-                    </span>
-                  )}
-                </span>
+                </div>
               )}
-            </a>
+              {group.title && !sidebarOpen && (
+                <div className="my-2 mx-2 border-t border-sidebar-accent" />
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                      !sidebarOpen && 'justify-center px-2',
+                    )}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="relative flex-shrink-0">
+                      {item.icon}
+                      {!sidebarOpen && item.badge !== undefined && item.badge > 0 && (
+                        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                          {item.badge}
+                        </span>
+                      )}
+                      {item.activeIndicator && (
+                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5">
+                          <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                        </span>
+                      )}
+                    </span>
+                    {sidebarOpen && (
+                      <span className="flex flex-1 items-center justify-between">
+                        <span>{item.label}</span>
+                        {item.badge !== undefined && item.badge > 0 && (
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                            {item.badge}
+                          </span>
+                        )}
+                        {item.activeIndicator && (
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
