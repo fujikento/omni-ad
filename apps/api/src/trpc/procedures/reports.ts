@@ -4,6 +4,13 @@ import {
   generateReport,
   listAuditLogs,
 } from "../../services/report.service.js";
+import { generateReport as generateReportData } from "../../services/report-generator.service.js";
+import {
+  generateCsvReport,
+  generateHtmlReport,
+  generateExcelReport,
+  type ExportFormat,
+} from "../../services/report-export.service.js";
 import { organizationProcedure, router } from "../trpc.js";
 
 const ReportType = z.enum(["daily", "weekly", "monthly", "custom"]);
@@ -70,6 +77,51 @@ export const reportsRouter = router({
           input?.entityType,
           input?.limit,
         );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  export: organizationProcedure
+    .input(
+      z.object({
+        type: ReportType,
+        startDate: z.string().min(1),
+        endDate: z.string().min(1),
+        platforms: z.array(DbPlatform).optional(),
+        format: z.enum(["csv", "html", "excel"]),
+        branding: z
+          .object({
+            companyName: z.string().optional(),
+            logoUrl: z.string().url().optional(),
+            primaryColor: z.string().optional(),
+            secondaryColor: z.string().optional(),
+          })
+          .optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Generate the full report data first
+        const reportData = await generateReportData({
+          organizationId: ctx.organizationId,
+          reportType: input.type,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          platforms: input.platforms,
+          includeInsights: true,
+        });
+
+        // Export in the requested format
+        const format: ExportFormat = input.format;
+        switch (format) {
+          case "csv":
+            return generateCsvReport(reportData);
+          case "html":
+            return generateHtmlReport(reportData, input.branding);
+          case "excel":
+            return generateExcelReport(reportData);
+        }
       } catch (error) {
         handleServiceError(error);
       }

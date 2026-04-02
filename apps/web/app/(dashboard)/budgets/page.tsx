@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import {
   ArrowRight,
+  CalendarDays,
   Gauge,
   Loader2,
+  RefreshCw,
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
@@ -49,6 +51,17 @@ interface HistoricalEntry {
   line: number;
   x: number;
   yahoo: number;
+}
+
+type PacingStatus = 'normal' | 'caution' | 'danger';
+
+interface MonthlyPacing {
+  spent: number;
+  total: number;
+  daysRemaining: number;
+  projectedSpend: number;
+  projectedOverage: number;
+  status: PacingStatus;
 }
 
 // -- Constants --
@@ -97,7 +110,105 @@ const MOCK_HISTORY: HistoricalEntry[] = Array.from({ length: 14 }, (_, i) => {
   };
 });
 
+const MOCK_MONTHLY_PACING: MonthlyPacing = {
+  spent: 2340000,
+  total: 3000000,
+  daysRemaining: 8,
+  projectedSpend: 3150000,
+  projectedOverage: 5,
+  status: 'caution',
+};
+
+const PACING_STATUS_CONFIG: Record<PacingStatus, { label: string; className: string; badgeClass: string }> = {
+  normal: {
+    label: '正常',
+    className: 'bg-green-500',
+    badgeClass: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  },
+  caution: {
+    label: '注意',
+    className: 'bg-yellow-500',
+    badgeClass: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  },
+  danger: {
+    label: '超過危険',
+    className: 'bg-red-500',
+    badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  },
+};
+
 // -- Subcomponents --
+
+function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.ReactElement {
+  const percentage = Math.round((pacing.spent / pacing.total) * 100);
+  const statusConfig = PACING_STATUS_CONFIG[pacing.status];
+  const formatYen = (v: number): string =>
+    new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(v);
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CalendarDays size={18} className="text-primary" />
+          <h2 className="text-lg font-semibold text-foreground">月次予算ペーシング</h2>
+        </div>
+        <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusConfig.badgeClass)}>
+          {statusConfig.label}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mt-4">
+        <div className="flex items-end justify-between">
+          <p className="text-lg font-bold text-foreground">
+            {formatYen(pacing.spent)}
+            <span className="text-sm font-normal text-muted-foreground">
+              {' '}/ {formatYen(pacing.total)} 消化済み ({percentage}%)
+            </span>
+          </p>
+        </div>
+        <div className="mt-2 h-4 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn('h-full rounded-full transition-all', statusConfig.className)}
+            style={{ width: `${Math.min(100, percentage)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Info row */}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-md bg-muted/50 p-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarDays size={12} />
+            残り日数
+          </div>
+          <p className="mt-1 text-lg font-bold text-foreground">残り{pacing.daysRemaining}日</p>
+        </div>
+        <div className="rounded-md bg-muted/50 p-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <TrendingUp size={12} />
+            予想月末消化
+          </div>
+          <p className="mt-1 text-lg font-bold text-foreground">{formatYen(pacing.projectedSpend)}</p>
+          {pacing.projectedOverage > 0 && (
+            <p className="mt-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
+              +{pacing.projectedOverage}% 超過見込み
+            </p>
+          )}
+        </div>
+        <div className="flex items-center justify-center rounded-md bg-muted/50 p-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <RefreshCw size={14} />
+            自動調整を実行
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AllocationPieChart({ allocations }: { allocations: PlatformAllocation[] }): React.ReactElement {
   const data = allocations.map((a) => ({
@@ -266,6 +377,9 @@ export default function BudgetsPage(): React.ReactElement {
           最適化を実行
         </button>
       </div>
+
+      {/* Monthly pacing */}
+      <MonthlyPacingSection pacing={MOCK_MONTHLY_PACING} />
 
       {/* Current allocation + AI recommendation */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

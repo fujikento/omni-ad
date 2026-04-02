@@ -1,5 +1,6 @@
 export * as campaignService from './campaign.service.js';
 export * as platformService from './platform.service.js';
+export * as platformExecutorService from './platform-executor.service.js';
 export * as analyticsService from './analytics.service.js';
 export * as creativeService from './creative.service.js';
 export * as budgetService from './budget.service.js';
@@ -16,3 +17,9 @@ export * as aiAutopilotService from './ai-autopilot.service.js';
 export * as competitorMonitorService from './competitor-monitor.service.js';
 export * as auctionIntelligenceService from './auction-intelligence.service.js';
 export * as autoCounterService from './auto-counter.service.js';
+export * as metricsIngestionService from './metrics-ingestion.service.js';
+export * as dashboardService from './dashboard.service.js';
+export * as emergencyService from './emergency.service.js';
+export * as ltvTrackingService from './ltv-tracking.service.js';
+export * as reportExportService from './report-export.service.js';
+export * as reportGeneratorService from './report-generator.service.js';

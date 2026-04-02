@@ -9,6 +9,7 @@ import {
 import {
   getDailyPacing,
   getMonthlyPacing,
+  autoAdjustMonthlyPacing,
 } from "../../services/pacing.service.js";
 import { organizationProcedure, router } from "../trpc.js";
 
@@ -112,4 +113,22 @@ export const budgetsRouter = router({
       handleServiceError(error);
     }
   }),
+
+  monthlyPacing: organizationProcedure.query(async ({ ctx }) => {
+    try {
+      return await getMonthlyPacing(ctx.organizationId);
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
+
+  autoAdjustMonthlyPacing: organizationProcedure.mutation(
+    async ({ ctx }) => {
+      try {
+        return await autoAdjustMonthlyPacing(ctx.organizationId);
+      } catch (error) {
+        handleServiceError(error);
+      }
+    },
+  ),
 });

@@ -7,9 +7,11 @@ import {
   ArrowRight,
   BadgeJapaneseYen,
   BrainCircuit,
+  Check,
   Clock,
   FlaskConical,
   Lightbulb,
+  ShieldAlert,
   TrendingUp,
   Trophy,
   X,
@@ -297,9 +299,11 @@ function AlertBanner({ alerts, onViewDetail }: {
 interface AlertDetailModalProps {
   alert: Alert;
   onClose: () => void;
+  onStopCampaign: (alert: Alert) => void;
+  onDismiss: (alert: Alert) => void;
 }
 
-function AlertDetailModal({ alert, onClose }: AlertDetailModalProps): React.ReactElement {
+function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDetailModalProps): React.ReactElement {
   const isCritical = alert.severity === 'critical';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -331,14 +335,40 @@ function AlertDetailModal({ alert, onClose }: AlertDetailModalProps): React.Reac
           <p className="text-xs font-semibold text-primary">推奨アクション</p>
           <p className="mt-1 text-sm text-foreground">{alert.action}</p>
         </div>
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            onClick={() => {
+              onStopCampaign(alert);
+              onClose();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
-            確認
+            <ShieldAlert size={14} />
+            このキャンペーンを停止
           </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onDismiss(alert);
+                onClose();
+              }}
+              className="rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <span className="flex items-center gap-1.5">
+                <Check size={14} />
+                確認済み
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              閉じる
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -613,6 +643,21 @@ function ActivityFeed({ activities }: { activities: ActivityItem[] }): React.Rea
 
 export function DashboardClient(): React.ReactElement {
   const [alertDetail, setAlertDetail] = useState<Alert | null>(null);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [stoppedAlerts, setStoppedAlerts] = useState<Set<string>>(new Set());
+
+  function handleStopCampaign(alert: Alert): void {
+    // Mock: trpc.emergency.stopCampaign would be called here
+    setStoppedAlerts((prev) => new Set([...prev, alert.id]));
+  }
+
+  function handleDismissAlert(alert: Alert): void {
+    setDismissedAlerts((prev) => new Set([...prev, alert.id]));
+  }
+
+  const visibleAlerts = MOCK_ALERTS.filter(
+    (a) => !dismissedAlerts.has(a.id) && !stoppedAlerts.has(a.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -627,7 +672,7 @@ export function DashboardClient(): React.ReactElement {
       </div>
 
       {/* Alert Banner */}
-      <AlertBanner alerts={MOCK_ALERTS} onViewDetail={setAlertDetail} />
+      <AlertBanner alerts={visibleAlerts} onViewDetail={setAlertDetail} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -678,7 +723,12 @@ export function DashboardClient(): React.ReactElement {
 
       {/* Alert detail modal */}
       {alertDetail && (
-        <AlertDetailModal alert={alertDetail} onClose={() => setAlertDetail(null)} />
+        <AlertDetailModal
+          alert={alertDetail}
+          onClose={() => setAlertDetail(null)}
+          onStopCampaign={handleStopCampaign}
+          onDismiss={handleDismissAlert}
+        />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   BrainCircuit,
+  Building2,
   CheckSquare,
   ChevronDown,
   ChevronLeft,
@@ -17,8 +18,10 @@ import {
   Menu,
   ScrollText,
   Settings,
+  ShieldAlert,
   Sparkles,
   Swords,
+  TrendingUp,
   User,
   Users,
   Workflow,
@@ -90,12 +93,14 @@ const NAV_GROUPS: NavGroup[] = [
       { label: '分析', href: '/analytics', icon: <BarChart3 size={20} /> },
       { label: '予算最適化', href: '/budgets', icon: <Gauge size={20} /> },
       { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} /> },
+      { label: 'LTV分析', href: '/ltv', icon: <TrendingUp size={20} /> },
       { label: 'レポート', href: '/reports', icon: <ScrollText size={20} /> },
     ],
   },
   {
     title: '管理',
     items: [
+      { label: 'クライアント管理', href: '/clients', icon: <Building2 size={20} /> },
       { label: '承認管理', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
       { label: '設定', href: '/settings', icon: <Settings size={20} /> },
     ],
@@ -322,6 +327,9 @@ export default function DashboardLayout({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [emergencyStopModalOpen, setEmergencyStopModalOpen] = useState(false);
+  const [emergencyStopped, setEmergencyStopped] = useState(false);
+  const [emergencyStopping, setEmergencyStopping] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -340,6 +348,20 @@ export default function DashboardLayout({
 
   function handleMarkAllRead(): void {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }
+
+  function handleEmergencyStop(): void {
+    setEmergencyStopping(true);
+    // Mock: trpc.emergency.stopAll would be called here
+    setTimeout(() => {
+      setEmergencyStopping(false);
+      setEmergencyStopped(true);
+      setEmergencyStopModalOpen(false);
+    }, 1500);
+  }
+
+  function handleEmergencyResume(): void {
+    setEmergencyStopped(false);
   }
 
   return (
@@ -507,6 +529,23 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Emergency stop button */}
+            <button
+              type="button"
+              onClick={() => setEmergencyStopModalOpen(true)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                emergencyStopped
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  : 'bg-red-600 text-white hover:bg-red-700',
+              )}
+              disabled={emergencyStopped}
+              aria-label="緊急停止"
+            >
+              <ShieldAlert size={16} />
+              <span className="hidden sm:inline">緊急停止</span>
+            </button>
+
             {/* Notification bell */}
             <div className="relative">
               <button
@@ -568,6 +607,25 @@ export default function DashboardLayout({
           </div>
         </header>
 
+        {/* Emergency stop banner */}
+        {emergencyStopped && (
+          <div className="flex items-center justify-between bg-red-600 px-4 py-2 text-white">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={16} />
+              <span className="text-sm font-semibold">
+                緊急停止中 &mdash; 全キャンペーンが停止されています
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleEmergencyResume}
+              className="rounded-md bg-white/20 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-white/30"
+            >
+              再開
+            </button>
+          </div>
+        )}
+
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <TRPCProvider>{children}</TRPCProvider>
@@ -579,6 +637,47 @@ export default function DashboardLayout({
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
       />
+
+      {/* Emergency stop confirmation modal */}
+      {emergencyStopModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <ShieldAlert size={20} className="text-red-600 dark:text-red-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">緊急停止の確認</h2>
+            </div>
+            <p className="text-sm text-foreground">
+              全キャンペーンを即時停止しますか？
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              この操作は全プラットフォームの全アクティブキャンペーンを停止します。
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEmergencyStopModalOpen(false)}
+                disabled={emergencyStopping}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleEmergencyStop}
+                disabled={emergencyStopping}
+                className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {emergencyStopping && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                )}
+                全キャンペーンを停止
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

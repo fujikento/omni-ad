@@ -10,6 +10,7 @@ import {
   real,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -175,6 +176,13 @@ export const auctionInsightSnapshots = pgTable(
       table.snapshotDate,
     ),
     index('auction_snapshots_campaign_idx').on(table.campaignId),
+    uniqueIndex('auction_snapshots_dedup_idx').on(
+      table.organizationId,
+      table.campaignId,
+      table.platform,
+      table.snapshotDate,
+      table.competitorDomain,
+    ),
   ],
 );
 

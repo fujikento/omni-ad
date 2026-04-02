@@ -6,8 +6,8 @@
  */
 
 import { db } from '@omni-ad/db';
-import { campaigns, campaignPlatformDeployments, metricsDaily } from '@omni-ad/db/schema';
-import { and, eq, sql, between } from 'drizzle-orm';
+import { auditLog, campaigns, campaignPlatformDeployments, metricsDaily } from '@omni-ad/db/schema';
+import { and, desc, eq, sql, between } from 'drizzle-orm';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -640,7 +640,23 @@ function scoreCreativeFreshness(ctrValues: readonly number[]): number {
 // Auto-Remediation
 // ---------------------------------------------------------------------------
 
-const auditLog: AuditLogEntry[] = [];
+/**
+ * Persist an audit log entry to the database.
+ * Requires the campaign's organizationId for the audit_log FK.
+ */
+async function persistAuditEntry(
+  entry: AuditLogEntry,
+  organizationId: string,
+): Promise<void> {
+  await db.insert(auditLog).values({
+    organizationId,
+    action: entry.action,
+    entityType: 'campaign',
+    entityId: entry.campaignId,
+    newValue: { reason: entry.reason, ...entry.metadata },
+    timestamp: entry.timestamp,
+  });
+}
 
 /**
  * Pause a campaign due to a detected issue and log the action.
@@ -657,6 +673,12 @@ export async function pauseCampaignForIssue(
     metadata: {},
   };
 
+  // Look up the campaign to get organizationId for the audit log FK
+  const campaign = await db.query.campaigns.findFirst({
+    where: eq(campaigns.id, campaignId),
+    columns: { organizationId: true },
+  });
+
   await db
     .update(campaigns)
     .set({ status: 'paused', updatedAt: sql`now()` })
@@ -667,7 +689,10 @@ export async function pauseCampaignForIssue(
     .set({ platformStatus: 'paused', updatedAt: sql`now()` })
     .where(eq(campaignPlatformDeployments.campaignId, campaignId));
 
-  auditLog.push(entry);
+  if (campaign) {
+    await persistAuditEntry(entry, campaign.organizationId);
+  }
+
   return entry;
 }
 
@@ -686,6 +711,11 @@ export async function rotateCreative(
     metadata: { newCreativeId },
   };
 
+  const campaign = await db.query.campaigns.findFirst({
+    where: eq(campaigns.id, campaignId),
+    columns: { organizationId: true },
+  });
+
   // Update the campaign's active creative reference
   // The actual creative swap depends on platform adapter implementations
   await db
@@ -693,7 +723,10 @@ export async function rotateCreative(
     .set({ updatedAt: sql`now()` })
     .where(eq(campaigns.id, campaignId));
 
-  auditLog.push(entry);
+  if (campaign) {
+    await persistAuditEntry(entry, campaign.organizationId);
+  }
+
   return entry;
 }
 
@@ -736,14 +769,44 @@ export async function adjustBudgetPacing(
   entry.metadata['previousDailyBudget'] = currentDaily;
   entry.metadata['newDailyBudget'] = Number(adjustedDaily);
 
-  auditLog.push(entry);
+  await persistAuditEntry(entry, campaign.organizationId);
+
   return entry;
 }
 
 /**
- * Get the in-memory audit log (for debugging / testing).
- * In production this would query a persistent audit_logs table.
+ * Query persisted audit log entries for a campaign.
  */
-export function getAuditLog(): readonly AuditLogEntry[] {
-  return auditLog;
+export async function getAuditLog(
+  organizationId: string,
+  limit = 100,
+): Promise<AuditLogEntry[]> {
+  const rows = await db
+    .select({
+      action: auditLog.action,
+      entityId: auditLog.entityId,
+      newValue: auditLog.newValue,
+      timestamp: auditLog.timestamp,
+    })
+    .from(auditLog)
+    .where(
+      and(
+        eq(auditLog.organizationId, organizationId),
+        eq(auditLog.entityType, 'campaign'),
+      ),
+    )
+    .orderBy(desc(auditLog.timestamp))
+    .limit(limit);
+
+  return rows.map((row) => {
+    const meta = (row.newValue ?? {}) as Record<string, unknown>;
+    const { reason, ...metadata } = meta;
+    return {
+      campaignId: row.entityId ?? '',
+      action: row.action,
+      reason: typeof reason === 'string' ? reason : row.action,
+      timestamp: row.timestamp,
+      metadata,
+    };
+  });
 }

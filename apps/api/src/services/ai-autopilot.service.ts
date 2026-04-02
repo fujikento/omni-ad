@@ -388,10 +388,15 @@ async function gatherCampaignMetrics(
       0,
     );
 
-    const avgRoas =
-      metrics.length > 0
-        ? metrics.reduce((sum, m) => sum + m.roas, 0) / metrics.length
-        : 0;
+    // Spend-weighted average ROAS avoids distortion from low-spend days
+    const avgRoas = (() => {
+      if (metrics.length === 0) return 0;
+      const weightedSum = metrics.reduce(
+        (sum, m) => sum + m.roas * Number(m.spend),
+        0,
+      );
+      return totalSpend > 0 ? weightedSum / totalSpend : 0;
+    })();
     const avgCtr =
       metrics.length > 0
         ? metrics.reduce((sum, m) => sum + m.ctr, 0) / metrics.length

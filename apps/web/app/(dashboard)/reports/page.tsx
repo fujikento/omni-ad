@@ -6,9 +6,12 @@ import {
   ChevronDown,
   Clock,
   Download,
+  ExternalLink,
+  FileSpreadsheet,
   FileText,
   Loader2,
   Plus,
+  Printer,
   ScrollText,
   X,
 } from 'lucide-react';
@@ -303,11 +306,152 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
   );
 }
 
+// -- Export helpers --
+
+function escapeCSVValue(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function downloadBlob(content: string, filename: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function generateReportCSV(report: Report): string {
+  const header = ['項目', '値'].map(escapeCSVValue).join(',');
+  const rows = [
+    ['タイトル', report.title],
+    ['タイプ', REPORT_TYPE_LABELS[report.type]],
+    ['期間', report.dateRange],
+    ['ステータス', STATUS_CONFIG[report.status].label],
+    ['フォーマット', report.format],
+    ...report.insights.map((insight, idx) => [`インサイト${idx + 1}`, insight]),
+  ].map((row) => row.map(escapeCSVValue).join(','));
+  return '\uFEFF' + [header, ...rows].join('\n');
+}
+
+function generateReportHTML(report: Report): string {
+  const insightsHtml = report.insights.length > 0
+    ? `<div style="margin-top:24px;">
+        <h2 style="font-size:16px;font-weight:600;margin-bottom:12px;">AIインサイト</h2>
+        <ol style="padding-left:20px;">
+          ${report.insights.map((i) => `<li style="margin-bottom:8px;">${i}</li>`).join('')}
+        </ol>
+      </div>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>${report.title} - OMNI-AD</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a; }
+    h1 { font-size: 24px; font-weight: 700; border-bottom: 2px solid #2563eb; padding-bottom: 12px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .meta-item { background: #f8fafc; padding: 12px 16px; border-radius: 8px; }
+    .meta-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
+    .meta-value { font-size: 14px; font-weight: 500; margin-top: 4px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <h1>${report.title}</h1>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="meta-label">レポートタイプ</div><div class="meta-value">${REPORT_TYPE_LABELS[report.type]}</div></div>
+    <div class="meta-item"><div class="meta-label">期間</div><div class="meta-value">${report.dateRange}</div></div>
+    <div class="meta-item"><div class="meta-label">ステータス</div><div class="meta-value">${STATUS_CONFIG[report.status].label}</div></div>
+    <div class="meta-item"><div class="meta-label">生成日</div><div class="meta-value">${new Intl.DateTimeFormat('ja-JP').format(new Date(report.createdAt))}</div></div>
+  </div>
+  ${insightsHtml}
+  <footer style="margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;">
+    OMNI-AD 自動レポート
+  </footer>
+</body>
+</html>`;
+}
+
+function handleExportCSV(report: Report): void {
+  const csv = generateReportCSV(report);
+  const dateSuffix = new Date().toISOString().slice(0, 10);
+  downloadBlob(csv, `${report.title}_${dateSuffix}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function handleExportExcel(report: Report): void {
+  // Stub: in production, use a proper XLSX library
+  const csv = generateReportCSV(report);
+  const dateSuffix = new Date().toISOString().slice(0, 10);
+  downloadBlob(csv, `${report.title}_${dateSuffix}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function handleExportHTML(report: Report): void {
+  const html = generateReportHTML(report);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
+// -- Inline Report Preview Modal --
+
+interface InlineReportPreviewProps {
+  report: Report;
+  onClose: () => void;
+}
+
+function InlineReportPreview({ report, onClose }: InlineReportPreviewProps): React.ReactElement {
+  const html = generateReportHTML(report);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="flex h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center gap-2">
+            <Printer size={16} className="text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">レポートプレビュー</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleExportHTML(report)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              <ExternalLink size={14} />
+              新しいタブで開く
+            </button>
+            <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto bg-white p-0">
+          <iframe
+            srcDoc={html}
+            className="h-full w-full border-0"
+            title={`${report.title}のプレビュー`}
+            sandbox="allow-same-origin"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // -- Main Page --
 
 export default function ReportsPage(): React.ReactElement {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [previewReport, setPreviewReport] = useState<Report | null>(null);
+  const [inlinePreviewReport, setInlinePreviewReport] = useState<Report | null>(null);
 
   const reportsQuery = trpc.reports.list.useQuery(undefined, { retry: false });
 
@@ -399,14 +543,44 @@ export default function ReportsPage(): React.ReactElement {
                           プレビュー
                         </button>
                         {report.status === 'ready' && (
-                          <button
-                            type="button"
-                            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                            title="ダウンロード"
-                            aria-label={`${report.title}をダウンロード`}
-                          >
-                            <Download size={14} />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleExportCSV(report)}
+                              className="rounded px-1.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                              title="CSVダウンロード"
+                              aria-label={`${report.title}をCSVでダウンロード`}
+                            >
+                              <span className="flex items-center gap-1">
+                                <FileText size={12} />
+                                CSV
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleExportExcel(report)}
+                              className="rounded px-1.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                              title="Excelダウンロード"
+                              aria-label={`${report.title}をExcelでダウンロード`}
+                            >
+                              <span className="flex items-center gap-1">
+                                <FileSpreadsheet size={12} />
+                                Excel
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setInlinePreviewReport(report)}
+                              className="rounded px-1.5 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                              title="HTML(PDF)で開く"
+                              aria-label={`${report.title}をHTML(PDF)で表示`}
+                            >
+                              <span className="flex items-center gap-1">
+                                <Printer size={12} />
+                                HTML
+                              </span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -462,6 +636,14 @@ export default function ReportsPage(): React.ReactElement {
 
       {/* Generate modal */}
       <GenerateModal open={generateOpen} onClose={() => setGenerateOpen(false)} />
+
+      {/* Inline report preview modal */}
+      {inlinePreviewReport && (
+        <InlineReportPreview
+          report={inlinePreviewReport}
+          onClose={() => setInlinePreviewReport(null)}
+        />
+      )}
     </div>
   );
 }

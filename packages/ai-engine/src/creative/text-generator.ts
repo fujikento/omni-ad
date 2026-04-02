@@ -206,7 +206,7 @@ async function generateWithClaude(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -269,7 +269,7 @@ export async function generateAdText(
   if (request.language === 'ja') {
     const systemPrompt = buildJapaneseSystemPrompt(request, currentMonth);
     rawVariants = await generateWithClaude(systemPrompt, userPrompt);
-    model = 'claude-opus-4-5';
+    model = 'claude-sonnet-4-20250514';
   } else {
     const systemPrompt = buildEnglishSystemPrompt(request, currentMonth);
     rawVariants = await generateWithGpt(systemPrompt, userPrompt);

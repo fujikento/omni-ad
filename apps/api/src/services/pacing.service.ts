@@ -7,17 +7,24 @@
 
 import { db } from '@omni-ad/db';
 import {
+  auditLog,
   campaigns,
   metricsHourly,
   metricsDaily,
 } from '@omni-ad/db/schema';
 import { and, eq, sql, gte, between } from 'drizzle-orm';
+import { createNotification } from './notification.service.js';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type PacingStatus = 'on_track' | 'under_delivery' | 'overspend_risk';
+type PacingStatus =
+  | 'on_track'
+  | 'under_delivery'
+  | 'over_delivery'
+  | 'overspend_risk'
+  | 'critical_overspend';
 
 interface DailyCampaignPacing {
   campaignId: string;
@@ -51,9 +58,26 @@ interface MonthlyCampaignPacing {
   spentThisMonth: number;
   daysRemaining: number;
   daysElapsed: number;
+  dailyTargetSpend: number;
+  currentDailyAverage: number;
   projectedMonthEnd: number;
   overUnderProjection: number;
   pacingStatus: PacingStatus;
+  adjustmentNeeded: string | null;
+}
+
+interface MonthlyPacingAdjustment {
+  campaignId: string;
+  campaignName: string;
+  previousDailyBudget: number;
+  newDailyBudget: number;
+  reason: string;
+}
+
+export interface MonthlyPacingAdjustmentReport {
+  organizationId: string;
+  adjustments: MonthlyPacingAdjustment[];
+  timestamp: Date;
 }
 
 export interface MonthlyPacingReport {
@@ -70,7 +94,9 @@ export interface MonthlyPacingReport {
 
 // Pacing thresholds (percentage deviation from expected)
 const OVERSPEND_THRESHOLD = 0.15;
+const CRITICAL_OVERSPEND_THRESHOLD = 0.30;
 const UNDERDELIVERY_THRESHOLD = 0.30;
+const MONTH_END_WINDOW_DAYS = 5;
 
 // ---------------------------------------------------------------------------
 // Daily Pacing
@@ -227,11 +253,23 @@ export async function getMonthlyPacing(
     const projectedMonthEnd = spentThisMonth + dailyAverage * daysRemaining;
     const overUnderProjection = projectedMonthEnd - monthlyBudget;
 
+    // Daily target to stay on budget for remaining days
+    const remainingBudget = monthlyBudget - spentThisMonth;
+    const dailyTargetSpend =
+      daysRemaining > 0 ? remainingBudget / daysRemaining : 0;
+
     // Determine pacing status
     const expectedByNow = (daysElapsed / daysInMonth) * monthlyBudget;
     const pacingRatio =
       expectedByNow > 0 ? spentThisMonth / expectedByNow : 1;
-    const pacingStatus = computePacingStatus(pacingRatio);
+    const pacingStatus = computeMonthlyPacingStatus(pacingRatio);
+
+    // Calculate adjustment recommendation
+    const adjustmentNeeded = computeAdjustmentRecommendation(
+      dailyBudget,
+      dailyTargetSpend,
+      pacingStatus,
+    );
 
     campaignPacings.push({
       campaignId: campaign.id,
@@ -240,9 +278,12 @@ export async function getMonthlyPacing(
       spentThisMonth,
       daysRemaining,
       daysElapsed,
+      dailyTargetSpend,
+      currentDailyAverage: dailyAverage,
       projectedMonthEnd,
       overUnderProjection,
       pacingStatus,
+      adjustmentNeeded,
     });
   }
 
@@ -277,7 +318,169 @@ export async function getMonthlyPacing(
 // ---------------------------------------------------------------------------
 
 function computePacingStatus(pacingRatio: number): PacingStatus {
+  if (pacingRatio > 1 + CRITICAL_OVERSPEND_THRESHOLD)
+    return 'critical_overspend';
   if (pacingRatio > 1 + OVERSPEND_THRESHOLD) return 'overspend_risk';
   if (pacingRatio < 1 - UNDERDELIVERY_THRESHOLD) return 'under_delivery';
   return 'on_track';
+}
+
+function computeMonthlyPacingStatus(pacingRatio: number): PacingStatus {
+  if (pacingRatio > 1 + CRITICAL_OVERSPEND_THRESHOLD)
+    return 'critical_overspend';
+  if (pacingRatio > 1 + OVERSPEND_THRESHOLD) return 'over_delivery';
+  if (pacingRatio < 1 - UNDERDELIVERY_THRESHOLD) return 'under_delivery';
+  return 'on_track';
+}
+
+function computeAdjustmentRecommendation(
+  currentDailyBudget: number,
+  dailyTargetSpend: number,
+  status: PacingStatus,
+): string | null {
+  if (status === 'on_track') return null;
+
+  const diff = currentDailyBudget - dailyTargetSpend;
+
+  if (
+    status === 'over_delivery' ||
+    status === 'overspend_risk' ||
+    status === 'critical_overspend'
+  ) {
+    return `日次予算を${Math.abs(diff).toLocaleString('ja-JP')}円削減して${dailyTargetSpend.toLocaleString('ja-JP')}円に調整してください`;
+  }
+
+  if (status === 'under_delivery') {
+    return `日次予算を${Math.abs(diff).toLocaleString('ja-JP')}円増加して${dailyTargetSpend.toLocaleString('ja-JP')}円に調整してください`;
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-Adjust Monthly Pacing
+// ---------------------------------------------------------------------------
+
+/**
+ * Automatically adjust daily budgets based on monthly pacing:
+ * - If over_delivery: reduce daily budgets proportionally
+ * - If under_delivery near month end (last 5 days): increase daily budgets
+ * - Logs adjustments to audit trail and sends notifications
+ */
+export async function autoAdjustMonthlyPacing(
+  organizationId: string,
+): Promise<MonthlyPacingAdjustmentReport> {
+  const pacingReport = await getMonthlyPacing(organizationId);
+  const adjustments: MonthlyPacingAdjustment[] = [];
+
+  for (const campaignPacing of pacingReport.campaigns) {
+    const {
+      campaignId,
+      campaignName,
+      pacingStatus,
+      dailyTargetSpend,
+      daysRemaining,
+    } = campaignPacing;
+
+    // Fetch current campaign to get the actual daily budget
+    const campaign = await db.query.campaigns.findFirst({
+      where: and(
+        eq(campaigns.id, campaignId),
+        eq(campaigns.organizationId, organizationId),
+      ),
+    });
+
+    if (!campaign) continue;
+
+    const currentDailyBudget = Number(campaign.dailyBudget);
+    let newDailyBudget: number | null = null;
+    let reason = '';
+
+    // Over-delivery: reduce daily budgets proportionally
+    if (
+      pacingStatus === 'over_delivery' ||
+      pacingStatus === 'critical_overspend'
+    ) {
+      newDailyBudget = Math.max(0, dailyTargetSpend);
+      reason = `月次ペーシングが予算超過 (${pacingStatus}): 日次予算を${currentDailyBudget.toLocaleString('ja-JP')}円から${newDailyBudget.toLocaleString('ja-JP')}円に削減`;
+    }
+
+    // Under-delivery near month end: increase daily budgets
+    if (
+      pacingStatus === 'under_delivery' &&
+      daysRemaining <= MONTH_END_WINDOW_DAYS
+    ) {
+      newDailyBudget = dailyTargetSpend;
+      reason = `月末${daysRemaining}日で配信不足: 日次予算を${currentDailyBudget.toLocaleString('ja-JP')}円から${newDailyBudget.toLocaleString('ja-JP')}円に増加`;
+    }
+
+    if (newDailyBudget === null) continue;
+
+    // Skip if adjustment is negligible (< 1% difference)
+    if (
+      Math.abs(newDailyBudget - currentDailyBudget) /
+        currentDailyBudget <
+      0.01
+    ) {
+      continue;
+    }
+
+    // Apply budget adjustment
+    await db
+      .update(campaigns)
+      .set({
+        dailyBudget: newDailyBudget.toFixed(2),
+        updatedAt: sql`now()`,
+      })
+      .where(eq(campaigns.id, campaignId));
+
+    // Audit log
+    await db.insert(auditLog).values({
+      organizationId,
+      userId: null,
+      action: 'auto_adjust_monthly_pacing',
+      entityType: 'campaign',
+      entityId: campaignId,
+      oldValue: { dailyBudget: currentDailyBudget },
+      newValue: {
+        dailyBudget: newDailyBudget,
+        reason,
+        pacingStatus,
+      },
+    });
+
+    adjustments.push({
+      campaignId,
+      campaignName,
+      previousDailyBudget: currentDailyBudget,
+      newDailyBudget,
+      reason,
+    });
+  }
+
+  // Send summary notification if adjustments were made
+  if (adjustments.length > 0) {
+    const summaryLines = adjustments.map(
+      (a) =>
+        `${a.campaignName}: ${a.previousDailyBudget.toLocaleString('ja-JP')}円 -> ${a.newDailyBudget.toLocaleString('ja-JP')}円`,
+    );
+
+    await createNotification({
+      organizationId,
+      type: 'info',
+      title: '月次予算ペーシング自動調整',
+      message: `${adjustments.length}件のキャンペーンの日次予算が自動調整されました:\n${summaryLines.join('\n')}`,
+      source: 'monthly_pacing_auto_adjust',
+      metadata: {
+        adjustmentCount: adjustments.length,
+        adjustments,
+      },
+    });
+  }
+
+  return {
+    organizationId,
+    adjustments,
+    timestamp: new Date(),
+  };
 }

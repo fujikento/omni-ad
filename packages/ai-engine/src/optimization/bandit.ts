@@ -228,7 +228,14 @@ export function computeAllocation(
 
   for (const sample of samples) {
     expectedRoas[sample.platform] = sample.mean;
-    confidence[sample.platform] = Math.max(0, 1 - sample.std);
+    // Confidence based on 95% credible interval width relative to the mean.
+    // Narrower interval = higher confidence. When mean is 0, fall back to
+    // raw std penalty so we don't divide by zero.
+    const intervalWidth = 2 * 1.96 * sample.std;
+    confidence[sample.platform] =
+      sample.mean > 0
+        ? Math.max(0, Math.min(1, 1 - intervalWidth / sample.mean))
+        : Math.max(0, 1 - intervalWidth);
   }
 
   const explorationRate =
