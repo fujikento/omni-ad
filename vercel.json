@@ -1,6 +1,6 @@
 {
   "installCommand": "corepack enable && pnpm install",
-  "buildCommand": "pnpm --filter @omni-ad/web build",
+  "buildCommand": "cd apps/web && npx next build",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs"
 }
