@@ -11,10 +11,52 @@ import type { AppRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
 import { registerConversionTrackingRoutes } from "./routes/conversion-tracking.js";
 import { registerUploadRoutes } from "./routes/upload.js";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 const HOST = process.env["HOST"] ?? "0.0.0.0";
+
+// ---------------------------------------------------------------------------
+// Webhook Signature Verification
+// ---------------------------------------------------------------------------
+
+const WEBHOOK_SIGNATURE_HEADERS: Record<string, string> = {
+  meta: "x-hub-signature-256",
+  google: "x-goog-signature",
+  tiktok: "x-tt-signature",
+  line: "x-line-signature",
+  x: "x-twitter-webhooks-signature",
+  yahoo_japan: "x-yahoo-signature",
+  stripe: "stripe-signature",
+};
+
+function verifyWebhookSignature(
+  platform: string,
+  headers: Record<string, string | string[] | undefined>,
+  rawBody: string,
+): boolean {
+  const envKey = `${platform.toUpperCase()}_WEBHOOK_SECRET`;
+  const secret = process.env[envKey];
+  if (!secret) return false;
+
+  const headerName = WEBHOOK_SIGNATURE_HEADERS[platform];
+  if (!headerName) return false;
+
+  const rawSignature = headers[headerName];
+  const signature = Array.isArray(rawSignature) ? rawSignature[0] : rawSignature;
+  if (!signature) return false;
+
+  const expectedSig =
+    "sha256=" + createHmac("sha256", secret).update(rawBody).digest("hex");
+
+  // Guard against length mismatch before timingSafeEqual
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expectedSig);
+  if (sigBuf.length !== expectedBuf.length) return false;
+
+  return timingSafeEqual(sigBuf, expectedBuf);
+}
 
 function buildServer(): ReturnType<typeof Fastify> {
   const server = Fastify({
@@ -116,6 +158,24 @@ function buildServer(): ReturnType<typeof Fastify> {
 
   // --- Webhook Routes ---
 
+  // Capture raw body for webhook signature verification
+  server.addHook("onRequest", async (request) => {
+    if (request.url.startsWith("/webhooks/") && request.method === "POST") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of request.raw) {
+        chunks.push(chunk as Buffer);
+      }
+      const rawBody = Buffer.concat(chunks).toString("utf-8");
+      (request as unknown as Record<string, string>)["rawBody"] = rawBody;
+      try {
+        (request as unknown as Record<string, unknown>)["body"] =
+          JSON.parse(rawBody);
+      } catch {
+        (request as unknown as Record<string, unknown>)["body"] = null;
+      }
+    }
+  });
+
   server.post<{
     Params: { platform: string };
     Body: unknown;
@@ -139,11 +199,23 @@ function buildServer(): ReturnType<typeof Fastify> {
       });
     }
 
+    // Verify webhook signature
+    const rawBody =
+      (request as unknown as Record<string, string>)["rawBody"] ?? "";
+    if (!verifyWebhookSignature(platform, request.headers, rawBody)) {
+      server.log.warn(
+        { platform },
+        `Webhook signature verification failed for ${platform}`,
+      );
+      return reply.status(403).send({
+        error: "Invalid webhook signature",
+      });
+    }
+
     // TODO: Route to platform-specific webhook handler service
-    // Each handler should verify the webhook signature before processing
     server.log.info(
       { platform, contentType: request.headers["content-type"] },
-      `Received webhook from ${platform}`
+      `Received verified webhook from ${platform}`,
     );
 
     return reply.status(200).send({ received: true });

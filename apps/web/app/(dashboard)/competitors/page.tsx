@@ -46,7 +46,7 @@ import { cn } from '@/lib/utils';
 // ============================================================
 
 type CompetitorStrategy = 'aggressive' | 'defensive' | 'opportunistic';
-type Platform = 'google' | 'meta' | 'tiktok' | 'line_yahoo' | 'amazon';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 
 type AlertType =
   | 'new_creative'
@@ -153,11 +153,13 @@ const STRATEGY_CONFIG: Record<
 };
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
-  google: { label: 'Google', color: 'bg-blue-500' },
   meta: { label: 'Meta', color: 'bg-indigo-500' },
+  google: { label: 'Google', color: 'bg-blue-500' },
+  x: { label: 'X', color: 'bg-gray-700' },
   tiktok: { label: 'TikTok', color: 'bg-pink-500' },
   line_yahoo: { label: 'LINE/Yahoo', color: 'bg-green-500' },
   amazon: { label: 'Amazon', color: 'bg-orange-500' },
+  microsoft: { label: 'Microsoft', color: 'bg-teal-500' },
 };
 
 const ALERT_TYPE_ICONS: Record<AlertType, ReactNode> = {

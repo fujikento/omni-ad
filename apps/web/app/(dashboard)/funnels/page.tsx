@@ -15,7 +15,7 @@ import { trpc } from '@/lib/trpc';
 
 // -- Types --
 
-type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 
 interface FunnelStage {
   id: string;
@@ -42,12 +42,13 @@ interface Funnel {
 // -- Constants --
 
 const PLATFORM_LABELS: Record<Platform, string> = {
-  google: 'Google',
   meta: 'Meta',
-  tiktok: 'TikTok',
-  line: 'LINE',
+  google: 'Google',
   x: 'X',
-  yahoo_japan: 'Yahoo!',
+  tiktok: 'TikTok',
+  line_yahoo: 'LINE/Yahoo',
+  amazon: 'Amazon',
+  microsoft: 'Microsoft',
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -85,7 +86,7 @@ const MOCK_FUNNEL: Funnel = {
       id: 's2',
       name: '興味喚起',
       type: 'interest',
-      platforms: ['meta', 'line'],
+      platforms: ['meta', 'line_yahoo'],
       campaigns: [
         { id: 'c3', name: 'リターゲティング - 興味' },
       ],
@@ -96,7 +97,7 @@ const MOCK_FUNNEL: Funnel = {
       id: 's3',
       name: 'クロージング',
       type: 'closing',
-      platforms: ['google', 'meta', 'yahoo_japan'],
+      platforms: ['google', 'meta', 'line_yahoo'],
       campaigns: [
         { id: 'c4', name: 'コンバージョン最適化' },
         { id: 'c5', name: 'ショッピング広告' },
@@ -108,7 +109,7 @@ const MOCK_FUNNEL: Funnel = {
       id: 's4',
       name: '追客',
       type: 'retention',
-      platforms: ['line', 'meta'],
+      platforms: ['line_yahoo', 'meta'],
       campaigns: [
         { id: 'c6', name: 'リピーター獲得' },
       ],

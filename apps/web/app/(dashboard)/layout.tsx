@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   BarChart3,
   Bell,
@@ -270,6 +270,11 @@ function UserDropdown({
       <div className="border-t border-border">
         <button
           type="button"
+          onClick={() => {
+            localStorage.removeItem('omni-ad-token');
+            localStorage.removeItem('omni-ad-refresh-token');
+            window.location.href = '/login';
+          }}
           className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
           role="menuitem"
         >
@@ -313,6 +318,80 @@ function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactEleme
 }
 
 // ============================================================
+// API Helpers (layout is outside TRPCProvider, so use fetch)
+// ============================================================
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/trpc';
+
+interface TRPCErrorResponse {
+  error?: { message?: string; json?: { message?: string } };
+}
+
+async function trpcMutate(
+  procedure: string,
+  input?: Record<string, unknown>,
+): Promise<void> {
+  const token = typeof window !== 'undefined'
+    ? localStorage.getItem('omni-ad-token')
+    : null;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/${procedure}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ json: input ?? {} }),
+  });
+
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    const parsed = body as TRPCErrorResponse | null;
+    const message = parsed?.error?.json?.message
+      ?? parsed?.error?.message
+      ?? 'リクエストに失敗しました';
+    throw new Error(message);
+  }
+}
+
+interface NotificationFromAPI {
+  id: string;
+  severity: NotificationSeverity;
+  message: string;
+  time: string;
+  read: boolean;
+  href?: string;
+}
+
+interface TRPCQueryResult {
+  result?: { data?: { json?: NotificationFromAPI[] } };
+}
+
+async function fetchNotifications(): Promise<Notification[]> {
+  const token = typeof window !== 'undefined'
+    ? localStorage.getItem('omni-ad-token')
+    : null;
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/notifications.list`, { headers });
+  if (!response.ok) {
+    throw new Error('通知の取得に失敗しました');
+  }
+
+  const data: unknown = await response.json();
+  const parsed = data as TRPCQueryResult;
+  return parsed?.result?.data?.json ?? [];
+}
+
+// ============================================================
 // Main Layout
 // ============================================================
 
@@ -327,6 +406,7 @@ export default function DashboardLayout({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
   const [emergencyStopModalOpen, setEmergencyStopModalOpen] = useState(false);
   const [emergencyStopped, setEmergencyStopped] = useState(false);
   const [emergencyStopping, setEmergencyStopping] = useState(false);
@@ -346,22 +426,59 @@ export default function DashboardLayout({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Fetch real notifications with fallback to mock data
+  const loadNotifications = useCallback(async (): Promise<void> => {
+    try {
+      const data = await fetchNotifications();
+      if (data.length > 0) {
+        setNotifications(data);
+      }
+      setNotificationsLoaded(true);
+    } catch {
+      // Keep mock data as fallback
+      setNotificationsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!notificationsLoaded) {
+      void loadNotifications();
+    }
+  }, [notificationsLoaded, loadNotifications]);
+
   function handleMarkAllRead(): void {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
-  function handleEmergencyStop(): void {
+  const [emergencyError, setEmergencyError] = useState<string | null>(null);
+
+  async function handleEmergencyStop(): Promise<void> {
     setEmergencyStopping(true);
-    // Mock: trpc.emergency.stopAll would be called here
-    setTimeout(() => {
-      setEmergencyStopping(false);
+    setEmergencyError(null);
+    try {
+      await trpcMutate('emergency.stopAll');
       setEmergencyStopped(true);
       setEmergencyStopModalOpen(false);
-    }, 1500);
+    } catch (err: unknown) {
+      const message = err instanceof Error
+        ? err.message
+        : '緊急停止に失敗しました';
+      setEmergencyError(message);
+    } finally {
+      setEmergencyStopping(false);
+    }
   }
 
-  function handleEmergencyResume(): void {
-    setEmergencyStopped(false);
+  async function handleEmergencyResume(): Promise<void> {
+    try {
+      await trpcMutate('emergency.resume');
+      setEmergencyStopped(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error
+        ? err.message
+        : '再開に失敗しました';
+      setEmergencyError(message);
+    }
   }
 
   return (
@@ -654,6 +771,11 @@ export default function DashboardLayout({
             <p className="mt-2 text-sm text-muted-foreground">
               この操作は全プラットフォームの全アクティブキャンペーンを停止します。
             </p>
+            {emergencyError && (
+              <div className="mt-3 rounded-md bg-destructive/10 px-3 py-2">
+                <p className="text-sm text-destructive">{emergencyError}</p>
+              </div>
+            )}
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"

@@ -36,7 +36,7 @@ import { ExportButton } from '@/app/components/export-button';
 // ============================================================
 
 type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
-type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 type Objective = 'awareness' | 'traffic' | 'engagement' | 'leads' | 'conversion' | 'retargeting';
 type BidStrategy = 'auto_maximize_conversions' | 'auto_target_cpa' | 'auto_target_roas' | 'manual_cpc';
 type Gender = 'male' | 'female' | 'unspecified';
@@ -72,15 +72,16 @@ const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'active', 'paused', 'completed', 'archived'];
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
-  google: { label: 'Google', color: 'bg-blue-500' },
   meta: { label: 'Meta', color: 'bg-indigo-500' },
-  tiktok: { label: 'TikTok', color: 'bg-pink-500' },
-  line: { label: 'LINE', color: 'bg-green-500' },
+  google: { label: 'Google', color: 'bg-blue-500' },
   x: { label: 'X', color: 'bg-gray-700' },
-  yahoo_japan: { label: 'Yahoo!', color: 'bg-red-500' },
+  tiktok: { label: 'TikTok', color: 'bg-pink-500' },
+  line_yahoo: { label: 'LINE/Yahoo', color: 'bg-green-500' },
+  amazon: { label: 'Amazon', color: 'bg-orange-500' },
+  microsoft: { label: 'Microsoft', color: 'bg-teal-500' },
 };
 
-const ALL_PLATFORMS: Platform[] = ['google', 'meta', 'tiktok', 'line', 'x', 'yahoo_japan'];
+const ALL_PLATFORMS: Platform[] = ['meta', 'google', 'x', 'tiktok', 'line_yahoo', 'amazon', 'microsoft'];
 
 const OBJECTIVE_OPTIONS: { value: Objective; label: string }[] = [
   { value: 'awareness', label: '認知拡大' },
@@ -161,7 +162,7 @@ const MOCK_EXISTING_CREATIVES = [
 const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: '1', name: '春のプロモーション2026', status: 'active',
-    platforms: ['google', 'meta', 'line'],
+    platforms: ['google', 'meta', 'line_yahoo'],
     budget: { total: 500000, currency: 'JPY', dailyLimit: 50000 },
     roas: 3.2, updatedAt: '2026-04-01T10:00:00Z', objective: 'conversion',
   },
@@ -173,13 +174,13 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   },
   {
     id: '3', name: 'ブランド認知拡大', status: 'draft',
-    platforms: ['google', 'meta', 'x', 'yahoo_japan'],
+    platforms: ['google', 'meta', 'x', 'line_yahoo'],
     budget: { total: 1000000, currency: 'JPY', dailyLimit: 100000 },
     roas: 0, updatedAt: '2026-03-25T09:00:00Z', objective: 'awareness',
   },
   {
     id: '4', name: '年末セール 2025', status: 'completed',
-    platforms: ['google', 'meta', 'line', 'yahoo_japan'],
+    platforms: ['google', 'meta', 'line_yahoo', 'amazon'],
     budget: { total: 800000, currency: 'JPY' },
     roas: 4.5, updatedAt: '2026-01-15T18:00:00Z', objective: 'retargeting',
   },
@@ -191,7 +192,7 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   },
   {
     id: '6', name: 'LINE公式キャンペーン', status: 'active',
-    platforms: ['line'],
+    platforms: ['line_yahoo'],
     budget: { total: 300000, currency: 'JPY', dailyLimit: 30000 },
     roas: 2.6, updatedAt: '2026-04-01T16:00:00Z', objective: 'engagement',
   },
@@ -495,7 +496,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
   // Tab 5: Platforms
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
   const [platformBudgetAllocation, setPlatformBudgetAllocation] = useState<Record<Platform, number>>({
-    google: 0, meta: 0, tiktok: 0, line: 0, x: 0, yahoo_japan: 0,
+    meta: 0, google: 0, x: 0, tiktok: 0, line_yahoo: 0, amazon: 0, microsoft: 0,
   });
 
   const createMutation = trpc.campaigns.create.useMutation({

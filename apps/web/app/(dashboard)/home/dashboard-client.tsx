@@ -34,7 +34,7 @@ import { trpc } from '@/lib/trpc';
 type AlertSeverity = 'critical' | 'warning';
 type InsightType = 'opportunity' | 'warning' | 'achievement';
 type CampaignHealthStatus = 'active' | 'paused' | 'error';
-type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 type BudgetPaceStatus = 'on-pace' | 'under-delivery' | 'overspend-risk';
 
 interface Alert {
@@ -145,9 +145,9 @@ const MOCK_KPI: KpiCardData[] = [
 const MOCK_CAMPAIGN_HEALTH: CampaignHealth[] = [
   { id: '1', name: '春のプロモーション2026', healthScore: 92, platforms: ['google', 'meta'], dailySpend: 42000, roas: 4.5, status: 'active' },
   { id: '2', name: 'TikTok新規獲得', healthScore: 78, platforms: ['tiktok'], dailySpend: 28000, roas: 2.8, status: 'active' },
-  { id: '3', name: 'LINEリマーケティング', healthScore: 45, platforms: ['line'], dailySpend: 15000, roas: 1.9, status: 'active' },
+  { id: '3', name: 'LINEリマーケティング', healthScore: 45, platforms: ['line_yahoo'], dailySpend: 15000, roas: 1.9, status: 'active' },
   { id: '4', name: 'ブランド認知拡大', healthScore: 85, platforms: ['google', 'x'], dailySpend: 35000, roas: 3.2, status: 'active' },
-  { id: '5', name: 'Yahoo!ディスプレイ', healthScore: 32, platforms: ['yahoo_japan'], dailySpend: 5500, roas: 0.8, status: 'error' },
+  { id: '5', name: 'Yahoo!ディスプレイ', healthScore: 32, platforms: ['line_yahoo'], dailySpend: 5500, roas: 0.8, status: 'error' },
   { id: '6', name: 'Meta ストーリーズ', healthScore: 60, platforms: ['meta'], dailySpend: 2000, roas: 2.1, status: 'paused' },
 ];
 
@@ -186,21 +186,23 @@ const MOCK_ACTIVITY: ActivityItem[] = [
 ];
 
 const PLATFORM_LABELS: Record<Platform, string> = {
-  google: 'Google',
   meta: 'Meta',
-  tiktok: 'TikTok',
-  line: 'LINE',
+  google: 'Google',
   x: 'X',
-  yahoo_japan: 'Yahoo!',
+  tiktok: 'TikTok',
+  line_yahoo: 'LINE/Yahoo',
+  amazon: 'Amazon',
+  microsoft: 'Microsoft',
 };
 
 const PLATFORM_COLORS: Record<Platform, string> = {
-  google: 'bg-blue-500',
   meta: 'bg-indigo-500',
-  tiktok: 'bg-pink-500',
-  line: 'bg-green-500',
+  google: 'bg-blue-500',
   x: 'bg-gray-700',
-  yahoo_japan: 'bg-red-500',
+  tiktok: 'bg-pink-500',
+  line_yahoo: 'bg-green-500',
+  amazon: 'bg-orange-500',
+  microsoft: 'bg-teal-500',
 };
 
 const STATUS_LABELS: Record<CampaignHealthStatus, string> = {

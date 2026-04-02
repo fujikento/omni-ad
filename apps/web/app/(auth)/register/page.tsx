@@ -7,6 +7,16 @@ interface RegisterErrorResponse {
   message?: string;
 }
 
+interface AuthSuccessPayload {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; email: string; name: string };
+}
+
+interface TRPCSuccessResponse {
+  result?: { data?: { json?: AuthSuccessPayload } };
+}
+
 export default function RegisterPage(): React.ReactElement {
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -40,7 +50,8 @@ export default function RegisterPage(): React.ReactElement {
 
     try {
       // Register
-      const registerResponse = await fetch('http://localhost:3001/trpc/auth.register', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/trpc';
+      const registerResponse = await fetch(`${apiUrl}/auth.register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -58,7 +69,7 @@ export default function RegisterPage(): React.ReactElement {
       }
 
       // Auto-login after registration
-      const loginResponse = await fetch('http://localhost:3001/trpc/auth.login', {
+      const loginResponse = await fetch(`${apiUrl}/auth.login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ json: { email, password } }),
@@ -66,11 +77,16 @@ export default function RegisterPage(): React.ReactElement {
 
       if (loginResponse.ok) {
         const data: unknown = await loginResponse.json();
-        const result = data as { result?: { data?: { json?: { token?: string } } } };
-        const token = result?.result?.data?.json?.token;
+        const result = data as TRPCSuccessResponse;
+        const payload = result?.result?.data?.json;
+        const accessToken = payload?.accessToken;
+        const refreshToken = payload?.refreshToken;
 
-        if (token) {
-          localStorage.setItem('omni-ad-token', token);
+        if (accessToken) {
+          localStorage.setItem('omni-ad-token', accessToken);
+        }
+        if (refreshToken) {
+          localStorage.setItem('omni-ad-refresh-token', refreshToken);
         }
       }
 

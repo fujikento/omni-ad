@@ -7,6 +7,16 @@ interface LoginErrorResponse {
   message?: string;
 }
 
+interface LoginSuccessPayload {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; email: string; name: string };
+}
+
+interface TRPCSuccessResponse {
+  result?: { data?: { json?: LoginSuccessPayload } };
+}
+
 export default function LoginPage(): React.ReactElement {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -19,7 +29,8 @@ export default function LoginPage(): React.ReactElement {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/trpc/auth.login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/trpc';
+      const response = await fetch(`${apiUrl}/auth.login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ json: { email, password } }),
@@ -35,11 +46,21 @@ export default function LoginPage(): React.ReactElement {
       }
 
       const data: unknown = await response.json();
-      const result = data as { result?: { data?: { json?: { token?: string } } } };
-      const token = result?.result?.data?.json?.token;
+      const result = data as TRPCSuccessResponse;
+      const payload = result?.result?.data?.json;
+      const accessToken = payload?.accessToken;
+      const refreshToken = payload?.refreshToken;
 
-      if (token) {
-        localStorage.setItem('omni-ad-token', token);
+      if (accessToken) {
+        localStorage.setItem('omni-ad-token', accessToken);
+      }
+      if (refreshToken) {
+        localStorage.setItem('omni-ad-refresh-token', refreshToken);
+      }
+
+      if (!accessToken) {
+        setError('認証トークンの取得に失敗しました。もう一度お試しください。');
+        return;
       }
 
       window.location.href = '/home';

@@ -21,14 +21,22 @@ interface TRPCProviderProps {
   children: React.ReactNode;
 }
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/trpc';
+
 export function TRPCProvider({ children }: TRPCProviderProps): React.ReactElement {
   const [queryClient] = useState(makeQueryClient);
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: 'http://localhost:3001/trpc',
+          url: apiUrl,
           transformer: superjson,
+          headers(): Record<string, string> {
+            const token = typeof window !== 'undefined'
+              ? localStorage.getItem('omni-ad-token')
+              : null;
+            return token ? { authorization: `Bearer ${token}` } : {};
+          },
         }),
       ],
     }),

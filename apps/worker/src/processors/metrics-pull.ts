@@ -1,5 +1,6 @@
 import { db } from '@omni-ad/db';
 import {
+  campaigns,
   campaignPlatformDeployments,
   metricsDaily,
   platformConnections,
@@ -103,11 +104,20 @@ export async function processMetricsPull(job: { name: string; data: unknown }): 
     return;
   }
 
-  // 4. Map external campaign IDs to internal IDs
-  const deployments = await db.query.campaignPlatformDeployments.findMany({
-    where: eq(campaignPlatformDeployments.platform, data.platform),
-    columns: { campaignId: true, externalCampaignId: true },
-  });
+  // 4. Map external campaign IDs to internal IDs (scoped to organization)
+  const deployments = await db
+    .select({
+      campaignId: campaignPlatformDeployments.campaignId,
+      externalCampaignId: campaignPlatformDeployments.externalCampaignId,
+    })
+    .from(campaignPlatformDeployments)
+    .innerJoin(campaigns, eq(campaignPlatformDeployments.campaignId, campaigns.id))
+    .where(
+      and(
+        eq(campaigns.organizationId, data.organizationId),
+        eq(campaignPlatformDeployments.platform, data.platform),
+      ),
+    );
 
   const externalToInternal = new Map<string, string>();
   for (const dep of deployments) {
@@ -123,7 +133,23 @@ export async function processMetricsPull(job: { name: string; data: unknown }): 
     const BATCH_SIZE = 500;
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);
-      await db.insert(metricsDaily).values(batch);
+      await db
+        .insert(metricsDaily)
+        .values(batch)
+        .onConflictDoUpdate({
+          target: [metricsDaily.campaignId, metricsDaily.date, metricsDaily.platform],
+          set: {
+            impressions: sql`EXCLUDED.impressions`,
+            clicks: sql`EXCLUDED.clicks`,
+            conversions: sql`EXCLUDED.conversions`,
+            spend: sql`EXCLUDED.spend`,
+            revenue: sql`EXCLUDED.revenue`,
+            ctr: sql`EXCLUDED.ctr`,
+            cpc: sql`EXCLUDED.cpc`,
+            cpa: sql`EXCLUDED.cpa`,
+            roas: sql`EXCLUDED.roas`,
+          },
+        });
     }
   }
 

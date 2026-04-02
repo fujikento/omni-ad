@@ -17,7 +17,7 @@ import { ExportButton } from '@/app/components/export-button';
 
 // -- Types --
 
-type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 
 interface AudienceSegment {
   id: string;
@@ -39,30 +39,32 @@ interface OverlapCircle {
 // -- Constants --
 
 const PLATFORM_LABELS: Record<Platform, string> = {
-  google: 'Google',
   meta: 'Meta',
-  tiktok: 'TikTok',
-  line: 'LINE',
+  google: 'Google',
   x: 'X',
-  yahoo_japan: 'Yahoo!',
+  tiktok: 'TikTok',
+  line_yahoo: 'LINE/Yahoo',
+  amazon: 'Amazon',
+  microsoft: 'Microsoft',
 };
 
 const PLATFORM_COLORS: Record<Platform, string> = {
-  google: 'bg-blue-500',
   meta: 'bg-indigo-500',
-  tiktok: 'bg-pink-500',
-  line: 'bg-green-500',
+  google: 'bg-blue-500',
   x: 'bg-gray-700',
-  yahoo_japan: 'bg-red-500',
+  tiktok: 'bg-pink-500',
+  line_yahoo: 'bg-green-500',
+  amazon: 'bg-orange-500',
+  microsoft: 'bg-teal-500',
 };
 
 const MOCK_SEGMENTS: AudienceSegment[] = [
   { id: '1', name: '高価値リピーター', size: 15200, platform: 'google', fatigueScore: 12, lastUpdated: '2026-04-01T10:00:00Z', description: '過去3ヶ月で3回以上購入した顧客' },
   { id: '2', name: 'カート離脱者', size: 28400, platform: 'meta', fatigueScore: 45, lastUpdated: '2026-04-01T12:00:00Z', description: 'カートに商品を入れたが購入しなかったユーザー' },
   { id: '3', name: '新規訪問者', size: 125000, platform: 'google', fatigueScore: 8, lastUpdated: '2026-04-02T06:00:00Z', description: '過去7日間の新規サイト訪問者' },
-  { id: '4', name: 'LINE友達', size: 45000, platform: 'line', fatigueScore: 22, lastUpdated: '2026-03-30T18:00:00Z', description: 'LINE公式アカウントの友達' },
+  { id: '4', name: 'LINE友達', size: 45000, platform: 'line_yahoo', fatigueScore: 22, lastUpdated: '2026-03-30T18:00:00Z', description: 'LINE公式アカウントの友達' },
   { id: '5', name: 'TikTokエンゲージ', size: 89000, platform: 'tiktok', fatigueScore: 15, lastUpdated: '2026-04-01T08:00:00Z', description: 'TikTok広告にエンゲージしたユーザー' },
-  { id: '6', name: 'メルマガ購読者', size: 32000, platform: 'yahoo_japan', fatigueScore: 58, lastUpdated: '2026-03-28T14:00:00Z', description: 'メールマガジン購読中のユーザー' },
+  { id: '6', name: 'メルマガ購読者', size: 32000, platform: 'line_yahoo', fatigueScore: 58, lastUpdated: '2026-03-28T14:00:00Z', description: 'メールマガジン購読中のユーザー' },
   { id: '7', name: 'X フォロワー', size: 18500, platform: 'x', fatigueScore: 30, lastUpdated: '2026-04-01T16:00:00Z', description: 'X公式アカウントのフォロワー' },
   { id: '8', name: 'アプリユーザー', size: 67000, platform: 'meta', fatigueScore: 20, lastUpdated: '2026-04-02T04:00:00Z', description: 'モバイルアプリのアクティブユーザー' },
 ];

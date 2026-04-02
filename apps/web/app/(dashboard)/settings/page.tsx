@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 // -- Types --
 
 type SettingsTab = 'platforms' | 'team' | 'billing' | 'api' | 'ai';
-type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'expired';
 type UserRole = 'admin' | 'editor' | 'viewer';
 
@@ -70,12 +70,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 const MOCK_CONNECTIONS: PlatformConnection[] = [
-  { platform: 'google', label: 'Google Ads', status: 'connected', accountName: 'OMNI-AD Google', lastSync: '2026-04-02T05:30:00Z', icon: 'G' },
   { platform: 'meta', label: 'Meta Ads', status: 'connected', accountName: 'OMNI-AD Meta', lastSync: '2026-04-02T05:00:00Z', icon: 'M' },
-  { platform: 'tiktok', label: 'TikTok Ads', status: 'disconnected', icon: 'T' },
-  { platform: 'line', label: 'LINE Ads', status: 'connected', accountName: 'OMNI-AD LINE', lastSync: '2026-04-01T22:00:00Z', icon: 'L' },
+  { platform: 'google', label: 'Google Ads', status: 'connected', accountName: 'OMNI-AD Google', lastSync: '2026-04-02T05:30:00Z', icon: 'G' },
   { platform: 'x', label: 'X Ads', status: 'expired', accountName: 'OMNI-AD X', icon: 'X' },
-  { platform: 'yahoo_japan', label: 'Yahoo! Japan Ads', status: 'disconnected', icon: 'Y' },
+  { platform: 'tiktok', label: 'TikTok Ads', status: 'disconnected', icon: 'T' },
+  { platform: 'line_yahoo', label: 'LINE/Yahoo Ads', status: 'connected', accountName: 'OMNI-AD LINE/Yahoo', lastSync: '2026-04-01T22:00:00Z', icon: 'L' },
+  { platform: 'amazon', label: 'Amazon Ads', status: 'disconnected', icon: 'A' },
+  { platform: 'microsoft', label: 'Microsoft Ads', status: 'disconnected', icon: 'MS' },
 ];
 
 const MOCK_TEAM: TeamMember[] = [

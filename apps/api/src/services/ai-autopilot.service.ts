@@ -619,6 +619,16 @@ async function processActions(
       await executeAction(organizationId, settings, action, decision.id);
     }
 
+    // Log reason when skipped due to low confidence in full_auto mode
+    if (status === 'skipped' && settings.autopilotMode === 'full_auto') {
+      await db
+        .update(aiDecisionLog)
+        .set({
+          action: { skippedReason: 'Confidence too low', confidence: action.confidence } as Record<string, unknown>,
+        })
+        .where(eq(aiDecisionLog.id, decision.id));
+    }
+
     // Send notification for pending decisions
     if (status === 'pending_approval') {
       await createNotification({
@@ -677,6 +687,9 @@ function mapActionToDecisionType(
   return mapping[actionType];
 }
 
+/** Minimum confidence required for full_auto execution */
+const FULL_AUTO_CONFIDENCE_THRESHOLD = 0.3;
+
 function resolveActionStatus(
   mode: AiSettingsSelect['autopilotMode'],
   action: OptimizationAction,
@@ -686,6 +699,8 @@ function resolveActionStatus(
 
   switch (mode) {
     case 'full_auto':
+      // Skip low-confidence actions — log as 'skipped' instead of executing
+      if (action.confidence < FULL_AUTO_CONFIDENCE_THRESHOLD) return 'skipped';
       return 'executed';
     case 'suggest_only':
       return 'pending_approval';

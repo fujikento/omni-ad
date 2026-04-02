@@ -19,7 +19,7 @@ import { trpc } from '@/lib/trpc';
 
 // -- Types --
 
-type Platform = 'google' | 'meta' | 'tiktok' | 'line' | 'x' | 'yahoo_japan';
+type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 type CreativeFormat = 'image' | 'video' | 'carousel' | 'text' | 'html5' | 'responsive';
 
 interface Creative {
@@ -40,12 +40,13 @@ type WizardStep = 1 | 2 | 3 | 4;
 // -- Constants --
 
 const PLATFORM_LABELS: Record<Platform, string> = {
-  google: 'Google',
   meta: 'Meta',
-  tiktok: 'TikTok',
-  line: 'LINE',
+  google: 'Google',
   x: 'X',
-  yahoo_japan: 'Yahoo!',
+  tiktok: 'TikTok',
+  line_yahoo: 'LINE/Yahoo',
+  amazon: 'Amazon',
+  microsoft: 'Microsoft',
 };
 
 const FORMAT_LABELS: Record<CreativeFormat, string> = {
@@ -68,19 +69,19 @@ const MOCK_CREATIVES: Creative[] = [
   },
   {
     id: '3', headline: '新生活応援キャンペーン', description: '新しい暮らしに必要なものを', format: 'video',
-    platforms: ['tiktok', 'line'], thumbnail: '', score: 78, impressions: 32000, clicks: 1200, ctr: 3.8,
+    platforms: ['tiktok', 'line_yahoo'], thumbnail: '', score: 78, impressions: 32000, clicks: 1200, ctr: 3.8,
   },
   {
     id: '4', headline: '会員限定セール', description: '会員だけの特別プライス', format: 'text',
-    platforms: ['google', 'yahoo_japan'], thumbnail: '', score: 71, impressions: 25000, clicks: 900, ctr: 3.6,
+    platforms: ['google', 'line_yahoo'], thumbnail: '', score: 71, impressions: 25000, clicks: 900, ctr: 3.6,
   },
   {
     id: '5', headline: '無料配送キャンペーン', description: '全品送料無料', format: 'image',
-    platforms: ['meta', 'line', 'x'], thumbnail: '', score: 85, impressions: 42000, clicks: 1950, ctr: 4.6,
+    platforms: ['meta', 'line_yahoo', 'x'], thumbnail: '', score: 85, impressions: 42000, clicks: 1950, ctr: 4.6,
   },
   {
     id: '6', headline: 'レビュー投稿でポイント付与', description: 'レビューを書いてポイントGET', format: 'responsive',
-    platforms: ['google', 'meta', 'yahoo_japan'], thumbnail: '', score: 65, impressions: 18000, clicks: 600, ctr: 3.3,
+    platforms: ['google', 'meta', 'line_yahoo'], thumbnail: '', score: 65, impressions: 18000, clicks: 600, ctr: 3.3,
   },
 ];
 

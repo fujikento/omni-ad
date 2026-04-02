@@ -268,28 +268,32 @@ export async function resumeCampaign(
   id: string,
   organizationId: string,
 ): Promise<CampaignSelect> {
-  const [updated] = await db
-    .update(campaigns)
-    .set({ status: 'active', updatedAt: sql`now()` })
-    .where(
-      and(
-        eq(campaigns.id, id),
-        eq(campaigns.organizationId, organizationId),
-      ),
-    )
-    .returning();
+  const result = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(campaigns)
+      .set({ status: 'active', updatedAt: sql`now()` })
+      .where(
+        and(
+          eq(campaigns.id, id),
+          eq(campaigns.organizationId, organizationId),
+        ),
+      )
+      .returning();
 
-  if (!updated) {
-    throw new CampaignNotFoundError(id);
-  }
+    if (!updated) {
+      throw new CampaignNotFoundError(id);
+    }
 
-  // Resume all platform deployments
-  await db
-    .update(campaignPlatformDeployments)
-    .set({ platformStatus: 'active', updatedAt: sql`now()` })
-    .where(eq(campaignPlatformDeployments.campaignId, id));
+    // Resume all platform deployments
+    await tx
+      .update(campaignPlatformDeployments)
+      .set({ platformStatus: 'active', updatedAt: sql`now()` })
+      .where(eq(campaignPlatformDeployments.campaignId, id));
 
-  return updated;
+    return updated;
+  });
+
+  return result;
 }
 
 export async function deleteCampaign(

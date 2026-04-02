@@ -7,6 +7,7 @@ import {
   pgTable,
   real,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -51,6 +52,11 @@ export const metricsHourly = pgTable(
       table.platform,
       table.timestamp,
     ),
+    uniqueIndex('metrics_hourly_campaign_timestamp_platform_uniq').on(
+      table.campaignId,
+      table.timestamp,
+      table.platform,
+    ),
   ],
 );
 
@@ -86,6 +92,11 @@ export const metricsDaily = pgTable(
   (table) => [
     index('metrics_daily_campaign_date_idx').on(table.campaignId, table.date),
     index('metrics_daily_platform_date_idx').on(table.platform, table.date),
+    uniqueIndex('metrics_daily_campaign_date_platform_uniq').on(
+      table.campaignId,
+      table.date,
+      table.platform,
+    ),
   ],
 );
 
