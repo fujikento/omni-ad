@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { showToast } from '@/lib/show-toast';
 
 // -- Types --
 
@@ -162,6 +163,7 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
               ))}
               <button
                 type="button"
+                onClick={() => showToast('キャンペーン追加は準備中です')}
                 className="flex w-full items-center justify-center gap-1 rounded border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 <Plus size={12} />
@@ -335,7 +337,9 @@ export default function FunnelsPage(): React.ReactElement {
   const funnelsQuery = trpc.funnels.list.useQuery(undefined, { retry: false });
 
   // Use mock data when API not available
-  const funnel = funnelsQuery.error ? MOCK_FUNNEL : MOCK_FUNNEL;
+  const funnel = funnelsQuery.error
+    ? MOCK_FUNNEL
+    : (funnelsQuery.data as Funnel | undefined) ?? MOCK_FUNNEL;
   const isLoading = funnelsQuery.isLoading && !funnelsQuery.error;
 
   return (

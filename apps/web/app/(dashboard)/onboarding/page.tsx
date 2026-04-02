@@ -681,7 +681,7 @@ function CompletionStep(): React.ReactElement {
 
       <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-3">
         <a
-          href="/"
+          href="/home"
           className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
         >
           <Home size={24} className="text-primary" />
@@ -703,13 +703,13 @@ function CompletionStep(): React.ReactElement {
         </a>
       </div>
 
-      <button
-        type="button"
+      <a
+        href="/home"
         className="mt-6 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
       >
         <Users size={16} />
         ツアーを見る
-      </button>
+      </a>
     </div>
   );
 }

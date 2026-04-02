@@ -240,9 +240,9 @@ function UserDropdown({
   if (!open) return null;
 
   const menuItems = [
-    { label: 'プロフィール', icon: <User size={14} />, href: '/settings/profile' },
+    { label: 'プロフィール', icon: <User size={14} />, href: '/settings' },
     { label: '設定', icon: <Settings size={14} />, href: '/settings' },
-    { label: 'プラン', icon: <Zap size={14} />, href: '/settings/plan' },
+    { label: 'プラン', icon: <Zap size={14} />, href: '/settings' },
   ];
 
   return (
@@ -605,7 +605,7 @@ export default function DashboardLayout({
                   </p>
                 </div>
                 <a
-                  href="/settings/plan"
+                  href="/settings"
                   className="rounded-md bg-primary/20 px-2 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/30"
                 >
                   アップグレード
@@ -615,7 +615,7 @@ export default function DashboardLayout({
           ) : (
             <div className="flex justify-center">
               <a
-                href="/settings/plan"
+                href="/settings"
                 className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent"
                 title="アップグレード"
                 aria-label="プランをアップグレード"

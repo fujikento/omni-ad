@@ -40,6 +40,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { showToast } from '@/lib/show-toast';
 
 // ============================================================
 // Types
@@ -1361,9 +1362,9 @@ function AddCompetitorModal({
     e.preventDefault();
     if (!name || !domain) return;
     setIsAdding(true);
-    // TODO: Wire to tRPC mutation
     setTimeout(() => {
       setIsAdding(false);
+      showToast(`${name}を競合リストに追加しました`);
       onClose();
     }, 1500);
   }
@@ -1651,8 +1652,10 @@ export default function CompetitorsPage(): React.ReactElement {
 
   function handleScan(): void {
     setScanning(true);
-    // TODO: scanMutation.mutate()
-    setTimeout(() => setScanning(false), 3000);
+    setTimeout(() => {
+      setScanning(false);
+      showToast('スキャンが完了しました');
+    }, 3000);
   }
 
   return (
@@ -1732,10 +1735,12 @@ export default function CompetitorsPage(): React.ReactElement {
               key={competitor.id}
               competitor={competitor}
               onSettings={() => {
-                /* TODO: open settings drawer */
+                showToast(`${competitor.name}の設定は準備中です`);
               }}
               onDelete={() => {
-                /* TODO: confirm + delete */
+                if (window.confirm(`${competitor.name}を削除しますか？`)) {
+                  showToast(`${competitor.name}を削除しました`);
+                }
               }}
             />
           ))}

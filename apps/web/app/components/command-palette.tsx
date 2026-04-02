@@ -49,7 +49,7 @@ const CATEGORY_LABELS: Record<CommandCategory, string> = {
 };
 
 const NAVIGATION_COMMANDS: CommandItem[] = [
-  { id: 'nav-home', label: 'ダッシュボード', category: 'navigation', icon: <Home size={16} />, href: '/', keywords: ['home', 'ホーム', '概要'] },
+  { id: 'nav-home', label: 'ダッシュボード', category: 'navigation', icon: <Home size={16} />, href: '/home', keywords: ['home', 'ホーム', '概要'] },
   { id: 'nav-campaigns', label: 'キャンペーン', category: 'navigation', icon: <LayoutDashboard size={16} />, href: '/campaigns', keywords: ['campaign'] },
   { id: 'nav-creatives', label: 'クリエイティブ', category: 'navigation', icon: <BrainCircuit size={16} />, href: '/creatives', keywords: ['creative', 'AI'] },
   { id: 'nav-analytics', label: '分析', category: 'navigation', icon: <BarChart3 size={16} />, href: '/analytics', keywords: ['analytics', 'chart'] },

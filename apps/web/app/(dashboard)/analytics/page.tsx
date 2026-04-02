@@ -201,8 +201,12 @@ export default function AnalyticsPage(): React.ReactElement {
   const isLoading = overviewQuery.isLoading && !overviewQuery.error;
 
   // Use mock data when API is not available
-  const kpiCards = overviewQuery.error ? MOCK_KPI : MOCK_KPI;
-  const platformData = platformQuery.error ? MOCK_PLATFORM_DATA : MOCK_PLATFORM_DATA;
+  const kpiCards = overviewQuery.error
+    ? MOCK_KPI
+    : (overviewQuery.data as KpiCard[] | undefined) ?? MOCK_KPI;
+  const platformData = platformQuery.error
+    ? MOCK_PLATFORM_DATA
+    : (platformQuery.data as PlatformMetric[] | undefined) ?? MOCK_PLATFORM_DATA;
   const roasTrend = MOCK_ROAS_TREND;
   const topCampaigns = MOCK_TOP_CAMPAIGNS;
 

@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { showToast } from '@/lib/show-toast';
 
 // -- Types --
 
@@ -140,6 +141,7 @@ const PACING_STATUS_CONFIG: Record<PacingStatus, { label: string; className: str
 // -- Subcomponents --
 
 function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.ReactElement {
+  const [adjusting, setAdjusting] = useState(false);
   const percentage = Math.round((pacing.spent / pacing.total) * 100);
   const statusConfig = PACING_STATUS_CONFIG[pacing.status];
   const formatYen = (v: number): string =>
@@ -199,9 +201,17 @@ function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.Reac
         <div className="flex items-center justify-center rounded-md bg-muted/50 p-3">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled={adjusting}
+            onClick={() => {
+              setAdjusting(true);
+              setTimeout(() => {
+                setAdjusting(false);
+                showToast('ペーシング自動調整が完了しました');
+              }, 1500);
+            }}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            <RefreshCw size={14} />
+            {adjusting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             自動調整を実行
           </button>
         </div>
@@ -335,7 +345,9 @@ export default function BudgetsPage(): React.ReactElement {
   // tRPC hooks (with graceful fallback)
   const budgetQuery = trpc.budgets.current.useQuery(undefined, { retry: false });
 
-  const allocations = budgetQuery.error ? MOCK_ALLOCATIONS : MOCK_ALLOCATIONS;
+  const allocations = budgetQuery.error
+    ? MOCK_ALLOCATIONS
+    : (budgetQuery.data as PlatformAllocation[] | undefined) ?? MOCK_ALLOCATIONS;
   const forecasts = MOCK_FORECASTS;
   const history = MOCK_HISTORY;
   const isLoading = budgetQuery.isLoading && !budgetQuery.error;

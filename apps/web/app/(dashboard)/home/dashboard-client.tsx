@@ -506,6 +506,12 @@ function BudgetPacingBar({ pacing }: { pacing: BudgetPacing }): React.ReactEleme
   );
 }
 
+const INSIGHT_TYPE_HREF: Record<InsightType, string> = {
+  opportunity: '/budgets',
+  warning: '/analytics',
+  achievement: '/reports',
+};
+
 function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactElement {
   const typeConfig: Record<InsightType, { icon: React.ReactNode; className: string }> = {
     opportunity: { icon: <Lightbulb size={16} />, className: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400' },
@@ -531,13 +537,13 @@ function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactEl
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-foreground">{insight.title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">{insight.description}</p>
-                  <button
-                    type="button"
+                  <a
+                    href={INSIGHT_TYPE_HREF[insight.type]}
                     className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
                   >
                     アクション
                     <ArrowRight size={12} />
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>

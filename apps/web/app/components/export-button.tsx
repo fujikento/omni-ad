@@ -134,7 +134,7 @@ export function ExportButton<T>({
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             <FileSpreadsheet size={14} className="text-blue-600" />
-            Excel (.xlsx)
+            Excel (.xlsx) - CSV形式
           </button>
         </div>
       )}

@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
+import { showToast } from '@/lib/show-toast';
 
 // -- Types --
 
@@ -239,6 +240,19 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
 export default function AudiencesPage(): React.ReactElement {
   const [createOpen, setCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTargetPlatforms, setSelectedTargetPlatforms] = useState<Set<Platform>>(new Set());
+
+  function toggleTargetPlatform(platform: Platform): void {
+    setSelectedTargetPlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(platform)) {
+        next.delete(platform);
+      } else {
+        next.add(platform);
+      }
+      return next;
+    });
+  }
 
   const audiencesQuery = trpc.audiences.list.useQuery(undefined, { retry: false });
 
@@ -345,7 +359,13 @@ export default function AudiencesPage(): React.ReactElement {
                   <button
                     key={key}
                     type="button"
-                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                    onClick={() => toggleTargetPlatform(key)}
+                    className={cn(
+                      'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                      selectedTargetPlatforms.has(key)
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground',
+                    )}
                   >
                     {label}
                   </button>
@@ -354,6 +374,13 @@ export default function AudiencesPage(): React.ReactElement {
             </div>
             <button
               type="button"
+              onClick={() => {
+                if (selectedTargetPlatforms.size === 0) {
+                  showToast('ターゲットプラットフォームを選択してください');
+                  return;
+                }
+                showToast('類似オーディエンス生成を開始しました');
+              }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Copy size={14} />

@@ -491,6 +491,7 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardPro
 interface CreateRuleModalProps {
   open: boolean;
   onClose: () => void;
+  editingRule?: AutoRule | null;
 }
 
 interface FormCondition {
@@ -545,10 +546,10 @@ function createEmptyAction(): FormAction {
   };
 }
 
-function CreateRuleModal({ open, onClose }: CreateRuleModalProps): React.ReactElement | null {
+function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): React.ReactElement | null {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [name, setName] = useState('');
-  const [cooldown, setCooldown] = useState(60);
+  const [name, setName] = useState(editingRule?.name ?? '');
+  const [cooldown, setCooldown] = useState(editingRule?.cooldownMinutes ?? 60);
   const [conditions, setConditions] = useState<FormCondition[]>([createEmptyCondition()]);
   const [actions, setActions] = useState<FormAction[]>([createEmptyAction()]);
 
@@ -1241,6 +1242,7 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
 
 export default function AutoRulesPage(): React.ReactElement {
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [rules, setRules] = useState<AutoRule[]>(MOCK_RULES);
   const [evaluating, setEvaluating] = useState(false);
 
@@ -1254,8 +1256,8 @@ export default function AutoRulesPage(): React.ReactElement {
     );
   }
 
-  function handleEdit(_id: string): void {
-    // TODO: pre-populate modal with rule data
+  function handleEdit(id: string): void {
+    setEditingRuleId(id);
     setModalOpen(true);
   }
 
@@ -1307,7 +1309,7 @@ export default function AutoRulesPage(): React.ReactElement {
           </button>
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => { setEditingRuleId(null); setModalOpen(true); }}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Plus size={16} />
@@ -1344,7 +1346,11 @@ export default function AutoRulesPage(): React.ReactElement {
       <ExecutionHistorySection executions={MOCK_EXECUTIONS} />
 
       {/* Create rule modal */}
-      <CreateRuleModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <CreateRuleModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingRuleId(null); }}
+        editingRule={editingRuleId ? rules.find((r) => r.id === editingRuleId) ?? null : null}
+      />
     </div>
   );
 }

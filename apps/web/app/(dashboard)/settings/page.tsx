@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { showToast } from '@/lib/show-toast';
 
 // -- Types --
 
@@ -89,6 +90,7 @@ const MOCK_TEAM: TeamMember[] = [
 
 function PlatformsTab(): React.ReactElement {
   const [connecting, setConnecting] = useState<Platform | null>(null);
+  const [disconnecting, setDisconnecting] = useState<Platform | null>(null);
 
   function handleConnect(platform: Platform): void {
     setConnecting(platform);
@@ -128,9 +130,19 @@ function PlatformsTab(): React.ReactElement {
                 {conn.status === 'connected' ? (
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive"
+                    disabled={disconnecting === conn.platform}
+                    onClick={() => {
+                      if (window.confirm(`${conn.label}との接続を切断しますか？`)) {
+                        setDisconnecting(conn.platform);
+                        setTimeout(() => {
+                          setDisconnecting(null);
+                          showToast(`${conn.label}を切断しました`);
+                        }, 1500);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive disabled:opacity-50"
                   >
-                    <Unlink size={12} />
+                    {disconnecting === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
                     切断
                   </button>
                 ) : (
@@ -157,9 +169,11 @@ function TeamTab(): React.ReactElement {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>('viewer');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(MOCK_TEAM);
 
   function handleInvite(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    showToast(`${inviteEmail} に招待を送信しました`);
     setInviteOpen(false);
     setInviteEmail('');
   }
@@ -227,7 +241,7 @@ function TeamTab(): React.ReactElement {
 
       {/* Team list */}
       <div className="space-y-2">
-        {MOCK_TEAM.map((member) => (
+        {teamMembers.map((member) => (
           <div key={member.id} className="flex items-center justify-between rounded-lg border border-border p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
@@ -253,6 +267,12 @@ function TeamTab(): React.ReactElement {
               {member.role !== 'admin' && (
                 <button
                   type="button"
+                  onClick={() => {
+                    if (window.confirm(`${member.name}をチームから削除しますか？`)) {
+                      setTeamMembers((prev) => prev.filter((m) => m.id !== member.id));
+                      showToast(`${member.name}を削除しました`);
+                    }
+                  }}
                   className="rounded p-1 text-muted-foreground hover:text-destructive"
                   title="削除"
                   aria-label={`${member.name}を削除`}
@@ -283,6 +303,7 @@ function BillingTab(): React.ReactElement {
           </div>
           <button
             type="button"
+            onClick={() => showToast('プラン変更は準備中です')}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             プランを変更
@@ -386,6 +407,11 @@ function ApiTab(): React.ReactElement {
           </div>
           <button
             type="button"
+            onClick={() => {
+              if (window.confirm('APIキーを再生成しますか？古いキーは即座に無効化されます。')) {
+                showToast('新しいAPIキーを生成しました');
+              }
+            }}
             className="inline-flex items-center gap-1 rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
           >
             <RefreshCw size={12} />

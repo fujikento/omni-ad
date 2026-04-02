@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
+import { showToast } from '@/lib/show-toast';
 
 // -- Types --
 
@@ -168,6 +169,13 @@ function ReportPreview({ report, onClose }: ReportPreviewProps): React.ReactElem
           {report.status === 'ready' && (
             <button
               type="button"
+              onClick={() => {
+                if (report.format === 'PDF') {
+                  handleExportHTML(report);
+                } else {
+                  handleExportCSV(report);
+                }
+              }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Download size={16} />
@@ -613,6 +621,7 @@ export default function ReportsPage(): React.ReactElement {
               </div>
               <button
                 type="button"
+                onClick={() => showToast('スケジュール編集は準備中です')}
                 className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
                 編集
@@ -621,6 +630,7 @@ export default function ReportsPage(): React.ReactElement {
           ))}
           <button
             type="button"
+            onClick={() => showToast('スケジュール追加は準備中です')}
             className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus size={14} />

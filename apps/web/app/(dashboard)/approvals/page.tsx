@@ -16,6 +16,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { showToast } from '@/lib/show-toast';
 
 // ============================================================
 // Types
@@ -356,6 +357,8 @@ function PendingRequestCard({
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   return (
     <div className="rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-sm">
@@ -488,17 +491,46 @@ function PendingRequestCard({
         )}
         <button
           type="button"
+          onClick={() => setShowCommentInput((prev) => !prev)}
           className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >
           <MessageSquare size={14} />
           コメント
         </button>
       </div>
+
+      {/* Inline comment input */}
+      {showCommentInput && (
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommentText(e.target.value)}
+            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="コメントを入力..."
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (commentText.trim()) {
+                showToast('コメントを投稿しました');
+                setCommentText('');
+                setShowCommentInput(false);
+              }
+            }}
+            disabled={!commentText.trim()}
+            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            送信
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function MyRequestCard({ request }: { request: ApprovalRequest }): React.ReactElement {
+function MyRequestCard({ request, onCancel }: { request: ApprovalRequest; onCancel?: (id: string) => void }): React.ReactElement {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -521,6 +553,12 @@ function MyRequestCard({ request }: { request: ApprovalRequest }): React.ReactEl
         {request.status === 'pending' && (
           <button
             type="button"
+            onClick={() => {
+              if (window.confirm('このリクエストを取り消しますか？')) {
+                onCancel?.(request.id);
+                showToast('リクエストを取り消しました');
+              }
+            }}
             className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             取り消し
@@ -838,6 +876,7 @@ function PoliciesTab(): React.ReactElement {
 export default function ApprovalsPage(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<ApprovalTab>('pending');
   const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>(MOCK_PENDING);
+  const [myRequests, setMyRequests] = useState<ApprovalRequest[]>(MOCK_MY_REQUESTS);
 
   const pendingCount = pendingRequests.length;
 
@@ -915,14 +954,20 @@ export default function ApprovalsPage(): React.ReactElement {
 
       {activeTab === 'my-requests' && (
         <div className="space-y-3">
-          {MOCK_MY_REQUESTS.length === 0 ? (
+          {myRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
               <AlertCircle size={40} className="mb-3 text-muted-foreground/40" />
               <p className="text-sm font-medium text-foreground">リクエストはありません</p>
             </div>
           ) : (
-            MOCK_MY_REQUESTS.map((request) => (
-              <MyRequestCard key={request.id} request={request} />
+            myRequests.map((request) => (
+              <MyRequestCard
+                key={request.id}
+                request={request}
+                onCancel={(id) => setMyRequests((prev) => prev.map((r) =>
+                  r.id === id ? { ...r, status: 'cancelled' as RequestStatus } : r
+                ))}
+              />
             ))
           )}
         </div>

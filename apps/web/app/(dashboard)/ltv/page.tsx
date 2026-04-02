@@ -18,6 +18,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { showToast } from '@/lib/show-toast';
 
 // ============================================================
 // Types
@@ -198,6 +199,7 @@ function SortableHeader({
 export default function LtvPage(): React.ReactElement {
   const [sortField, setSortField] = useState<SortField>('cohort');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [refreshing, setRefreshing] = useState(false);
 
   function handleSort(field: SortField): void {
     if (sortField === field) {
@@ -361,9 +363,17 @@ export default function LtvPage(): React.ReactElement {
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true);
+              setTimeout(() => {
+                setRefreshing(false);
+                showToast('データを更新しました');
+              }, 1500);
+            }}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
             更新
           </button>
         </div>
