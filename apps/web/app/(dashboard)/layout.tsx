@@ -93,7 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: '分析', href: '/analytics', icon: <BarChart3 size={20} /> },
       { label: '予算最適化', href: '/budgets', icon: <Gauge size={20} /> },
-      { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} /> },
+      { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} />, badge: 847 },
       { label: 'LTV分析', href: '/ltv', icon: <TrendingUp size={20} /> },
       { label: 'レポート', href: '/reports', icon: <ScrollText size={20} /> },
     ],

@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
   BrainCircuit,
   ChevronDown,
+  ChevronRight,
   FileVideo,
   Image,
   Loader2,
+  Rocket,
   Sparkles,
   Star,
   Upload,
@@ -84,6 +87,83 @@ const MOCK_CREATIVES: Creative[] = [
     platforms: ['google', 'meta', 'line_yahoo'], thumbnail: '', score: 65, impressions: 18000, clicks: 600, ctr: 3.3,
   },
 ];
+
+// -- Batch Types & Mock --
+
+type BatchStatus = 'processing' | 'completed' | 'failed';
+
+interface CreativeBatch {
+  id: string;
+  name: string;
+  status: BatchStatus;
+  total: number;
+  completed: number;
+  createdAt: string;
+}
+
+const BATCH_STATUS_CONFIG: Record<BatchStatus, { label: string; className: string }> = {
+  processing: {
+    label: '生成中',
+    className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  },
+  completed: {
+    label: '完了',
+    className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  },
+  failed: {
+    label: 'エラー',
+    className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  },
+};
+
+const MOCK_BATCHES: CreativeBatch[] = [
+  { id: 'b1', name: '春プロモーション大量生成', status: 'completed', total: 200, completed: 200, createdAt: '2026-04-01' },
+  { id: 'b2', name: 'GWキャンペーン素材', status: 'processing', total: 350, completed: 128, createdAt: '2026-04-02' },
+  { id: 'b3', name: 'TikTok向けクリエイティブ', status: 'completed', total: 150, completed: 150, createdAt: '2026-03-28' },
+];
+
+function BatchRow({ batch }: { batch: CreativeBatch }): React.ReactElement {
+  const pct = batch.total > 0 ? Math.round((batch.completed / batch.total) * 100) : 0;
+  const statusConfig = BATCH_STATUS_CONFIG[batch.status];
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 transition-colors hover:border-primary/20">
+      <div className="flex items-center gap-3">
+        <Rocket size={16} className="text-primary" />
+        <div>
+          <p className="text-sm font-medium text-foreground">{batch.name}</p>
+          <p className="text-xs text-muted-foreground">{batch.createdAt}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all',
+                batch.status === 'completed' ? 'bg-green-500' : 'bg-primary',
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {batch.completed}/{batch.total}
+          </span>
+        </div>
+        <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', statusConfig.className)}>
+          {statusConfig.label}
+        </span>
+        <Link
+          href="/creatives/mass-production"
+          className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="詳細を見る"
+        >
+          <ChevronRight size={14} />
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 const WIZARD_STEPS: { step: WizardStep; label: string }[] = [
   { step: 1, label: '商品情報入力' },
@@ -758,14 +838,23 @@ export default function CreativesPage(): React.ReactElement {
             AIを活用した広告クリエイティブの自動生成と最適化
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setWizardOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <Sparkles size={16} />
-          AI生成
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/creatives/mass-production"
+            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <Rocket size={16} />
+            大量生産
+          </Link>
+          <button
+            type="button"
+            onClick={() => setWizardOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <Sparkles size={16} />
+            AI生成
+          </button>
+        </div>
       </div>
 
       {/* File Upload */}
@@ -778,6 +867,24 @@ export default function CreativesPage(): React.ReactElement {
           });
         }}
       />
+
+      {/* Batch list */}
+      <section>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">バッチ一覧</h2>
+          <Link
+            href="/creatives/mass-production"
+            className="text-sm font-medium text-primary hover:text-primary/80"
+          >
+            すべて表示
+          </Link>
+        </div>
+        <div className="mt-3 space-y-2">
+          {MOCK_BATCHES.map((batch) => (
+            <BatchRow key={batch.id} batch={batch} />
+          ))}
+        </div>
+      </section>
 
       {/* Gallery grid */}
       {isLoading ? (

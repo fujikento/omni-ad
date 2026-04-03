@@ -17,3 +17,5 @@ export * from './ai-settings';
 export * from './competitive-intel';
 export * from './ltv-tracking';
 export * from './account-analysis';
+export * from './creative-batches';
+export * from './ab-tests';

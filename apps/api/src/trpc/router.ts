@@ -19,6 +19,8 @@ import { rulesRouter } from "./procedures/rules.js";
 import { aiAutopilotRouter } from "./procedures/ai-autopilot.js";
 import { accountAnalysisRouter } from "./procedures/account-analysis.js";
 import { competitiveIntelRouter } from "./procedures/competitive-intel.js";
+import { creativeMassRouter } from "./procedures/creative-mass.js";
+import { abTestEngineRouter } from "./procedures/ab-test-engine.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -41,6 +43,8 @@ export const appRouter = router({
   dashboard: dashboardRouter,
   emergency: emergencyRouter,
   ltvTracking: ltvTrackingRouter,
+  creativeMass: creativeMassRouter,
+  abTestEngine: abTestEngineRouter,
 });
 
 export type AppRouter = typeof appRouter;

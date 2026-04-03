@@ -82,3 +82,40 @@ export const counterStrategyEnum = pgEnum('counter_strategy', [
   'defensive',
   'opportunistic',
 ]);
+
+export const creativeBatchStatusEnum = pgEnum('creative_batch_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+]);
+
+export const abTestStatusEnum = pgEnum('ab_test_status', [
+  'draft',
+  'running',
+  'paused',
+  'completed',
+  'cancelled',
+]);
+
+export const abTestTypeEnum = pgEnum('ab_test_type', [
+  'creative',
+  'headline',
+  'cta',
+  'targeting',
+  'bid_strategy',
+  'landing_page',
+]);
+
+export const abTestMetricTypeEnum = pgEnum('ab_test_metric_type', [
+  'ctr',
+  'cvr',
+  'roas',
+  'cpa',
+]);
+
+export const abTestEventTypeEnum = pgEnum('ab_test_event_type', [
+  'impression',
+  'click',
+  'conversion',
+]);

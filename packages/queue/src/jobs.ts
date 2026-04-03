@@ -174,6 +174,37 @@ export const competitorMonitorJobSchema = z.object({
   organizationId: z.string().uuid(),
 });
 
+// Creative Mass Production Jobs
+export const massProductionChunkJobSchema = z.object({
+  organizationId: z.string().uuid(),
+  batchId: z.string().uuid(),
+  chunkIndex: z.number().int().min(0),
+  productInfo: z.object({
+    name: z.string(),
+    description: z.string(),
+    usp: z.string(),
+    targetAudience: z.string(),
+    price: z.string().optional(),
+  }),
+  platform: z.string(),
+  language: z.enum(['ja', 'en']),
+  keigoLevel: z.enum(['casual', 'polite', 'formal']),
+  combinations: z.array(
+    z.object({
+      headlineAngle: z.string(),
+      bodyApproach: z.string(),
+      ctaVariation: z.string(),
+      imageStyle: z.string().optional(),
+    }),
+  ),
+});
+
+// A/B Test Evaluation Jobs
+export const abTestEvaluationJobSchema = z.object({
+  organizationId: z.string().uuid(),
+  testId: z.string().uuid().optional(),
+});
+
 // Job type union
 export type SyncCampaignJob = z.infer<typeof syncCampaignJobSchema>;
 export type SyncAdGroupJob = z.infer<typeof syncAdGroupJobSchema>;
@@ -194,3 +225,5 @@ export type AnomalyDetectionJob = z.infer<typeof anomalyDetectionJobSchema>;
 export type EvaluateRulesJob = z.infer<typeof evaluateRulesJobSchema>;
 export type AutopilotCycleJob = z.infer<typeof autopilotCycleJobSchema>;
 export type CompetitorMonitorJob = z.infer<typeof competitorMonitorJobSchema>;
+export type MassProductionChunkJob = z.infer<typeof massProductionChunkJobSchema>;
+export type ABTestEvaluationJob = z.infer<typeof abTestEvaluationJobSchema>;

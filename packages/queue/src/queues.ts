@@ -12,6 +12,8 @@ export const QUEUE_NAMES = {
   RULES_EVALUATION: 'rules-evaluation',
   AI_AUTOPILOT: 'ai-autopilot',
   COMPETITOR_MONITOR: 'competitor-monitor',
+  CREATIVE_MASS_PRODUCTION: 'creative-mass-production',
+  AB_TEST_EVALUATION: 'ab-test-evaluation',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -151,6 +153,28 @@ export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
       backoff: { type: 'exponential', delay: 30_000 },
       removeOnComplete: { count: 200 },
       removeOnFail: { count: 500 },
+    },
+  },
+  [QUEUE_NAMES.CREATIVE_MASS_PRODUCTION]: {
+    name: QUEUE_NAMES.CREATIVE_MASS_PRODUCTION,
+    options: {},
+    concurrency: 5,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 10_000 },
+      removeOnComplete: { count: 1000 },
+      removeOnFail: { count: 2000 },
+    },
+  },
+  [QUEUE_NAMES.AB_TEST_EVALUATION]: {
+    name: QUEUE_NAMES.AB_TEST_EVALUATION,
+    options: {},
+    concurrency: 2,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 15_000 },
+      removeOnComplete: { count: 500 },
+      removeOnFail: { count: 1000 },
     },
   },
 };

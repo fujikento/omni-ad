@@ -44,4 +44,8 @@ export {
   type EvaluateRulesJob,
   type AutopilotCycleJob,
   type CompetitorMonitorJob,
+  massProductionChunkJobSchema,
+  abTestEvaluationJobSchema,
+  type MassProductionChunkJob,
+  type ABTestEvaluationJob,
 } from './jobs.js';
