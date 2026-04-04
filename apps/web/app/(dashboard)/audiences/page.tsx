@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -146,6 +147,7 @@ interface CreateSegmentModalProps {
 }
 
 function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState<Platform>('google');
   const [description, setDescription] = useState('');
@@ -167,15 +169,15 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">新規セグメント作成</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <h2 className="text-lg font-semibold text-foreground">{t('audiences.createModal.title')}</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label htmlFor="segment-name" className="mb-1 block text-sm font-medium text-foreground">セグメント名</label>
+            <label htmlFor="segment-name" className="mb-1 block text-sm font-medium text-foreground">{t('audiences.createModal.name')}</label>
             <input
               id="segment-name"
               type="text"
@@ -188,7 +190,7 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
           </div>
 
           <div>
-            <label htmlFor="segment-platform" className="mb-1 block text-sm font-medium text-foreground">プラットフォーム</label>
+            <label htmlFor="segment-platform" className="mb-1 block text-sm font-medium text-foreground">{t('audiences.createModal.platform')}</label>
             <div className="relative">
               <select
                 id="segment-platform"
@@ -205,20 +207,20 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
           </div>
 
           <div>
-            <label htmlFor="segment-description" className="mb-1 block text-sm font-medium text-foreground">説明</label>
+            <label htmlFor="segment-description" className="mb-1 block text-sm font-medium text-foreground">{t('audiences.createModal.description')}</label>
             <textarea
               id="segment-description"
               value={description}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               rows={3}
-              placeholder="セグメントの条件を説明..."
+              placeholder={t('audiences.createModal.descriptionPlaceholder')}
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">
-              キャンセル
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -226,7 +228,7 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {isCreating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-              作成
+              {t('common.create')}
             </button>
           </div>
         </form>
@@ -238,6 +240,7 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
 // -- Main Page --
 
 export default function AudiencesPage(): React.ReactElement {
+  const { t } = useI18n();
   const [createOpen, setCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTargetPlatforms, setSelectedTargetPlatforms] = useState<Set<Platform>>(new Set());
@@ -273,21 +276,21 @@ export default function AudiencesPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            オーディエンスグラフ
+            {t('audiences.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            クロスチャネルのオーディエンスデータを統合・可視化
+            {t('audiences.description')}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <ExportButton
             data={segments}
             columns={[
-              { key: 'name' as const, label: 'セグメント名' },
-              { key: 'platform' as const, label: 'プラットフォーム', format: (v: AudienceSegment[keyof AudienceSegment]) => PLATFORM_LABELS[v as Platform] ?? String(v) },
-              { key: 'size' as const, label: 'サイズ', format: (v: AudienceSegment[keyof AudienceSegment]) => String(v) },
-              { key: 'fatigueScore' as const, label: '疲労度', format: (v: AudienceSegment[keyof AudienceSegment]) => `${v}%` },
-              { key: 'description' as const, label: '説明' },
+              { key: 'name' as const, label: t('audiences.export.name') },
+              { key: 'platform' as const, label: t('audiences.export.platform'), format: (v: AudienceSegment[keyof AudienceSegment]) => PLATFORM_LABELS[v as Platform] ?? String(v) },
+              { key: 'size' as const, label: t('audiences.export.size'), format: (v: AudienceSegment[keyof AudienceSegment]) => String(v) },
+              { key: 'fatigueScore' as const, label: t('audiences.export.fatigue'), format: (v: AudienceSegment[keyof AudienceSegment]) => `${v}%` },
+              { key: 'description' as const, label: t('audiences.export.description') },
             ]}
             filename="audiences"
           />
@@ -297,7 +300,7 @@ export default function AudiencesPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Plus size={16} />
-            新規セグメント作成
+            {t('audiences.createSegment')}
           </button>
         </div>
       </div>
@@ -310,7 +313,7 @@ export default function AudiencesPage(): React.ReactElement {
           value={searchQuery}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="セグメントを検索..."
+          placeholder={t('audiences.searchSegments')}
         />
       </div>
 
@@ -318,8 +321,8 @@ export default function AudiencesPage(): React.ReactElement {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Overlap visualization */}
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground">セグメント重複分析</h2>
-          <p className="mt-1 text-sm text-muted-foreground">選択されたセグメント間のオーバーラップ</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('audiences.overlapAnalysis')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('audiences.overlapDescription')}</p>
           <OverlapVisualization circles={MOCK_OVERLAP_CIRCLES} />
           <div className="mt-2 flex flex-wrap justify-center gap-3">
             {MOCK_OVERLAP_CIRCLES.map((circle) => (
@@ -333,13 +336,13 @@ export default function AudiencesPage(): React.ReactElement {
 
         {/* Cross-platform lookalike */}
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground">クロスプラットフォーム類似オーディエンス</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('audiences.crossPlatformLookalike')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            既存セグメントを基に他プラットフォームで類似オーディエンスを生成
+            {t('audiences.lookalikeDescription')}
           </p>
           <div className="mt-4 space-y-3">
             <div>
-              <label htmlFor="source-segment" className="mb-1 block text-xs font-medium text-foreground">ソースセグメント</label>
+              <label htmlFor="source-segment" className="mb-1 block text-xs font-medium text-foreground">{t('audiences.sourceSegment')}</label>
               <div className="relative">
                 <select
                   id="source-segment"
@@ -353,7 +356,7 @@ export default function AudiencesPage(): React.ReactElement {
               </div>
             </div>
             <div>
-              <span className="mb-2 block text-xs font-medium text-foreground">ターゲットプラットフォーム</span>
+              <span className="mb-2 block text-xs font-medium text-foreground">{t('audiences.targetPlatforms')}</span>
               <div className="flex flex-wrap gap-2">
                 {(Object.entries(PLATFORM_LABELS) as [Platform, string][]).map(([key, label]) => (
                   <button
@@ -376,15 +379,15 @@ export default function AudiencesPage(): React.ReactElement {
               type="button"
               onClick={() => {
                 if (selectedTargetPlatforms.size === 0) {
-                  showToast('ターゲットプラットフォームを選択してください');
+                  showToast(t('audiences.selectTargetPlatform'));
                   return;
                 }
-                showToast('類似オーディエンス生成を開始しました');
+                showToast(t('audiences.lookalikeStarted'));
               }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Copy size={14} />
-              類似オーディエンスを生成
+              {t('audiences.generateLookalike')}
             </button>
           </div>
         </div>
@@ -396,12 +399,12 @@ export default function AudiencesPage(): React.ReactElement {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">セグメント名</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">プラットフォーム</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">サイズ</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">疲労度</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">最終更新</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">説明</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('audiences.segmentName')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('audiences.platformColumn')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('audiences.size')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('audiences.fatigueScore')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('audiences.lastUpdated')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('audiences.descriptionColumn')}</th>
               </tr>
             </thead>
             <tbody>
@@ -419,7 +422,7 @@ export default function AudiencesPage(): React.ReactElement {
                     <div className="flex flex-col items-center gap-3">
                       <Users size={48} className="text-muted-foreground/30" />
                       <p className="text-muted-foreground">
-                        {searchQuery ? '一致するセグメントがありません' : 'セグメントがまだありません'}
+                        {searchQuery ? t('audiences.noMatchingSegments') : t('audiences.noSegments')}
                       </p>
                     </div>
                   </td>

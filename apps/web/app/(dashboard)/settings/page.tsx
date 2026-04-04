@@ -59,17 +59,17 @@ const TABS: { key: SettingsTab; labelKey: string; icon: React.ReactNode }[] = [
   { key: 'ai', labelKey: 'settings.ai', icon: <Sparkles size={16} /> },
 ];
 
-const STATUS_CONFIG: Record<ConnectionStatus, { label: string; className: string }> = {
-  connected: { label: '接続済み', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  disconnected: { label: '未接続', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
-  error: { label: 'エラー', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  expired: { label: '期限切れ', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+const STATUS_CONFIG_KEYS: Record<ConnectionStatus, { labelKey: string; className: string }> = {
+  connected: { labelKey: 'settings.connected', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  disconnected: { labelKey: 'settings.disconnected', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
+  error: { labelKey: 'settings.error', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  expired: { labelKey: 'settings.expired', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
 };
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  admin: '管理者',
-  editor: '編集者',
-  viewer: '閲覧者',
+const ROLE_LABEL_KEYS: Record<UserRole, string> = {
+  admin: 'settings.role.admin',
+  editor: 'settings.role.editor',
+  viewer: 'settings.role.viewer',
 };
 
 const MOCK_CONNECTIONS: PlatformConnection[] = [
@@ -91,6 +91,7 @@ const MOCK_TEAM: TeamMember[] = [
 // -- Subcomponents --
 
 function PlatformsTab(): React.ReactElement {
+  const { t } = useI18n();
   const [connecting, setConnecting] = useState<Platform | null>(null);
   const [disconnecting, setDisconnecting] = useState<Platform | null>(null);
   const [analyzing, setAnalyzing] = useState<Platform | null>(null);
@@ -111,11 +112,11 @@ function PlatformsTab(): React.ReactElement {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        広告プラットフォームとの接続を管理します。OAuthで安全に接続されます。
+        {t('settings.platformDescription')}
       </p>
       <div className="space-y-3">
         {MOCK_CONNECTIONS.map((conn) => {
-          const statusConfig = STATUS_CONFIG[conn.status];
+          const statusConfig = STATUS_CONFIG_KEYS[conn.status];
           return (
             <div key={conn.platform} className="flex items-center justify-between rounded-lg border border-border p-4">
               <div className="flex items-center gap-4">
@@ -129,14 +130,14 @@ function PlatformsTab(): React.ReactElement {
                   )}
                   {conn.lastSync && (
                     <p className="text-[10px] text-muted-foreground/60">
-                      最終同期: {new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(conn.lastSync))}
+                      {t('settings.lastSync')}: {new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(conn.lastSync))}
                     </p>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusConfig.className)}>
-                  {statusConfig.label}
+                  {t(statusConfig.labelKey)}
                 </span>
                 {conn.status === 'connected' && (
                   <button
@@ -146,7 +147,7 @@ function PlatformsTab(): React.ReactElement {
                     className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
                   >
                     {analyzing === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <ScanSearch size={12} />}
-                    {analyzing === conn.platform ? '分析中...' : '分析'}
+                    {analyzing === conn.platform ? t('settings.analyzingStatus') : t('settings.analyze')}
                   </button>
                 )}
                 {conn.status === 'connected' ? (
@@ -154,18 +155,18 @@ function PlatformsTab(): React.ReactElement {
                     type="button"
                     disabled={disconnecting === conn.platform}
                     onClick={() => {
-                      if (window.confirm(`${conn.label}との接続を切断しますか？`)) {
+                      if (window.confirm(t('settings.disconnectConfirm', { name: conn.label }))) {
                         setDisconnecting(conn.platform);
                         setTimeout(() => {
                           setDisconnecting(null);
-                          showToast(`${conn.label}を切断しました`);
+                          showToast(t('settings.disconnectSuccess', { name: conn.label }));
                         }, 1500);
                       }
                     }}
                     className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive disabled:opacity-50"
                   >
                     {disconnecting === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
-                    切断
+                    {t('settings.disconnect')}
                   </button>
                 ) : (
                   <button
@@ -175,7 +176,7 @@ function PlatformsTab(): React.ReactElement {
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
                     {connecting === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
-                    接続
+                    {t('settings.connect')}
                   </button>
                 )}
               </div>
@@ -188,6 +189,7 @@ function PlatformsTab(): React.ReactElement {
 }
 
 function TeamTab(): React.ReactElement {
+  const { t } = useI18n();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>('viewer');
@@ -210,7 +212,7 @@ function TeamTab(): React.ReactElement {
           className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
           <UserPlus size={14} />
-          メンバーを招待
+          {t('settings.inviteMember')}
         </button>
       </div>
 
@@ -238,8 +240,8 @@ function TeamTab(): React.ReactElement {
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setInviteRole(e.target.value as UserRole)}
                 className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {(Object.entries(ROLE_LABELS) as [UserRole, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(Object.entries(ROLE_LABEL_KEYS) as [UserRole, string][]).map(([key, labelKey]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </select>
             </div>
@@ -247,7 +249,7 @@ function TeamTab(): React.ReactElement {
               type="submit"
               className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              招待
+              {t('settings.invite')}
             </button>
             <button
               type="button"
@@ -284,13 +286,13 @@ function TeamTab(): React.ReactElement {
                     : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
               )}>
                 {member.role === 'admin' && <Shield size={10} />}
-                {ROLE_LABELS[member.role]}
+                {t(ROLE_LABEL_KEYS[member.role])}
               </span>
               {member.role !== 'admin' && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm(`${member.name}をチームから削除しますか？`)) {
+                    if (window.confirm(t('settings.removeMember'))) {
                       setTeamMembers((prev) => prev.filter((m) => m.id !== member.id));
                       showToast(`${member.name}を削除しました`);
                     }
@@ -311,6 +313,7 @@ function TeamTab(): React.ReactElement {
 }
 
 function BillingTab(): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       {/* Current plan */}
@@ -319,16 +322,16 @@ function BillingTab(): React.ReactElement {
           <div>
             <div className="flex items-center gap-2">
               <Crown size={18} className="text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">プロフェッショナルプラン</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t('settings.planName')}</h3>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">月額 98,000円 (税別)</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('settings.monthlyFee')} 98,000円</p>
           </div>
           <button
             type="button"
             onClick={() => showToast('プラン変更は準備中です')}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            プランを変更
+            {t('settings.managePlan')}
           </button>
         </div>
       </div>
@@ -368,6 +371,7 @@ function BillingTab(): React.ReactElement {
 }
 
 function ApiTab(): React.ReactElement {
+  const { t } = useI18n();
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -384,7 +388,7 @@ function ApiTab(): React.ReactElement {
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        APIキーを使用してOMNI-AD APIにプログラムからアクセスできます。
+        {t('settings.apiDescription')}
       </p>
 
       {/* API Key display */}
@@ -399,7 +403,7 @@ function ApiTab(): React.ReactElement {
               type="button"
               onClick={() => setShowKey(!showKey)}
               className="rounded p-1.5 text-muted-foreground hover:text-foreground"
-              aria-label={showKey ? 'キーを隠す' : 'キーを表示'}
+              aria-label={showKey ? t('settings.hideKey') : t('settings.showKey')}
             >
               {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
@@ -407,7 +411,7 @@ function ApiTab(): React.ReactElement {
               type="button"
               onClick={handleCopy}
               className="rounded p-1.5 text-muted-foreground hover:text-foreground"
-              aria-label="キーをコピー"
+              aria-label={t('settings.copyKey')}
             >
               {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
             </button>
@@ -430,14 +434,14 @@ function ApiTab(): React.ReactElement {
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('APIキーを再生成しますか？古いキーは即座に無効化されます。')) {
-                showToast('新しいAPIキーを生成しました');
+              if (window.confirm(t('settings.regenerateConfirm'))) {
+                showToast(t('settings.apiGenerated'));
               }
             }}
             className="inline-flex items-center gap-1 rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
           >
             <RefreshCw size={12} />
-            キーを再生成
+            {t('settings.regenerateKey')}
           </button>
         </div>
       </div>

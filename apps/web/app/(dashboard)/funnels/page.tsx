@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -123,6 +124,7 @@ const MOCK_FUNNEL: Funnel = {
 // -- Subcomponents --
 
 function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): React.ReactElement {
+  const { t } = useI18n();
   const stageColor = STAGE_COLORS[stage.type] ?? 'border-gray-500 bg-gray-50 dark:bg-gray-950/30';
   const headerColor = STAGE_HEADER_COLORS[stage.type] ?? 'bg-gray-500';
 
@@ -135,14 +137,14 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
             <GripVertical size={14} className="text-white/70 cursor-grab" />
             <span className="text-sm font-semibold text-white">{stage.name}</span>
           </div>
-          <span className="text-xs text-white/80">予算配分: {stage.budgetAllocation}%</span>
+          <span className="text-xs text-white/80">{t('funnels.budgetAllocation')} {stage.budgetAllocation}%</span>
         </div>
 
         {/* Content */}
         <div className="space-y-3 p-4">
           {/* Platforms */}
           <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">プラットフォーム</p>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">{t('funnels.platform')}</p>
             <div className="flex flex-wrap gap-1">
               {stage.platforms.map((p) => (
                 <span key={p} className="rounded bg-background px-2 py-0.5 text-xs font-medium text-foreground shadow-sm">
@@ -154,7 +156,7 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
 
           {/* Campaigns */}
           <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">キャンペーン</p>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">{t('funnels.campaignsLabel')}</p>
             <div className="space-y-1">
               {stage.campaigns.map((c) => (
                 <div key={c.id} className="rounded bg-background px-3 py-1.5 text-xs text-foreground shadow-sm">
@@ -163,11 +165,11 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
               ))}
               <button
                 type="button"
-                onClick={() => showToast('キャンペーン追加は準備中です')}
+                onClick={() => showToast(t('funnels.addCampaignPreparing'))}
                 className="flex w-full items-center justify-center gap-1 rounded border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 <Plus size={12} />
-                キャンペーンを追加
+                {t('funnels.addCampaign')}
               </button>
             </div>
           </div>
@@ -175,13 +177,13 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
           {/* Metrics */}
           <div className="grid grid-cols-3 gap-2 rounded-md bg-background p-3">
             <div className="text-center">
-              <p className="text-xs text-muted-foreground">インプレッション</p>
+              <p className="text-xs text-muted-foreground">{t('metrics.impressions')}</p>
               <p className="text-sm font-semibold text-foreground">
                 {(stage.metrics.impressions / 1000).toFixed(0)}K
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-muted-foreground">クリック</p>
+              <p className="text-xs text-muted-foreground">{t('metrics.clicks')}</p>
               <p className="text-sm font-semibold text-foreground">
                 {(stage.metrics.clicks / 1000).toFixed(1)}K
               </p>
@@ -202,7 +204,7 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
           <ArrowDown size={20} className="text-muted-foreground" />
           {stage.metrics.dropOffRate > 0 && (
             <span className="text-xs font-medium text-red-500">
-              -{stage.metrics.dropOffRate}% 離脱
+              -{stage.metrics.dropOffRate}% {t('funnels.dropOff')}
             </span>
           )}
         </div>
@@ -217,6 +219,7 @@ interface AutoConstructModalProps {
 }
 
 function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [objective, setObjective] = useState<string>('ecommerce_sales');
   const [budget, setBudget] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['google', 'meta']);
@@ -244,16 +247,16 @@ function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.R
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">AI自動構築</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('funnels.aiAutoConstruct')}</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="funnel-objective" className="mb-1 block text-sm font-medium text-foreground">目的</label>
+            <label htmlFor="funnel-objective" className="mb-1 block text-sm font-medium text-foreground">{t('funnels.objective')}</label>
             <div className="relative">
               <select
                 id="funnel-objective"
@@ -261,18 +264,18 @@ function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.R
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setObjective(e.target.value)}
                 className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="ecommerce_sales">EC売上最大化</option>
-                <option value="lead_generation">リード獲得</option>
-                <option value="app_installs">アプリインストール</option>
-                <option value="brand_awareness">ブランド認知</option>
-                <option value="saas_trial">SaaSトライアル</option>
+                <option value="ecommerce_sales">{t('funnels.objectiveEcommerce')}</option>
+                <option value="lead_generation">{t('funnels.objectiveLeadGen')}</option>
+                <option value="app_installs">{t('funnels.objectiveAppInstall')}</option>
+                <option value="brand_awareness">{t('funnels.objectiveBrandAwareness')}</option>
+                <option value="saas_trial">{t('funnels.objectiveSaasTrial')}</option>
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
 
           <div>
-            <label htmlFor="funnel-budget" className="mb-1 block text-sm font-medium text-foreground">月間予算 (JPY)</label>
+            <label htmlFor="funnel-budget" className="mb-1 block text-sm font-medium text-foreground">{t('funnels.monthlyBudget')}</label>
             <input
               id="funnel-budget"
               type="number"
@@ -285,7 +288,7 @@ function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.R
           </div>
 
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">配信プラットフォーム</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('funnels.deliveryPlatforms')}</span>
             <div className="flex flex-wrap gap-2">
               {(Object.entries(PLATFORM_LABELS) as [Platform, string][]).map(([key, label]) => (
                 <button
@@ -312,7 +315,7 @@ function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.R
             onClick={onClose}
             className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
           >
-            キャンセル
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -321,7 +324,7 @@ function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.R
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {isBuilding ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            自動構築
+            {t('funnels.build')}
           </button>
         </div>
       </div>
@@ -332,6 +335,7 @@ function AutoConstructModal({ open, onClose }: AutoConstructModalProps): React.R
 // -- Main Page --
 
 export default function FunnelsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [autoConstructOpen, setAutoConstructOpen] = useState(false);
 
   const funnelsQuery = trpc.funnels.list.useQuery(undefined, { retry: false });
@@ -348,10 +352,10 @@ export default function FunnelsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            ファネルビルダー
+            {t('funnels.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            コンバージョンファネルの設計と分析
+            {t('funnels.description')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -361,7 +365,7 @@ export default function FunnelsPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Sparkles size={16} />
-            AI自動構築
+            {t('funnels.aiAutoConstruct')}
           </button>
         </div>
       </div>
@@ -402,7 +406,7 @@ export default function FunnelsPage(): React.ReactElement {
               <p className="mt-1 text-2xl font-bold text-foreground">
                 {(stage.metrics.impressions / 1000).toFixed(0)}K
               </p>
-              <p className="text-xs text-muted-foreground">インプレッション</p>
+              <p className="text-xs text-muted-foreground">{t('metrics.impressions')}</p>
             </div>
           ))}
         </div>

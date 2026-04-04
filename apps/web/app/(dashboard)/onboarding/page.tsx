@@ -25,6 +25,7 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -60,11 +61,11 @@ interface AiGeneratedPlan {
 // Constants
 // ============================================================
 
-const STEPS: { label: string; number: number }[] = [
-  { label: 'ようこそ', number: 1 },
-  { label: 'プラットフォーム接続', number: 2 },
-  { label: 'キャンペーン作成', number: 3 },
-  { label: '完了', number: 4 },
+const STEPS: { labelKey: string; number: number }[] = [
+  { labelKey: 'onboarding.stepWelcome', number: 1 },
+  { labelKey: 'onboarding.stepPlatforms', number: 2 },
+  { labelKey: 'onboarding.stepCampaign', number: 3 },
+  { labelKey: 'onboarding.stepComplete', number: 4 },
 ];
 
 const PLATFORMS: PlatformCard[] = [
@@ -77,21 +78,21 @@ const PLATFORMS: PlatformCard[] = [
   { id: 'microsoft', name: 'Microsoft Ads', icon: <Globe size={28} />, color: 'border-cyan-200 hover:border-cyan-400 dark:border-cyan-800' },
 ];
 
-const CONVERSION_GOALS: { value: ConversionGoal; label: string }[] = [
-  { value: 'purchase', label: 'メインサイト購入' },
-  { value: 'lead', label: 'リード獲得フォーム' },
-  { value: 'app_install', label: 'アプリインストール' },
+const CONVERSION_GOALS: { value: ConversionGoal; labelKey: string }[] = [
+  { value: 'purchase', labelKey: 'onboarding.goalPurchase' },
+  { value: 'lead', labelKey: 'onboarding.goalLead' },
+  { value: 'app_install', labelKey: 'onboarding.goalAppInstall' },
 ];
 
 const ONBOARDING_AGE_OPTIONS = ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
 
 const ONBOARDING_REGION_OPTIONS = ['東京', '大阪', '名古屋', '福岡', '札幌', '横浜', '京都', '神戸', '仙台', '広島'] as const;
 
-const OBJECTIVES: ObjectiveCard[] = [
-  { id: 'awareness', label: '認知拡大', description: 'ブランドの認知度を高め、より多くの人にリーチ', icon: <Eye size={28} className="text-blue-500" /> },
-  { id: 'traffic', label: 'トラフィック', description: 'ウェブサイトやアプリへの訪問者を増やす', icon: <MousePointerClick size={28} className="text-green-500" /> },
-  { id: 'conversion', label: 'コンバージョン', description: '購入やお問い合わせなどの成果を最大化', icon: <ShoppingCart size={28} className="text-purple-500" /> },
-  { id: 'retargeting', label: 'リターゲティング', description: '過去の訪問者に再度アプローチし、CV率向上', icon: <RefreshCcw size={28} className="text-orange-500" /> },
+const OBJECTIVES: (Omit<ObjectiveCard, 'label' | 'description'> & { labelKey: string; descriptionKey: string })[] = [
+  { id: 'awareness', labelKey: 'onboarding.objectiveAwareness', descriptionKey: 'onboarding.objectiveAwarenessDesc', icon: <Eye size={28} className="text-blue-500" /> },
+  { id: 'traffic', labelKey: 'onboarding.objectiveTraffic', descriptionKey: 'onboarding.objectiveTrafficDesc', icon: <MousePointerClick size={28} className="text-green-500" /> },
+  { id: 'conversion', labelKey: 'onboarding.objectiveConversion', descriptionKey: 'onboarding.objectiveConversionDesc', icon: <ShoppingCart size={28} className="text-purple-500" /> },
+  { id: 'retargeting', labelKey: 'onboarding.objectiveRetargeting', descriptionKey: 'onboarding.objectiveRetargetingDesc', icon: <RefreshCcw size={28} className="text-orange-500" /> },
 ];
 
 // ============================================================
@@ -99,6 +100,7 @@ const OBJECTIVES: ObjectiveCard[] = [
 // ============================================================
 
 function StepIndicator({ currentStep }: { currentStep: OnboardingStep }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="flex items-center justify-center gap-2">
       {STEPS.map((step, index) => {
@@ -123,7 +125,7 @@ function StepIndicator({ currentStep }: { currentStep: OnboardingStep }): React.
               'hidden text-xs font-medium sm:inline',
               isCurrent ? 'text-foreground' : 'text-muted-foreground',
             )}>
-              {step.label}
+              {t(step.labelKey)}
             </span>
             {index < STEPS.length - 1 && (
               <div className={cn(
@@ -139,16 +141,17 @@ function StepIndicator({ currentStep }: { currentStep: OnboardingStep }): React.
 }
 
 function WelcomeStep({ onNext }: { onNext: () => void }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
         <Rocket size={40} className="text-primary" />
       </div>
       <h2 className="mt-6 text-2xl font-bold text-foreground">
-        ようこそ OMNI-AD へ
+        {t('onboarding.welcomeTitle')}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        AIを活用した統合マーケティングプラットフォームで、すべての広告チャネルを一元管理しましょう。
+        {t('onboarding.welcomeDesc')}
       </p>
 
       <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-4 sm:grid-cols-3">
@@ -156,22 +159,22 @@ function WelcomeStep({ onNext }: { onNext: () => void }): React.ReactElement {
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
             <Megaphone size={20} className="text-blue-600 dark:text-blue-400" />
           </div>
-          <p className="mt-2 text-sm font-semibold text-foreground">統合管理</p>
-          <p className="mt-1 text-xs text-muted-foreground">7つの広告プラットフォームを一画面で管理</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">{t('onboarding.featureUnified')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.featureUnifiedDesc')}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-center">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
             <BrainCircuit size={20} className="text-purple-600 dark:text-purple-400" />
           </div>
-          <p className="mt-2 text-sm font-semibold text-foreground">AI最適化</p>
-          <p className="mt-1 text-xs text-muted-foreground">AIが予算配分とクリエイティブを自動最適化</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">{t('onboarding.featureAi')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.featureAiDesc')}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-center">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
             <BarChart3 size={20} className="text-green-600 dark:text-green-400" />
           </div>
-          <p className="mt-2 text-sm font-semibold text-foreground">統合分析</p>
-          <p className="mt-1 text-xs text-muted-foreground">クロスチャネルのROASをリアルタイム分析</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">{t('onboarding.featureAnalytics')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.featureAnalyticsDesc')}</p>
         </div>
       </div>
 
@@ -180,7 +183,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }): React.ReactElement {
         onClick={onNext}
         className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
-        セットアップを開始
+        {t('onboarding.startSetup')}
         <ArrowRight size={16} />
       </button>
     </div>
@@ -198,14 +201,15 @@ function PlatformStep({
   onNext: () => void;
   onBack: () => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div>
-      <h2 className="text-xl font-bold text-foreground">プラットフォーム接続</h2>
+      <h2 className="text-xl font-bold text-foreground">{t('onboarding.platformsTitle')}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        広告アカウントを接続して、統合管理を開始しましょう。
+        {t('onboarding.platformsDesc')}
       </p>
       <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-        最低1つ接続してください
+        {t('onboarding.platformsMinOne')}
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,10 +238,10 @@ function PlatformStep({
                 {isConnected ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
                     <Check size={12} />
-                    接続済み
+                    {t('onboarding.platformConnected')}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">接続する</span>
+                  <span className="text-xs text-muted-foreground">{t('onboarding.platformConnect')}</span>
                 )}
               </div>
             </button>
@@ -260,7 +264,7 @@ function PlatformStep({
             onClick={onNext}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            スキップ（後で設定）
+            {t('onboarding.skipForNow')}
           </button>
           <button
             type="button"
@@ -284,6 +288,7 @@ function CampaignStep({
   onNext: () => void;
   onBack: () => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const [campaignName, setCampaignName] = useState('');
   const [selectedObjective, setSelectedObjective] = useState<CampaignObjective | null>(null);
   const [budget, setBudget] = useState('');
@@ -334,9 +339,9 @@ function CampaignStep({
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-foreground">最初のキャンペーン作成</h2>
+      <h2 className="text-xl font-bold text-foreground">{t('onboarding.campaignTitle')}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        最初のキャンペーンを設定しましょう。後からいつでも変更できます。
+        {t('onboarding.campaignDesc')}
       </p>
 
       {/* AI Campaign Architect toggle */}
@@ -344,7 +349,7 @@ function CampaignStep({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-primary" />
-            <span className="text-sm font-semibold text-foreground">AI Campaign Architect</span>
+            <span className="text-sm font-semibold text-foreground">{t('onboarding.aiArchitect')}</span>
           </div>
           <button
             type="button"
@@ -355,7 +360,7 @@ function CampaignStep({
             )}
             role="switch"
             aria-checked={aiMode}
-            aria-label="AIキャンペーン設計を有効にする"
+            aria-label={t('onboarding.aiArchitectEnable')}
           >
             <span className={cn(
               'absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
@@ -364,7 +369,7 @@ function CampaignStep({
           </button>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          目標を入力するだけでAIが最適なキャンペーンを設計します
+          {t('onboarding.aiArchitectDesc')}
         </p>
         {aiMode && !aiPlan && (
           <div className="mt-3 space-y-3">
@@ -375,7 +380,7 @@ function CampaignStep({
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBusinessGoal(e.target.value)}
               className={inputCls}
               rows={3}
-              placeholder="例: 新しいスキンケア製品のオンライン販売を月間100件達成したい。ターゲットは20-35歳の女性。予算は月50万円。"
+              placeholder={t('onboarding.businessGoalPlaceholder')}
             />
             <button
               type="button"
@@ -388,7 +393,7 @@ function CampaignStep({
               ) : (
                 <BrainCircuit size={14} />
               )}
-              {aiGenerating ? 'AI分析中...' : 'AIで設計'}
+              {aiGenerating ? t('onboarding.aiAnalyzing') : t('onboarding.aiDesign')}
             </button>
           </div>
         )}
@@ -398,15 +403,15 @@ function CampaignStep({
           <div className="mt-4 space-y-3">
             <div className="flex items-center gap-2">
               <Check size={16} className="text-green-500" />
-              <span className="text-sm font-semibold text-green-600">キャンペーンプラン生成完了</span>
+              <span className="text-sm font-semibold text-green-600">{t('onboarding.planGenerated')}</span>
             </div>
             {(Object.entries(aiPlan) as [keyof AiGeneratedPlan, string][]).map(([key, value]) => {
               const fieldLabels: Record<keyof AiGeneratedPlan, string> = {
-                objective: '目的',
-                targeting: 'ターゲティング',
-                budget: '予算配分',
-                creative: 'クリエイティブ',
-                platforms: 'プラットフォーム',
+                objective: t('onboarding.fieldObjective'),
+                targeting: t('onboarding.fieldTargeting'),
+                budget: t('onboarding.fieldBudget'),
+                creative: t('onboarding.fieldCreative'),
+                platforms: t('onboarding.fieldPlatforms'),
               };
               const isEditing = editingPlanField === key;
               return (
@@ -420,7 +425,7 @@ function CampaignStep({
                       aria-label={`${fieldLabels[key]}を編集`}
                     >
                       <Edit3 size={10} />
-                      {isEditing ? '完了' : '編集'}
+                      {isEditing ? t('onboarding.doneEditing') : t('onboarding.editField')}
                     </button>
                   </div>
                   {isEditing ? (
@@ -441,7 +446,7 @@ function CampaignStep({
               onClick={() => setAiPlan(null)}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
-              再生成する
+              {t('onboarding.regenerate')}
             </button>
           </div>
         )}
@@ -452,7 +457,7 @@ function CampaignStep({
           {/* Campaign name */}
           <div>
             <label htmlFor="onboarding-campaign-name" className={labelCls}>
-              キャンペーン名
+              {t('onboarding.campaignName')}
             </label>
             <input
               id="onboarding-campaign-name"
@@ -460,13 +465,13 @@ function CampaignStep({
               value={campaignName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignName(e.target.value)}
               className={inputCls}
-              placeholder="春のプロモーションキャンペーン"
+              placeholder={t('onboarding.campaignNamePlaceholder')}
             />
           </div>
 
           {/* Objective selection */}
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">目的</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('onboarding.objectiveLabel')}</span>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {OBJECTIVES.map((obj) => (
                 <button
@@ -482,8 +487,8 @@ function CampaignStep({
                 >
                   <div className="flex-shrink-0">{obj.icon}</div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{obj.label}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{obj.description}</p>
+                    <p className="text-sm font-semibold text-foreground">{t(obj.labelKey)}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{t(obj.descriptionKey)}</p>
                   </div>
                 </button>
               ))}
@@ -493,7 +498,7 @@ function CampaignStep({
           {/* Budget */}
           <div>
             <label htmlFor="onboarding-budget" className={labelCls}>
-              月間予算 (JPY)
+              {t('onboarding.monthlyBudget')}
             </label>
             <input
               id="onboarding-budget"
@@ -511,7 +516,7 @@ function CampaignStep({
             <label htmlFor="onboarding-lp-url" className={labelCls}>
               <span className="flex items-center gap-1.5">
                 <Link2 size={14} />
-                ランディングページURL
+                {t('onboarding.landingPageUrl')}
               </span>
             </label>
             <input
@@ -529,7 +534,7 @@ function CampaignStep({
             <label htmlFor="onboarding-conversion-goal" className={labelCls}>
               <span className="flex items-center gap-1.5">
                 <Target size={14} />
-                コンバージョンゴール
+                {t('onboarding.conversionGoal')}
               </span>
             </label>
             <div className="relative">
@@ -540,7 +545,7 @@ function CampaignStep({
                 className={cn(inputCls, 'appearance-none pr-8')}
               >
                 {CONVERSION_GOALS.map((cg) => (
-                  <option key={cg.value} value={cg.value}>{cg.label}</option>
+                  <option key={cg.value} value={cg.value}>{t(cg.labelKey)}</option>
                 ))}
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -550,7 +555,7 @@ function CampaignStep({
           {/* Target CPA / ROAS */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="onboarding-target-cpa" className={labelCls}>目標CPA (JPY)</label>
+              <label htmlFor="onboarding-target-cpa" className={labelCls}>{t('onboarding.targetCpa')}</label>
               <input
                 id="onboarding-target-cpa"
                 type="number"
@@ -562,7 +567,7 @@ function CampaignStep({
               />
             </div>
             <div>
-              <label htmlFor="onboarding-target-roas" className={labelCls}>目標ROAS (倍)</label>
+              <label htmlFor="onboarding-target-roas" className={labelCls}>{t('onboarding.targetRoas')}</label>
               <input
                 id="onboarding-target-roas"
                 type="number"
@@ -580,13 +585,13 @@ function CampaignStep({
           <div className="rounded-lg border border-border p-4">
             <h4 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <Users size={14} />
-              基本ターゲティング
+              {t('onboarding.basicTargeting')}
             </h4>
 
             {/* Age range */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="onboarding-age-min" className={labelCls}>年齢（下限）</label>
+                <label htmlFor="onboarding-age-min" className={labelCls}>{t('onboarding.ageMin')}</label>
                 <div className="relative">
                   <select
                     id="onboarding-age-min"
@@ -595,14 +600,14 @@ function CampaignStep({
                     className={cn(inputCls, 'appearance-none pr-8')}
                   >
                     {ONBOARDING_AGE_OPTIONS.map((age) => (
-                      <option key={age} value={age}>{age}歳</option>
+                      <option key={age} value={age}>{age}{t('onboarding.ageSuffix')}</option>
                     ))}
                   </select>
                   <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 </div>
               </div>
               <div>
-                <label htmlFor="onboarding-age-max" className={labelCls}>年齢（上限）</label>
+                <label htmlFor="onboarding-age-max" className={labelCls}>{t('onboarding.ageMax')}</label>
                 <div className="relative">
                   <select
                     id="onboarding-age-max"
@@ -611,7 +616,7 @@ function CampaignStep({
                     className={cn(inputCls, 'appearance-none pr-8')}
                   >
                     {ONBOARDING_AGE_OPTIONS.map((age) => (
-                      <option key={age} value={age}>{age}歳</option>
+                      <option key={age} value={age}>{age}{t('onboarding.ageSuffix')}</option>
                     ))}
                   </select>
                   <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -621,7 +626,7 @@ function CampaignStep({
 
             {/* Region */}
             <div className="mt-3">
-              <span className={labelCls}>地域</span>
+              <span className={labelCls}>{t('onboarding.region')}</span>
               <div className="flex flex-wrap gap-1.5">
                 {ONBOARDING_REGION_OPTIONS.map((region) => (
                   <button
@@ -658,7 +663,7 @@ function CampaignStep({
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          完了
+          {t('onboarding.finish')}
           <Check size={16} />
         </button>
       </div>
@@ -667,16 +672,17 @@ function CampaignStep({
 }
 
 function CompletionStep(): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
         <Check size={40} className="text-green-600 dark:text-green-400" />
       </div>
       <h2 className="mt-6 text-2xl font-bold text-foreground">
-        セットアップ完了！
+        {t('onboarding.completeTitle')}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        OMNI-ADの準備が整いました。AIがあなたのマーケティングを強力にサポートします。
+        {t('onboarding.completeDesc')}
       </p>
 
       <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-3">
@@ -685,21 +691,21 @@ function CompletionStep(): React.ReactElement {
           className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
         >
           <Home size={24} className="text-primary" />
-          <span className="text-sm font-medium text-foreground">ダッシュボード</span>
+          <span className="text-sm font-medium text-foreground">{t('onboarding.gotoDashboard')}</span>
         </a>
         <a
           href="/campaigns"
           className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
         >
           <LayoutDashboard size={24} className="text-primary" />
-          <span className="text-sm font-medium text-foreground">キャンペーン管理</span>
+          <span className="text-sm font-medium text-foreground">{t('onboarding.gotoCampaigns')}</span>
         </a>
         <a
           href="/analytics"
           className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
         >
           <BarChart3 size={24} className="text-primary" />
-          <span className="text-sm font-medium text-foreground">分析</span>
+          <span className="text-sm font-medium text-foreground">{t('onboarding.gotoAnalytics')}</span>
         </a>
       </div>
 
@@ -708,7 +714,7 @@ function CompletionStep(): React.ReactElement {
         className="mt-6 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
       >
         <Users size={16} />
-        ツアーを見る
+        {t('onboarding.viewTour')}
       </a>
     </div>
   );

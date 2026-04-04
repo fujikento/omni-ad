@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -60,20 +61,27 @@ interface TopCampaign {
 
 // -- Constants --
 
-const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
-  { value: 'today', label: '今日' },
-  { value: 'yesterday', label: '昨日' },
-  { value: 'last7', label: '過去7日' },
-  { value: 'last30', label: '過去30日' },
-  { value: 'custom', label: 'カスタム' },
+const DATE_RANGE_KEYS: { value: DateRange; key: string }[] = [
+  { value: 'today', key: 'analytics.today' },
+  { value: 'yesterday', key: 'analytics.yesterday' },
+  { value: 'last7', key: 'analytics.last7days' },
+  { value: 'last30', key: 'analytics.last30days' },
+  { value: 'custom', key: 'analytics.custom' },
 ];
 
-// Mock data for demonstration
-const MOCK_KPI: KpiCard[] = [
-  { label: '総インプレッション', value: '1,234,567', change: 12.5, icon: <Eye size={20} className="text-blue-500" /> },
-  { label: '総クリック', value: '45,678', change: 8.3, icon: <MousePointerClick size={20} className="text-green-500" /> },
-  { label: '総コンバージョン', value: '1,234', change: -3.2, icon: <ShoppingCart size={20} className="text-purple-500" /> },
-  { label: 'ROAS', value: '3.2x', change: 15.1, icon: <TrendingUp size={20} className="text-orange-500" /> },
+// Mock data for demonstration — labels use i18n keys resolved at render time
+interface MockKpiDef {
+  labelKey: string;
+  value: string;
+  change: number;
+  icon: React.ReactNode;
+}
+
+const MOCK_KPI_DEFS: MockKpiDef[] = [
+  { labelKey: 'analytics.totalImpressions', value: '1,234,567', change: 12.5, icon: <Eye size={20} className="text-blue-500" /> },
+  { labelKey: 'analytics.totalClicks', value: '45,678', change: 8.3, icon: <MousePointerClick size={20} className="text-green-500" /> },
+  { labelKey: 'analytics.totalConversions', value: '1,234', change: -3.2, icon: <ShoppingCart size={20} className="text-purple-500" /> },
+  { labelKey: 'metrics.roas', value: '3.2x', change: 15.1, icon: <TrendingUp size={20} className="text-orange-500" /> },
 ];
 
 const MOCK_PLATFORM_DATA: PlatformMetric[] = [
@@ -109,6 +117,7 @@ const MOCK_TOP_CAMPAIGNS: TopCampaign[] = [
 // -- Subcomponents --
 
 function KpiCardComponent({ card }: { card: KpiCard }): React.ReactElement {
+  const { t } = useI18n();
   const isPositive = card.change >= 0;
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -126,7 +135,7 @@ function KpiCardComponent({ card }: { card: KpiCard }): React.ReactElement {
         <span className={cn('text-xs font-medium', isPositive ? 'text-green-600' : 'text-red-600')}>
           {isPositive ? '+' : ''}{card.change.toFixed(1)}%
         </span>
-        <span className="text-xs text-muted-foreground">前期比</span>
+        <span className="text-xs text-muted-foreground">{t('analytics.comparedToPrevious')}</span>
       </div>
     </div>
   );
@@ -184,6 +193,7 @@ function getDateRange(range: DateRange): { startDate: string; endDate: string } 
 // -- Main Page --
 
 export default function AnalyticsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [dateRange, setDateRange] = useState<DateRange>('last30');
 
   const { startDate, endDate } = getDateRange(dateRange);
@@ -200,10 +210,18 @@ export default function AnalyticsPage(): React.ReactElement {
 
   const isLoading = overviewQuery.isLoading && !overviewQuery.error;
 
+  // Resolve mock KPI labels with i18n
+  const resolvedMockKpi: KpiCard[] = MOCK_KPI_DEFS.map((def) => ({
+    label: t(def.labelKey),
+    value: def.value,
+    change: def.change,
+    icon: def.icon,
+  }));
+
   // Use mock data when API is not available
   const kpiCards = overviewQuery.error
-    ? MOCK_KPI
-    : (overviewQuery.data as KpiCard[] | undefined) ?? MOCK_KPI;
+    ? resolvedMockKpi
+    : (overviewQuery.data as KpiCard[] | undefined) ?? resolvedMockKpi;
   const platformData = platformQuery.error
     ? MOCK_PLATFORM_DATA
     : (platformQuery.data as PlatformMetric[] | undefined) ?? MOCK_PLATFORM_DATA;
@@ -216,10 +234,10 @@ export default function AnalyticsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            クロスチャネル分析
+            {t('analytics.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            全チャネルのパフォーマンスを統合的に分析
+            {t('analytics.description')}
           </p>
         </div>
 
@@ -228,19 +246,19 @@ export default function AnalyticsPage(): React.ReactElement {
         <ExportButton
           data={topCampaigns}
           columns={[
-            { key: 'name' as const, label: 'キャンペーン名' },
-            { key: 'platform' as const, label: 'プラットフォーム' },
-            { key: 'impressions' as const, label: 'インプレッション', format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
-            { key: 'clicks' as const, label: 'クリック', format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
-            { key: 'conversions' as const, label: 'CV', format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
-            { key: 'roas' as const, label: 'ROAS', format: (v: TopCampaign[keyof TopCampaign]) => `${Number(v).toFixed(1)}x` },
+            { key: 'name' as const, label: t('analytics.campaignName') },
+            { key: 'platform' as const, label: t('analytics.platformLabel') },
+            { key: 'impressions' as const, label: t('metrics.impressions'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+            { key: 'clicks' as const, label: t('metrics.clicks'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+            { key: 'conversions' as const, label: t('analytics.cv'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+            { key: 'roas' as const, label: t('metrics.roas'), format: (v: TopCampaign[keyof TopCampaign]) => `${Number(v).toFixed(1)}x` },
           ]}
           filename="analytics"
         />
 
         {/* Date range selector */}
         <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
-          {DATE_RANGE_OPTIONS.map((option) => (
+          {DATE_RANGE_KEYS.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -252,7 +270,7 @@ export default function AnalyticsPage(): React.ReactElement {
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {option.label}
+              {t(option.key)}
             </button>
           ))}
         </div>
@@ -271,7 +289,7 @@ export default function AnalyticsPage(): React.ReactElement {
         {/* Platform comparison bar chart */}
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-4 text-lg font-semibold text-foreground">
-            プラットフォーム別パフォーマンス
+            {t('analytics.platformPerformance')}
           </h2>
           {isLoading ? (
             <SkeletonChart />
@@ -291,9 +309,9 @@ export default function AnalyticsPage(): React.ReactElement {
                   formatter={(value: number) => value.toLocaleString('ja-JP')}
                 />
                 <Legend />
-                <Bar dataKey="impressions" name="インプレッション" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="clicks" name="クリック" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="conversions" name="コンバージョン" fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="impressions" name={t('metrics.impressions')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="clicks" name={t('metrics.clicks')} fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="conversions" name={t('metrics.conversions')} fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -302,7 +320,7 @@ export default function AnalyticsPage(): React.ReactElement {
         {/* ROAS trend line chart */}
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-4 text-lg font-semibold text-foreground">
-            ROAS推移
+            {t('analytics.roasTrend')}
           </h2>
           {isLoading ? (
             <SkeletonChart />
@@ -340,21 +358,21 @@ export default function AnalyticsPage(): React.ReactElement {
       <div className="rounded-lg border border-border bg-card">
         <div className="border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">
-            キャンペーン別パフォーマンス TOP 10
+            {t('analytics.topCampaigns')}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">ROAS順</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t('analytics.sortedByRoas')}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">#</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">キャンペーン名</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">プラットフォーム</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">インプレッション</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">クリック</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">CV</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">ROAS</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('analytics.campaignName')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('analytics.platformLabel')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('metrics.impressions')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('metrics.clicks')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('analytics.cv')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('metrics.roas')}</th>
               </tr>
             </thead>
             <tbody>

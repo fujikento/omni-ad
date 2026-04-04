@@ -15,6 +15,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -60,37 +61,37 @@ interface BatchProgress {
 // ============================================================
 
 const HEADLINE_ANGLES = [
-  { id: 'problem', label: '問題提起型', example: '〇〇でお困りではありませんか？' },
-  { id: 'number', label: '数字訴求型', example: '月間100件の実績' },
-  { id: 'testimonial', label: '証言型', example: '利用者の声' },
-  { id: 'urgency', label: '緊急性型', example: '今だけ限定' },
-  { id: 'comparison', label: '比較型', example: '他社との違い' },
-  { id: 'humor', label: 'ユーモア型', example: '意外な事実' },
-  { id: 'fomo', label: 'FOMO型', example: '残りわずか' },
-  { id: 'authority', label: '権威性型', example: '専門家推薦' },
+  { id: 'problem', labelKey: 'massProduction.angleProblem', exampleKey: 'massProduction.exampleProblem' },
+  { id: 'number', labelKey: 'massProduction.angleNumber', exampleKey: 'massProduction.exampleNumber' },
+  { id: 'testimonial', labelKey: 'massProduction.angleTestimonial', exampleKey: 'massProduction.exampleTestimonial' },
+  { id: 'urgency', labelKey: 'massProduction.angleUrgency', exampleKey: 'massProduction.exampleUrgency' },
+  { id: 'comparison', labelKey: 'massProduction.angleComparison', exampleKey: 'massProduction.exampleComparison' },
+  { id: 'humor', labelKey: 'massProduction.angleHumor', exampleKey: 'massProduction.exampleHumor' },
+  { id: 'fomo', labelKey: 'massProduction.angleFomo', exampleKey: 'massProduction.exampleFomo' },
+  { id: 'authority', labelKey: 'massProduction.angleAuthority', exampleKey: 'massProduction.exampleAuthority' },
 ] as const;
 
 const BODY_APPROACHES = [
-  { id: 'benefit', label: 'ベネフィット重視' },
-  { id: 'feature', label: '機能説明' },
-  { id: 'story', label: 'ストーリー形式' },
-  { id: 'question', label: '質問形式' },
+  { id: 'benefit', labelKey: 'massProduction.bodyBenefit' },
+  { id: 'feature', labelKey: 'massProduction.bodyFeature' },
+  { id: 'story', labelKey: 'massProduction.bodyStory' },
+  { id: 'question', labelKey: 'massProduction.bodyQuestion' },
 ] as const;
 
 const CTA_VARIATIONS = [
-  { id: 'start-now', label: '今すぐ始める' },
-  { id: 'free-trial', label: '無料で試す' },
-  { id: 'details', label: '詳細を見る' },
-  { id: 'request', label: '資料請求' },
-  { id: 'contact', label: 'お問い合わせ' },
+  { id: 'start-now', labelKey: 'massProduction.ctaStartNow' },
+  { id: 'free-trial', labelKey: 'massProduction.ctaFreeTrial' },
+  { id: 'details', labelKey: 'massProduction.ctaDetails' },
+  { id: 'request', labelKey: 'massProduction.ctaRequest' },
+  { id: 'contact', labelKey: 'massProduction.ctaContact' },
 ] as const;
 
 const IMAGE_STYLES = [
-  { id: 'professional', label: 'プロフェッショナル' },
-  { id: 'lifestyle', label: 'ライフスタイル' },
-  { id: 'minimal', label: 'ミニマル' },
-  { id: 'bold', label: 'ボールド' },
-  { id: 'text-heavy', label: 'テキスト重視' },
+  { id: 'professional', labelKey: 'massProduction.styleProfessional' },
+  { id: 'lifestyle', labelKey: 'massProduction.styleLifestyle' },
+  { id: 'minimal', labelKey: 'massProduction.styleMinimal' },
+  { id: 'bold', labelKey: 'massProduction.styleBold' },
+  { id: 'text-heavy', labelKey: 'massProduction.styleTextHeavy' },
 ] as const;
 
 const PLATFORMS: { id: Platform; label: string }[] = [
@@ -103,10 +104,10 @@ const PLATFORMS: { id: Platform; label: string }[] = [
   { id: 'microsoft', label: 'Microsoft' },
 ];
 
-const STEPS: { step: StepNumber; label: string }[] = [
-  { step: 1, label: '商品情報入力' },
-  { step: 2, label: 'バリエーション設定' },
-  { step: 3, label: '確認 & 生成開始' },
+const STEPS: { step: StepNumber; labelKey: string }[] = [
+  { step: 1, labelKey: 'massProduction.step1' },
+  { step: 2, labelKey: 'massProduction.step2' },
+  { step: 3, labelKey: 'massProduction.step3' },
 ];
 
 function generateMockCreative(index: number): GeneratedCreative {
@@ -136,18 +137,20 @@ function generateMockCreative(index: number): GeneratedCreative {
 
 interface CheckboxGridProps {
   title: string;
-  items: ReadonlyArray<{ id: string; label: string; example?: string }>;
+  items: ReadonlyArray<{ id: string; label?: string; labelKey?: string; exampleKey?: string }>;
   selected: Set<string>;
   onToggle: (id: string) => void;
 }
 
 function CheckboxGrid({ title, items, selected, onToggle }: CheckboxGridProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div>
       <h4 className="mb-2 text-sm font-semibold text-foreground">{title}</h4>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((item) => {
           const isSelected = selected.has(item.id);
+          const displayLabel = item.labelKey ? t(item.labelKey) : (item.label ?? item.id);
           return (
             <button
               key={item.id}
@@ -169,10 +172,10 @@ function CheckboxGrid({ title, items, selected, onToggle }: CheckboxGridProps): 
                 )}
               </span>
               <div className="min-w-0">
-                <span className="text-sm font-medium text-foreground">{item.label}</span>
-                {item.example && (
+                <span className="text-sm font-medium text-foreground">{displayLabel}</span>
+                {item.exampleKey && (
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                    {item.example}
+                    {t(item.exampleKey)}
                   </span>
                 )}
               </div>
@@ -203,6 +206,7 @@ function CombinationCalculator({
   maxGeneration,
   onMaxChange,
 }: CombinationCalculatorProps): React.ReactElement {
+  const { t } = useI18n();
   const totalCombinations = headlineCount * bodyCount * ctaCount * styleCount * platformCount;
   const actualGeneration = Math.min(totalCombinations, maxGeneration);
 
@@ -210,18 +214,18 @@ function CombinationCalculator({
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
       <div className="flex items-center gap-2">
         <Zap size={16} className="text-primary" />
-        <h4 className="text-sm font-semibold text-foreground">組み合わせ計算</h4>
+        <h4 className="text-sm font-semibold text-foreground">{t('massProduction.combinationCalc')}</h4>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-1 text-sm text-foreground">
         <span className="rounded bg-primary/10 px-2 py-0.5 font-mono font-semibold text-primary">
           {headlineCount}
         </span>
-        <span className="text-muted-foreground">切り口</span>
+        <span className="text-muted-foreground">{t('massProduction.angles')}</span>
         <X size={12} className="text-muted-foreground" />
         <span className="rounded bg-primary/10 px-2 py-0.5 font-mono font-semibold text-primary">
           {bodyCount}
         </span>
-        <span className="text-muted-foreground">アプローチ</span>
+        <span className="text-muted-foreground">{t('massProduction.approaches')}</span>
         <X size={12} className="text-muted-foreground" />
         <span className="rounded bg-primary/10 px-2 py-0.5 font-mono font-semibold text-primary">
           {ctaCount}
@@ -231,23 +235,23 @@ function CombinationCalculator({
         <span className="rounded bg-primary/10 px-2 py-0.5 font-mono font-semibold text-primary">
           {styleCount}
         </span>
-        <span className="text-muted-foreground">スタイル</span>
+        <span className="text-muted-foreground">{t('massProduction.styles')}</span>
         <X size={12} className="text-muted-foreground" />
         <span className="rounded bg-primary/10 px-2 py-0.5 font-mono font-semibold text-primary">
           {platformCount}
         </span>
-        <span className="text-muted-foreground">プラットフォーム</span>
+        <span className="text-muted-foreground">{t('massProduction.platforms')}</span>
         <span className="text-muted-foreground">=</span>
         <span className="rounded bg-primary/20 px-2 py-0.5 font-mono text-lg font-bold text-primary">
           {totalCombinations.toLocaleString()}
         </span>
-        <span className="text-muted-foreground">パターン</span>
+        <span className="text-muted-foreground">{t('massProduction.patterns')}</span>
       </div>
 
       <div className="mt-4">
         <div className="flex items-center justify-between">
           <label htmlFor="max-gen" className="text-sm font-medium text-foreground">
-            生成数上限
+            {t('massProduction.maxGenerationLimit')}
           </label>
           <span className="font-mono text-sm font-bold text-primary">{maxGeneration}</span>
         </div>
@@ -283,6 +287,7 @@ interface BatchProgressViewProps {
 }
 
 function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): React.ReactElement {
+  const { t } = useI18n();
   const percentage = progress.total > 0
     ? Math.round((progress.completed / progress.total) * 100)
     : 0;
@@ -302,12 +307,12 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
             )}
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {progress.status === 'generating' && '生成中...'}
-                {progress.status === 'completed' && '生成完了'}
-                {progress.status === 'cancelled' && '生成キャンセル'}
+                {progress.status === 'generating' && t('massProduction.generating')}
+                {progress.status === 'completed' && t('massProduction.generationCompleted')}
+                {progress.status === 'cancelled' && t('massProduction.generationCancelled')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {progress.completed} / {progress.total} 生成済み ({percentage}%)
+                {progress.completed} / {progress.total} {t('massProduction.generated')} ({percentage}%)
               </p>
             </div>
           </div>
@@ -317,7 +322,7 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
               onClick={onCancel}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
           )}
         </div>
@@ -334,10 +339,10 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
         </div>
 
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>速度: 約 {progress.speed}件/分</span>
+          <span>{t('massProduction.speed').replace('{speed}', String(progress.speed))}</span>
           {progress.status === 'generating' && (
             <span>
-              残り約 {Math.ceil((progress.total - progress.completed) / progress.speed)} 分
+              {t('massProduction.remainingTime').replace('{min}', String(Math.ceil((progress.total - progress.completed) / progress.speed)))}
             </span>
           )}
         </div>
@@ -347,7 +352,7 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
       {progress.creatives.length > 0 && (
         <div>
           <h3 className="mb-3 text-sm font-semibold text-foreground">
-            生成済みクリエイティブ ({progress.creatives.length}件)
+            {t('massProduction.generatedCreatives').replace('{count}', String(progress.creatives.length))}
           </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {progress.creatives.map((creative) => (
@@ -386,7 +391,7 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
                             : 'text-red-600',
                       )}
                     >
-                      スコア: {creative.score}
+                      {t('massProduction.score')}: {creative.score}
                     </span>
                   </div>
                 </div>
@@ -404,6 +409,7 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
 // ============================================================
 
 export default function MassProductionPage(): React.ReactElement {
+  const { t } = useI18n();
   // Step management
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
 
@@ -528,10 +534,10 @@ export default function MassProductionPage(): React.ReactElement {
           </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              AI クリエイティブ大量生産
+              {t('massProduction.title')}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              バッチ生成の進捗状況
+              {t('massProduction.batchProgress')}
             </p>
           </div>
         </div>
@@ -547,16 +553,16 @@ export default function MassProductionPage(): React.ReactElement {
         <Link
           href="/creatives"
           className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="クリエイティブ一覧へ戻る"
+          aria-label={t('massProduction.backToCreatives')}
         >
           <ArrowLeft size={20} />
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            AI クリエイティブ大量生産
+            {t('massProduction.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            1つの商品情報から数百パターンのクリエイティブをAIが自動生成します
+            {t('massProduction.description')}
           </p>
         </div>
       </div>
@@ -586,7 +592,7 @@ export default function MassProductionPage(): React.ReactElement {
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
                 {s.step < currentStep ? <Check size={12} /> : s.step}
               </span>
-              {s.label}
+              {t(s.labelKey)}
             </button>
           </div>
         ))}
@@ -595,14 +601,14 @@ export default function MassProductionPage(): React.ReactElement {
       {/* Step 1: Product info */}
       {currentStep === 1 && (
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground">商品情報入力</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('massProduction.productInfoTitle')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            AIがクリエイティブを生成するための基本情報を入力してください
+            {t('massProduction.productInfoDescription')}
           </p>
           <div className="mt-5 space-y-4">
             <div>
               <label htmlFor="mp-product-name" className="mb-1 block text-sm font-medium text-foreground">
-                商品名 <span className="text-destructive">*</span>
+                {t('massProduction.productName')} <span className="text-destructive">*</span>
               </label>
               <input
                 id="mp-product-name"
@@ -615,7 +621,7 @@ export default function MassProductionPage(): React.ReactElement {
             </div>
             <div>
               <label htmlFor="mp-description" className="mb-1 block text-sm font-medium text-foreground">
-                商品説明 <span className="text-destructive">*</span>
+                {t('massProduction.productDescription')} <span className="text-destructive">*</span>
               </label>
               <textarea
                 id="mp-description"
@@ -629,7 +635,7 @@ export default function MassProductionPage(): React.ReactElement {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="mp-usp" className="mb-1 block text-sm font-medium text-foreground">
-                  USP (強み)
+                  {t('massProduction.usp')}
                 </label>
                 <input
                   id="mp-usp"
@@ -642,7 +648,7 @@ export default function MassProductionPage(): React.ReactElement {
               </div>
               <div>
                 <label htmlFor="mp-audience" className="mb-1 block text-sm font-medium text-foreground">
-                  ターゲット層
+                  {t('massProduction.targetAudience')}
                 </label>
                 <input
                   id="mp-audience"
@@ -656,7 +662,7 @@ export default function MassProductionPage(): React.ReactElement {
             </div>
             <div>
               <label htmlFor="mp-price" className="mb-1 block text-sm font-medium text-foreground">
-                価格 (任意)
+                {t('massProduction.price')}
               </label>
               <input
                 id="mp-price"
@@ -671,7 +677,7 @@ export default function MassProductionPage(): React.ReactElement {
             {/* Language & Keigo */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">言語</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('massProduction.language')}</span>
                 <div className="flex gap-2">
                   {([
                     { value: 'ja' as const, label: '日本語' },
@@ -694,12 +700,12 @@ export default function MassProductionPage(): React.ReactElement {
                 </div>
               </div>
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">敬語レベル</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('massProduction.keigoLevel')}</span>
                 <div className="flex gap-2">
                   {([
-                    { value: 'casual' as const, label: 'カジュアル' },
-                    { value: 'polite' as const, label: '丁寧' },
-                    { value: 'formal' as const, label: 'フォーマル' },
+                    { value: 'casual' as const, labelKey: 'massProduction.keigoCasual' },
+                    { value: 'polite' as const, labelKey: 'massProduction.keigoPolite' },
+                    { value: 'formal' as const, labelKey: 'massProduction.keigoFormal' },
                   ]).map((opt) => (
                     <button
                       key={opt.value}
@@ -712,7 +718,7 @@ export default function MassProductionPage(): React.ReactElement {
                           : 'border-border text-muted-foreground hover:border-primary/50',
                       )}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -728,7 +734,7 @@ export default function MassProductionPage(): React.ReactElement {
               disabled={!isStep1Valid}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              次へ: バリエーション設定
+              {t('massProduction.nextVariation')}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -740,42 +746,42 @@ export default function MassProductionPage(): React.ReactElement {
         <div className="space-y-6">
           <div className="rounded-lg border border-border bg-card p-6 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">バリエーション設定</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t('massProduction.variationTitle')}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                組み合わせる要素を選択してください。選択数が多いほど多くのパターンが生成されます。
+                {t('massProduction.variationDescription')}
               </p>
             </div>
 
             <CheckboxGrid
-              title="ヘッドライン切り口"
+              title={t('massProduction.headlineAngles')}
               items={HEADLINE_ANGLES}
               selected={selectedHeadlines}
               onToggle={(id) => toggleSet(setSelectedHeadlines, id)}
             />
 
             <CheckboxGrid
-              title="本文アプローチ"
+              title={t('massProduction.bodyApproaches')}
               items={BODY_APPROACHES}
               selected={selectedBodies}
               onToggle={(id) => toggleSet(setSelectedBodies, id)}
             />
 
             <CheckboxGrid
-              title="CTA バリエーション"
+              title={t('massProduction.ctaVariations')}
               items={CTA_VARIATIONS}
               selected={selectedCtas}
               onToggle={(id) => toggleSet(setSelectedCtas, id)}
             />
 
             <CheckboxGrid
-              title="画像スタイル"
+              title={t('massProduction.imageStyles')}
               items={IMAGE_STYLES}
               selected={selectedStyles}
               onToggle={(id) => toggleSet(setSelectedStyles, id)}
             />
 
             <CheckboxGrid
-              title="配信プラットフォーム"
+              title={t('massProduction.deliveryPlatforms')}
               items={PLATFORMS}
               selected={selectedPlatforms}
               onToggle={(id) => toggleSet(setSelectedPlatforms, id)}
@@ -801,7 +807,7 @@ export default function MassProductionPage(): React.ReactElement {
               className="inline-flex items-center gap-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               <ArrowLeft size={14} />
-              戻る
+              {t('common.back')}
             </button>
             <button
               type="button"
@@ -809,7 +815,7 @@ export default function MassProductionPage(): React.ReactElement {
               disabled={!isStep2Valid}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              次へ: 確認
+              {t('massProduction.nextConfirm')}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -820,29 +826,29 @@ export default function MassProductionPage(): React.ReactElement {
       {currentStep === 3 && (
         <div className="space-y-6">
           <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-foreground">確認 & 生成開始</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('massProduction.confirmTitle')}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              設定内容を確認して生成を開始してください
+              {t('massProduction.confirmDescription')}
             </p>
 
             {/* Summary */}
             <div className="mt-5 space-y-4">
               {/* Product summary */}
               <div className="rounded-md bg-muted/50 p-4">
-                <h4 className="text-sm font-semibold text-foreground">商品情報</h4>
+                <h4 className="text-sm font-semibold text-foreground">{t('massProduction.productInfo')}</h4>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">商品名:</span>{' '}
+                    <span className="text-muted-foreground">{t('massProduction.productNameLabel')}</span>{' '}
                     <span className="font-medium text-foreground">{product.name}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">言語:</span>{' '}
+                    <span className="text-muted-foreground">{t('massProduction.languageLabel')}</span>{' '}
                     <span className="font-medium text-foreground">
                       {product.language === 'ja' ? '日本語' : 'English'}
                     </span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">説明:</span>{' '}
+                    <span className="text-muted-foreground">{t('massProduction.descriptionLabel')}</span>{' '}
                     <span className="text-foreground">{product.description}</span>
                   </div>
                 </div>
@@ -850,27 +856,27 @@ export default function MassProductionPage(): React.ReactElement {
 
               {/* Variation summary */}
               <div className="rounded-md bg-muted/50 p-4">
-                <h4 className="text-sm font-semibold text-foreground">バリエーション設定</h4>
+                <h4 className="text-sm font-semibold text-foreground">{t('massProduction.variationSettings')}</h4>
                 <div className="mt-2 space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">ヘッドライン切り口</span>
-                    <span className="font-medium text-foreground">{selectedHeadlines.size} 選択</span>
+                    <span className="text-muted-foreground">{t('massProduction.headlineAngles')}</span>
+                    <span className="font-medium text-foreground">{selectedHeadlines.size} {t('massProduction.selected')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">本文アプローチ</span>
-                    <span className="font-medium text-foreground">{selectedBodies.size} 選択</span>
+                    <span className="text-muted-foreground">{t('massProduction.bodyApproaches')}</span>
+                    <span className="font-medium text-foreground">{selectedBodies.size} {t('massProduction.selected')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">CTA バリエーション</span>
-                    <span className="font-medium text-foreground">{selectedCtas.size} 選択</span>
+                    <span className="text-muted-foreground">{t('massProduction.ctaVariations')}</span>
+                    <span className="font-medium text-foreground">{selectedCtas.size} {t('massProduction.selected')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">画像スタイル</span>
-                    <span className="font-medium text-foreground">{selectedStyles.size} 選択</span>
+                    <span className="text-muted-foreground">{t('massProduction.imageStyles')}</span>
+                    <span className="font-medium text-foreground">{selectedStyles.size} {t('massProduction.selected')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">プラットフォーム</span>
-                    <span className="font-medium text-foreground">{selectedPlatforms.size} 選択</span>
+                    <span className="text-muted-foreground">{t('massProduction.deliveryPlatforms')}</span>
+                    <span className="font-medium text-foreground">{selectedPlatforms.size} {t('massProduction.selected')}</span>
                   </div>
                 </div>
               </div>
@@ -879,25 +885,25 @@ export default function MassProductionPage(): React.ReactElement {
               <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-center gap-2">
                   <Rocket size={16} className="text-primary" />
-                  <h4 className="text-sm font-semibold text-foreground">生成見積もり</h4>
+                  <h4 className="text-sm font-semibold text-foreground">{t('massProduction.generationEstimate')}</h4>
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">生成数</p>
+                    <p className="text-xs text-muted-foreground">{t('massProduction.generationCount')}</p>
                     <p className="text-lg font-bold text-foreground">
                       {actualGeneration.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">推定時間</p>
+                    <p className="text-xs text-muted-foreground">{t('massProduction.estimatedTime')}</p>
                     <p className="text-lg font-bold text-foreground">
-                      約 {estimatedMinutes} 分
+                      {t('massProduction.estimatedTimeMinutes').replace('{min}', String(estimatedMinutes))}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">推定コスト</p>
+                    <p className="text-xs text-muted-foreground">{t('massProduction.estimatedCost')}</p>
                     <p className="text-lg font-bold text-foreground">
-                      {(actualGeneration * 0.5).toLocaleString()} クレジット
+                      {(actualGeneration * 0.5).toLocaleString()} {t('massProduction.credits')}
                     </p>
                   </div>
                 </div>
@@ -913,7 +919,7 @@ export default function MassProductionPage(): React.ReactElement {
               className="inline-flex items-center gap-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               <ArrowLeft size={14} />
-              戻る
+              {t('common.back')}
             </button>
             <button
               type="button"
@@ -921,7 +927,7 @@ export default function MassProductionPage(): React.ReactElement {
               className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
             >
               <Sparkles size={18} />
-              大量生成を開始
+              {t('massProduction.startGeneration')}
             </button>
           </div>
         </div>

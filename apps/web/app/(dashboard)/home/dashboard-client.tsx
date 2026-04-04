@@ -206,10 +206,10 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   microsoft: 'bg-teal-500',
 };
 
-const STATUS_LABELS: Record<CampaignHealthStatus, string> = {
-  active: '配信中',
-  paused: '一時停止',
-  error: 'エラー',
+const STATUS_LABEL_KEYS: Record<CampaignHealthStatus, string> = {
+  active: 'dashboard.statusActive',
+  paused: 'dashboard.statusPaused',
+  error: 'dashboard.statusError',
 };
 
 const STATUS_CLASSES: Record<CampaignHealthStatus, string> = {
@@ -241,6 +241,7 @@ function AlertBanner({ alerts, onViewDetail }: {
   alerts: Alert[];
   onViewDetail: (alert: Alert) => void;
 }): React.ReactElement | null {
+  const { t } = useI18n();
   const criticals = alerts.filter((a) => a.severity === 'critical');
   const warnings = alerts.filter((a) => a.severity === 'warning');
 
@@ -254,7 +255,7 @@ function AlertBanner({ alerts, onViewDetail }: {
             <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-600 dark:text-red-400" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-red-800 dark:text-red-300">
-                {criticals.length}件の重大アラート
+                {t('dashboard.criticalAlertCount', { count: criticals.length })}
               </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {criticals.map((alert) => (
@@ -279,7 +280,7 @@ function AlertBanner({ alerts, onViewDetail }: {
             <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
-                {warnings.length}件の注意
+                {t('dashboard.warningAlertCount', { count: warnings.length })}
               </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {warnings.map((alert) => (
@@ -309,6 +310,7 @@ interface AlertDetailModalProps {
 }
 
 function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDetailModalProps): React.ReactElement {
+  const { t } = useI18n();
   const isCritical = alert.severity === 'critical';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -330,14 +332,14 @@ function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDe
             type="button"
             onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label="閉じる"
+            aria-label={t('common.close')}
           >
             <X size={20} />
           </button>
         </div>
         <p className="text-sm text-foreground">{alert.description}</p>
         <div className="mt-4 rounded-md bg-primary/5 p-3">
-          <p className="text-xs font-semibold text-primary">推奨アクション</p>
+          <p className="text-xs font-semibold text-primary">{t('dashboard.recommendedAction')}</p>
           <p className="mt-1 text-sm text-foreground">{alert.action}</p>
         </div>
         <div className="mt-4 flex items-center justify-between gap-2">
@@ -350,7 +352,7 @@ function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDe
             className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
             <ShieldAlert size={14} />
-            このキャンペーンを停止
+            {t('dashboard.stopCampaign')}
           </button>
           <div className="flex gap-2">
             <button
@@ -363,7 +365,7 @@ function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDe
             >
               <span className="flex items-center gap-1.5">
                 <Check size={14} />
-                確認済み
+                {t('dashboard.acknowledged')}
               </span>
             </button>
             <button
@@ -371,7 +373,7 @@ function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDe
               onClick={onClose}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              閉じる
+              {t('common.close')}
             </button>
           </div>
         </div>
@@ -417,6 +419,7 @@ function HealthScoreRing({ score }: { score: number }): React.ReactElement {
 }
 
 function CampaignHealthCard({ campaign }: { campaign: CampaignHealth }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <a
       href={`/campaigns/${campaign.id}`}
@@ -428,7 +431,7 @@ function CampaignHealthCard({ campaign }: { campaign: CampaignHealth }): React.R
           'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
           STATUS_CLASSES[campaign.status],
         )}>
-          {STATUS_LABELS[campaign.status]}
+          {t(STATUS_LABEL_KEYS[campaign.status])}
         </span>
       </div>
       <div>
@@ -463,6 +466,7 @@ function CampaignHealthCard({ campaign }: { campaign: CampaignHealth }): React.R
 }
 
 function BudgetPacingBar({ pacing }: { pacing: BudgetPacing }): React.ReactElement {
+  const { t } = useI18n();
   const percentage = Math.round((pacing.spent / pacing.total) * 100);
   const barColor: Record<BudgetPaceStatus, string> = {
     'on-pace': 'bg-green-500',
@@ -478,9 +482,9 @@ function BudgetPacingBar({ pacing }: { pacing: BudgetPacing }): React.ReactEleme
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">本日の予算消化</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('dashboard.todayBudgetSpend')}</h3>
         <span className={cn('text-xs font-semibold', textColor[pacing.status])}>
-          ペース: {pacing.statusLabel}
+          {t('dashboard.pace')}: {pacing.statusLabel}
         </span>
       </div>
       <div className="mt-3">
@@ -492,7 +496,7 @@ function BudgetPacingBar({ pacing }: { pacing: BudgetPacing }): React.ReactEleme
             </span>
           </p>
           <p className="text-sm text-muted-foreground">
-            {pacing.time} 現在
+            {t('dashboard.asOf', { time: pacing.time })}
           </p>
         </div>
         <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-muted">
@@ -501,7 +505,7 @@ function BudgetPacingBar({ pacing }: { pacing: BudgetPacing }): React.ReactEleme
             style={{ width: `${Math.min(100, percentage)}%` }}
           />
         </div>
-        <p className="mt-1 text-right text-xs text-muted-foreground">{percentage}% 消化済み</p>
+        <p className="mt-1 text-right text-xs text-muted-foreground">{percentage}% {t('dashboard.consumed')}</p>
       </div>
     </div>
   );
@@ -543,7 +547,7 @@ function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactEl
                     href={INSIGHT_TYPE_HREF[insight.type]}
                     className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
                   >
-                    アクション
+                    {t('dashboard.action')}
                     <ArrowRight size={12} />
                   </a>
                 </div>
@@ -557,6 +561,7 @@ function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactEl
 }
 
 function AbTestCard({ test }: { test: AbTest }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center gap-2">
@@ -582,7 +587,7 @@ function AbTestCard({ test }: { test: AbTest }): React.ReactElement {
       <div className="mt-3 space-y-2">
         <div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">統計的有意性</span>
+            <span className="text-muted-foreground">{t('dashboard.statisticalSignificance')}</span>
             <span className={cn(
               'font-semibold',
               test.significance >= 95 ? 'text-green-600' : test.significance >= 80 ? 'text-yellow-600' : 'text-muted-foreground',
@@ -602,7 +607,7 @@ function AbTestCard({ test }: { test: AbTest }): React.ReactElement {
         </div>
         <div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">サンプル進捗</span>
+            <span className="text-muted-foreground">{t('dashboard.sampleProgress')}</span>
             <span className="font-medium text-foreground">{test.sampleProgress}%</span>
           </div>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -654,15 +659,15 @@ function ActivityFeed({ activities }: { activities: ActivityItem[] }): React.Rea
 // Main Dashboard Page
 // ============================================================
 
-function formatTimeAgo(date: Date): string {
+function formatTimeAgo(date: Date, t: (key: string, params?: Record<string, string | number>) => string): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return `${seconds}秒前`;
+  if (seconds < 60) return t('dashboard.secondsAgo', { count: seconds });
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}分前`;
+  if (minutes < 60) return t('dashboard.minutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}時間前`;
+  if (hours < 24) return t('dashboard.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}日前`;
+  return t('dashboard.daysAgo', { count: days });
 }
 
 export function DashboardClient(): React.ReactElement {
@@ -679,7 +684,7 @@ export function DashboardClient(): React.ReactElement {
   // Determine last update time from the most recently fetched query
   const lastFetchedAt = overviewQuery.dataUpdatedAt || healthQuery.dataUpdatedAt || activityQuery.dataUpdatedAt;
   const lastUpdatedLabel = lastFetchedAt > 0
-    ? formatTimeAgo(new Date(lastFetchedAt))
+    ? formatTimeAgo(new Date(lastFetchedAt), t)
     : null;
 
   // Use real data if available, otherwise fall back to mock
@@ -725,7 +730,7 @@ export function DashboardClient(): React.ReactElement {
         <div className="flex items-center gap-2">
           {lastUpdatedLabel && (
             <span className="text-xs text-muted-foreground">
-              最終更新: {lastUpdatedLabel}
+              {t('dashboard.lastUpdated')}: {lastUpdatedLabel}
             </span>
           )}
           <button
@@ -733,7 +738,7 @@ export function DashboardClient(): React.ReactElement {
             onClick={handleRefresh}
             disabled={overviewQuery.isFetching || healthQuery.isFetching || activityQuery.isFetching}
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
-            aria-label="データを更新"
+            aria-label={t('dashboard.refreshData')}
           >
             <RefreshCw
               size={12}
@@ -741,7 +746,7 @@ export function DashboardClient(): React.ReactElement {
                 (overviewQuery.isFetching || healthQuery.isFetching || activityQuery.isFetching) && 'animate-spin',
               )}
             />
-            更新
+            {t('dashboard.refresh')}
           </button>
         </div>
       </div>
@@ -777,7 +782,7 @@ export function DashboardClient(): React.ReactElement {
           <div>
             <div className="mb-3 flex items-center gap-2">
               <FlaskConical size={18} className="text-purple-500" />
-              <h2 className="text-lg font-semibold text-foreground">アクティブA/Bテスト</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t('dashboard.activeAbTests')}</h2>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {MOCK_AB_TESTS.map((test) => (

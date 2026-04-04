@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -97,8 +98,8 @@ interface ScanFrequencyOption {
 const MODE_OPTIONS: ModeOption[] = [
   {
     value: 'full_auto',
-    label: '完全自動',
-    description: 'AIが分析・判断・実行まで全自動で行います',
+    label: 'aiSettings.modeFullAuto',
+    description: 'aiSettings.modeFullAutoDesc',
     color: 'text-green-600 dark:text-green-400',
     borderColor: 'border-green-500',
     bgColor: 'bg-green-50 dark:bg-green-950/30',
@@ -106,8 +107,8 @@ const MODE_OPTIONS: ModeOption[] = [
   },
   {
     value: 'suggest_only',
-    label: '提案モード',
-    description: 'AIが分析・提案し、実行は行いません。ダッシュボードで確認できます',
+    label: 'aiSettings.modeSuggestOnly',
+    description: 'aiSettings.modeSuggestOnlyDesc',
     color: 'text-yellow-600 dark:text-yellow-400',
     borderColor: 'border-yellow-500',
     bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
@@ -115,8 +116,8 @@ const MODE_OPTIONS: ModeOption[] = [
   },
   {
     value: 'approve_required',
-    label: '承認モード',
-    description: 'AIが分析・提案し、承認後に実行されます',
+    label: 'aiSettings.modeApproveRequired',
+    description: 'aiSettings.modeApproveRequiredDesc',
     color: 'text-blue-600 dark:text-blue-400',
     borderColor: 'border-blue-500',
     bgColor: 'bg-blue-50 dark:bg-blue-950/30',
@@ -125,51 +126,51 @@ const MODE_OPTIONS: ModeOption[] = [
 ];
 
 const FREQUENCY_OPTIONS: FrequencyOption[] = [
-  { value: 'hourly', label: '毎時間' },
-  { value: 'every_4h', label: '4時間ごと' },
-  { value: 'daily', label: '1日1回' },
+  { value: 'hourly', label: 'aiSettings.frequencyHourly' },
+  { value: 'every_4h', label: 'aiSettings.frequencyEvery4h' },
+  { value: 'daily', label: 'aiSettings.frequencyDaily' },
 ];
 
 const RISK_OPTIONS: RiskOption[] = [
   {
     value: 'conservative',
-    label: '保守的',
-    description: '小さな変更を段階的に実施。安全性を最優先します。',
+    label: 'aiSettings.riskConservative',
+    description: 'aiSettings.riskConservativeDesc',
   },
   {
     value: 'standard',
-    label: '標準',
-    description: 'バランスの取れた最適化。適度なリスクで成果を追求します。',
+    label: 'aiSettings.riskStandard',
+    description: 'aiSettings.riskStandardDesc',
   },
   {
     value: 'aggressive',
-    label: '積極的',
-    description: '大胆な変更も許容。最大のリターンを狙いますがリスクも伴います。',
+    label: 'aiSettings.riskAggressive',
+    description: 'aiSettings.riskAggressiveDesc',
   },
 ];
 
 const COMPETITOR_STRATEGY_OPTIONS: CompetitorStrategyOption[] = [
   {
     value: 'aggressive',
-    label: '攻撃的',
-    description: 'CPCを積極的に上げて競合を押し出す',
+    label: 'aiSettings.strategyAggressive',
+    description: 'aiSettings.strategyAggressiveDesc',
   },
   {
     value: 'defensive',
-    label: '防御的',
-    description: '現在のポジションを最小コストで維持',
+    label: 'aiSettings.strategyDefensive',
+    description: 'aiSettings.strategyDefensiveDesc',
   },
   {
     value: 'opportunistic',
-    label: '機会主義',
-    description: '競合の弱い時間帯・市場を狙い撃ち',
+    label: 'aiSettings.strategyOpportunistic',
+    description: 'aiSettings.strategyOpportunisticDesc',
   },
 ];
 
 const SCAN_FREQUENCY_OPTIONS: ScanFrequencyOption[] = [
-  { value: 'every_30m', label: '30分ごと' },
-  { value: 'every_1h', label: '1時間ごと' },
-  { value: 'every_4h', label: '4時間ごと' },
+  { value: 'every_30m', label: 'aiSettings.scan30m' },
+  { value: 'every_1h', label: 'aiSettings.scan1h' },
+  { value: 'every_4h', label: 'aiSettings.scan4h' },
 ];
 
 const INITIAL_SETTINGS: AiSettings = {
@@ -207,6 +208,7 @@ function ApiKeySection({
   settings: AiSettings;
   onSettingsChange: (update: Partial<AiSettings>) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const [showKey, setShowKey] = useState(false);
   const [editingKey, setEditingKey] = useState(false);
   const [newKey, setNewKey] = useState('');
@@ -261,7 +263,7 @@ function ApiKeySection({
     <section className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center gap-2 mb-4">
         <BrainCircuit size={20} className="text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">Claude API接続</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('aiSettings.apiConnection')}</h2>
         <span
           className={cn(
             'ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
@@ -276,7 +278,7 @@ function ApiKeySection({
               isConnected ? 'bg-green-500' : 'bg-red-500',
             )}
           />
-          {isConnected ? '接続済み' : '未接続'}
+          {isConnected ? t('aiSettings.statusConnected') : t('aiSettings.statusDisconnected')}
         </span>
       </div>
 
@@ -312,7 +314,7 @@ function ApiKeySection({
               ) : (
                 <Zap size={12} />
               )}
-              接続テスト
+              {t('aiSettings.testConnection')}
             </button>
             {testResult === 'success' && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
@@ -395,6 +397,7 @@ function AutopilotModeSection({
   settings: AiSettings;
   onSettingsChange: (update: Partial<AiSettings>) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const disabled = !settings.autopilotEnabled;
 
   return (
@@ -403,12 +406,12 @@ function AutopilotModeSection({
         <div className="flex items-center gap-2">
           <Sparkles size={20} className="text-primary" />
           <h2 className="text-lg font-semibold text-foreground">
-            オートパイロットモード
+            {t('aiSettings.autopilotMode')}
           </h2>
         </div>
         <label className="relative inline-flex cursor-pointer items-center gap-3">
           <span className="text-sm font-medium text-foreground">
-            AIオートパイロット
+            {t('aiSettings.autopilot')}
           </span>
           <div className="relative">
             <input
@@ -455,10 +458,10 @@ function AutopilotModeSection({
               />
               <div>
                 <p className={cn('text-sm font-semibold', isSelected ? mode.color : 'text-foreground')}>
-                  {mode.label}
+                  {t(mode.label)}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {mode.description}
+                  {t(mode.description)}
                 </p>
               </div>
             </button>
@@ -476,6 +479,7 @@ function OptimizationSettingsSection({
   settings: AiSettings;
   onSettingsChange: (update: Partial<AiSettings>) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const disabled = !settings.autopilotEnabled;
   const scope = settings.automationScope;
 
@@ -498,7 +502,7 @@ function OptimizationSettingsSection({
       >
         {/* Optimization frequency */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-2">最適化頻度</h3>
+          <h3 className="text-sm font-medium text-foreground mb-2">{t('aiSettings.optimizationFrequency')}</h3>
           <div className="flex gap-2">
             {FREQUENCY_OPTIONS.map((opt) => (
               <button
@@ -513,7 +517,7 @@ function OptimizationSettingsSection({
                     : 'border-border text-muted-foreground hover:bg-muted/50',
                 )}
               >
-                {opt.label}
+                {t(opt.label)}
               </button>
             ))}
           </div>
@@ -521,13 +525,13 @@ function OptimizationSettingsSection({
 
         {/* Automation scope */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">自動化範囲</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">{t('aiSettings.automationScope')}</h3>
           <div className="space-y-4">
             {/* Budget auto-adjust */}
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">予算自動調整</p>
+                  <p className="text-sm font-medium text-foreground">{t('aiSettings.budgetAutoAdjust')}</p>
                   <p className="text-xs text-muted-foreground">AIが自動的に予算を調整します</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
@@ -548,7 +552,7 @@ function OptimizationSettingsSection({
               {scope.budgetAutoAdjust && (
                 <div className="mt-3 border-t border-border pt-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span>最大変更率</span>
+                    <span>{t('aiSettings.maxChangeRate')}</span>
                     <span className="font-medium text-foreground">{scope.maxChangeRate}%</span>
                   </div>
                   <input
@@ -575,7 +579,7 @@ function OptimizationSettingsSection({
             {/* Creative auto-rotation */}
             <div className="flex items-center justify-between rounded-lg border border-border p-4">
               <div>
-                <p className="text-sm font-medium text-foreground">クリエイティブ自動ローテーション</p>
+                <p className="text-sm font-medium text-foreground">{t('aiSettings.creativeAutoRotation')}</p>
                 <p className="text-xs text-muted-foreground">パフォーマンスに基づきクリエイティブを自動切替</p>
               </div>
               <label className="relative inline-flex cursor-pointer items-center">
@@ -598,7 +602,7 @@ function OptimizationSettingsSection({
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">キャンペーン自動作成</p>
+                  <p className="text-sm font-medium text-foreground">{t('aiSettings.campaignAutoCreation')}</p>
                   <p className="text-xs text-muted-foreground">AIが自動的に新しいキャンペーンを作成します</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
@@ -630,7 +634,7 @@ function OptimizationSettingsSection({
 
         {/* Risk tolerance */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-2">リスク許容度</h3>
+          <h3 className="text-sm font-medium text-foreground mb-2">{t('aiSettings.riskTolerance')}</h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {RISK_OPTIONS.map((opt) => {
               const isSelected = settings.riskTolerance === opt.value;
@@ -648,10 +652,10 @@ function OptimizationSettingsSection({
                   )}
                 >
                   <p className={cn('text-sm font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
-                    {opt.label}
+                    {t(opt.label)}
                   </p>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {opt.description}
+                    {t(opt.description)}
                   </p>
                 </button>
               );
@@ -663,7 +667,7 @@ function OptimizationSettingsSection({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="target-roas" className="mb-1.5 block text-sm font-medium text-foreground">
-              目標ROAS
+              {t('aiSettings.targetRoas')}
             </label>
             <input
               id="target-roas"
@@ -687,7 +691,7 @@ function OptimizationSettingsSection({
 
           <div>
             <label htmlFor="monthly-budget-cap" className="mb-1.5 block text-sm font-medium text-foreground">
-              月間予算上限
+              {t('aiSettings.monthlyBudgetCap')}
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -726,6 +730,7 @@ function CompetitiveIntelligenceSettingsSection({
   settings: AiSettings;
   onSettingsChange: (update: Partial<AiSettings>) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const ci = settings.competitorIntelligence;
 
   function handleCiChange(
@@ -741,7 +746,7 @@ function CompetitiveIntelligenceSettingsSection({
       <div className="mb-6 flex items-center gap-2">
         <Swords size={20} className="text-primary" />
         <h2 className="text-lg font-semibold text-foreground">
-          競合インテリジェンス設定
+          {t('competitors.title')} {t('settings.title')}
         </h2>
       </div>
 
@@ -750,7 +755,7 @@ function CompetitiveIntelligenceSettingsSection({
         <div className="flex items-center justify-between rounded-lg border border-border p-4">
           <div>
             <p className="text-sm font-medium text-foreground">
-              競合監視
+              {t('aiSettings.monitoring')}
             </p>
             <p className="text-xs text-muted-foreground">
               競合の広告活動をリアルタイムで監視します
@@ -785,7 +790,7 @@ function CompetitiveIntelligenceSettingsSection({
         >
           <div>
             <p className="text-sm font-medium text-foreground">
-              自動対抗
+              {t('aiSettings.autoCounter')}
             </p>
             <p className="text-xs text-muted-foreground">
               AIが自動的に競合への対抗アクションを実行します
@@ -816,7 +821,7 @@ function CompetitiveIntelligenceSettingsSection({
           )}
         >
           <h3 className="mb-2 text-sm font-medium text-foreground">
-            デフォルト対抗戦略
+            {t('aiSettings.defaultStrategy')}
           </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {COMPETITOR_STRATEGY_OPTIONS.map((opt) => {
@@ -844,10 +849,10 @@ function CompetitiveIntelligenceSettingsSection({
                         : 'text-foreground'
                     )}
                   >
-                    {opt.label}
+                    {t(opt.label)}
                   </p>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {opt.description}
+                    {t(opt.description)}
                   </p>
                 </button>
               );
@@ -862,7 +867,7 @@ function CompetitiveIntelligenceSettingsSection({
           )}
         >
           <h3 className="mb-2 text-sm font-medium text-foreground">
-            スキャン頻度
+            {t('aiSettings.scanFrequency')}
           </h3>
           <div className="flex gap-2">
             {SCAN_FREQUENCY_OPTIONS.map((opt) => (
@@ -880,7 +885,7 @@ function CompetitiveIntelligenceSettingsSection({
                     : 'border-border text-muted-foreground hover:bg-muted/50'
                 )}
               >
-                {opt.label}
+                {t(opt.label)}
               </button>
             ))}
           </div>
@@ -895,6 +900,7 @@ function CompetitiveIntelligenceSettingsSection({
 // ============================================================
 
 export default function AiSettingsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<AiSettings>(INITIAL_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -905,14 +911,14 @@ export default function AiSettingsPage(): React.ReactElement {
       setSaving(false);
       setSaved(true);
       setHasChanges(false);
-      showToast('設定を保存しました');
+      showToast(t('aiSettings.saveSuccess'));
     },
     onError: () => {
       // Fallback: simulate success for demo
       setSaving(false);
       setSaved(true);
       setHasChanges(false);
-      showToast('設定を保存しました');
+      showToast(t('aiSettings.saveSuccess'));
     },
   });
 
@@ -958,9 +964,9 @@ export default function AiSettingsPage(): React.ReactElement {
             設定
           </a>
           <span className="text-sm text-muted-foreground">/</span>
-          <span className="text-sm font-medium text-foreground">AI設定</span>
+          <span className="text-sm font-medium text-foreground">{t('aiSettings.title')}</span>
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">AI設定</h1>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{t('aiSettings.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Claude APIキーの設定とAIオートパイロットの動作を管理します
         </p>
@@ -999,7 +1005,7 @@ export default function AiSettingsPage(): React.ReactElement {
           ) : (
             <Save size={16} />
           )}
-          設定を保存
+          {t('aiSettings.saveSettings')}
         </button>
       </div>
     </div>

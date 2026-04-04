@@ -82,21 +82,21 @@ interface CreateFormVariant {
 // Constants
 // ============================================================
 
-const STATUS_CONFIG: Record<TestStatus, { label: string; className: string }> = {
+const STATUS_CONFIG: Record<TestStatus, { labelKey: string; className: string }> = {
   running: {
-    label: '稼働中',
+    labelKey: 'abTests.running',
     className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   completed: {
-    label: '完了',
+    labelKey: 'abTests.completed',
     className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   },
   paused: {
-    label: '一時停止',
+    labelKey: 'abTests.paused',
     className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
   draft: {
-    label: '下書き',
+    labelKey: 'abTests.draft',
     className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
   },
 };
@@ -124,13 +124,13 @@ const METRIC_CONFIG: Record<MetricType, { label: string; className: string; form
   },
 };
 
-const TEST_TYPE_CONFIG: Record<TestType, { label: string; className: string }> = {
-  creative: { label: 'クリエイティブ', className: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' },
-  headline: { label: '見出し', className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' },
-  cta: { label: 'CTA', className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' },
-  targeting: { label: 'ターゲティング', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-  bidding: { label: '入札', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-  lp: { label: 'LP', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
+const TEST_TYPE_CONFIG: Record<TestType, { labelKey: string; className: string }> = {
+  creative: { labelKey: 'abTests.testType.creative', className: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' },
+  headline: { labelKey: 'abTests.testType.headline', className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' },
+  cta: { labelKey: 'abTests.testType.cta', className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' },
+  targeting: { labelKey: 'abTests.testType.targeting', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+  bidding: { labelKey: 'abTests.testType.bidding', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+  lp: { labelKey: 'abTests.testType.lp', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
 };
 
 const CAMPAIGN_OPTIONS = [
@@ -144,10 +144,10 @@ const CAMPAIGN_OPTIONS = [
   'Amazon季節セール',
 ];
 
-const TRAFFIC_OPTIONS: { value: TrafficAllocation; label: string; desc: string }[] = [
-  { value: 'equal', label: '均等配分', desc: '全バリアントに均等にトラフィックを配分' },
-  { value: 'thompson', label: 'Thompson Sampling', desc: '成績の良いバリアントに自動的に多く配分' },
-  { value: 'epsilon', label: 'Epsilon-Greedy', desc: '一定割合を探索に、残りを最良バリアントに配分' },
+const TRAFFIC_OPTIONS: { value: TrafficAllocation; labelKey: string; descKey: string }[] = [
+  { value: 'equal', labelKey: 'abTests.equalAllocation', descKey: 'abTests.equalAllocationDesc' },
+  { value: 'thompson', labelKey: 'abTests.thompsonSampling', descKey: 'abTests.thompsonDesc' },
+  { value: 'epsilon', labelKey: 'abTests.epsilonGreedy', descKey: 'abTests.epsilonDesc' },
 ];
 
 // ============================================================
@@ -233,10 +233,11 @@ const ALL_MOCK_TESTS = generateMockTests();
 // ============================================================
 
 function StatusBadge({ status }: { status: TestStatus }): React.ReactElement {
+  const { t } = useI18n();
   const config = STATUS_CONFIG[status];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', config.className)}>
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
@@ -251,10 +252,11 @@ function MetricBadge({ metric }: { metric: MetricType }): React.ReactElement {
 }
 
 function TypeBadge({ testType }: { testType: TestType }): React.ReactElement {
+  const { t } = useI18n();
   const config = TEST_TYPE_CONFIG[testType];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', config.className)}>
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
@@ -324,6 +326,7 @@ interface TestDetailModalProps {
 }
 
 function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProps): React.ReactElement {
+  const { t } = useI18n();
   const metricConfig = METRIC_CONFIG[test.metric];
 
   const chartData = test.variants.map((v) => ({
@@ -344,7 +347,7 @@ function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProp
             type="button"
             onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label="閉じる"
+            aria-label={t('common.close')}
           >
             <X size={20} />
           </button>
@@ -353,18 +356,18 @@ function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProp
         <div className="space-y-5 p-6">
           {/* Per-variant metrics table */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-foreground">バリアント別指標</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">{t('abTests.variantMetrics')}</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="pb-2 text-left text-xs font-medium text-muted-foreground">バリアント</th>
-                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">インプレッション</th>
-                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">クリック</th>
-                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">CV</th>
+                    <th className="pb-2 text-left text-xs font-medium text-muted-foreground">{t('abTests.variantColumn')}</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">{t('metrics.impressions')}</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">{t('metrics.clicks')}</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">{t('metrics.conversions')}</th>
                     <th className="pb-2 text-right text-xs font-medium text-muted-foreground">{metricConfig.label}</th>
-                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">信頼区間</th>
-                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">p値</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">{t('abTests.confidenceInterval')}</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">{t('abTests.pValue')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -400,7 +403,7 @@ function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProp
 
           {/* Chart */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-foreground">バリアント比較</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">{t('abTests.variantComparison')}</h3>
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
@@ -453,7 +456,7 @@ function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProp
                 className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
               >
                 <Trophy size={14} />
-                勝者を確定
+                {t('abTests.declareWinner')}
               </button>
             )}
             <button
@@ -461,7 +464,7 @@ function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProp
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               <Clock size={14} />
-              テストを延長
+              {t('abTests.extendTest')}
             </button>
           </div>
         </div>
@@ -478,6 +481,7 @@ interface CreateTestModalProps {
 }
 
 function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [testType, setTestType] = useState<TestType>('creative');
   const [metric, setMetric] = useState<MetricType>('ctr');
@@ -541,8 +545,8 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">新規A/Bテスト作成</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <h2 className="text-lg font-semibold text-foreground">{t('abTests.createTitle')}</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
@@ -550,7 +554,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
         <form onSubmit={handleSubmit} className="space-y-5 p-6">
           {/* Test name */}
           <div>
-            <label htmlFor="ab-test-name" className="mb-1 block text-sm font-medium text-foreground">テスト名</label>
+            <label htmlFor="ab-test-name" className="mb-1 block text-sm font-medium text-foreground">{t('abTests.testName')}</label>
             <input
               id="ab-test-name"
               type="text"
@@ -564,7 +568,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
 
           {/* Campaign */}
           <div>
-            <label htmlFor="ab-campaign" className="mb-1 block text-sm font-medium text-foreground">キャンペーン選択</label>
+            <label htmlFor="ab-campaign" className="mb-1 block text-sm font-medium text-foreground">{t('abTests.campaignSelect')}</label>
             <div className="relative">
               <select
                 id="ab-campaign"
@@ -582,7 +586,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
 
           {/* Test type */}
           <div>
-            <label htmlFor="ab-test-type" className="mb-1 block text-sm font-medium text-foreground">テストタイプ</label>
+            <label htmlFor="ab-test-type" className="mb-1 block text-sm font-medium text-foreground">{t('abTests.testTypeLabel')}</label>
             <div className="relative">
               <select
                 id="ab-test-type"
@@ -591,7 +595,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                 className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {Object.entries(TEST_TYPE_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>{config.label}</option>
+                  <option key={key} value={key}>{t(config.labelKey)}</option>
                 ))}
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -600,7 +604,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
 
           {/* Metric */}
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">目標指標</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('abTests.targetMetric')}</span>
             <div className="flex flex-wrap gap-2">
               {(['ctr', 'cvr', 'roas', 'cpa'] as const).map((m) => (
                 <label
@@ -628,20 +632,20 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
 
           {/* Variants */}
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">バリアント追加</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('abTests.addVariant')}</span>
             <div className="space-y-3">
               {variants.map((variant, idx) => (
                 <div key={idx} className="rounded-md border border-border p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground">
-                      {idx === 0 ? 'コントロール (A)' : `テスト (${String.fromCharCode(65 + idx)})`}
+                      {idx === 0 ? t('abTests.controlLabel') : t('abTests.testLabel', { letter: String.fromCharCode(65 + idx) })}
                     </span>
                     {idx >= 2 && (
                       <button
                         type="button"
                         onClick={() => removeVariant(idx)}
                         className="rounded p-0.5 text-muted-foreground hover:text-red-600"
-                        aria-label="バリアントを削除"
+                        aria-label={t('abTests.removeVariant')}
                       >
                         <Minus size={14} />
                       </button>
@@ -652,7 +656,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                     value={variant.name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateVariant(idx, 'name', e.target.value)}
                     className="mt-2 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="バリアント名"
+                    placeholder={t('abTests.variantName')}
                     required
                   />
                   <input
@@ -660,7 +664,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                     value={variant.description}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateVariant(idx, 'description', e.target.value)}
                     className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="説明 (任意)"
+                    placeholder={t('abTests.descriptionOptional')}
                   />
                 </div>
               ))}
@@ -671,13 +675,13 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
               className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
             >
               <Plus size={14} />
-              バリアント追加
+              {t('abTests.addVariant')}
             </button>
           </div>
 
           {/* Traffic allocation */}
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">トラフィック配分</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('abTests.trafficAllocation')}</span>
             <div className="space-y-2">
               {TRAFFIC_OPTIONS.map((opt) => (
                 <label
@@ -698,8 +702,8 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                     className="mt-0.5 accent-primary"
                   />
                   <div>
-                    <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                    <p className="text-sm font-medium text-foreground">{t(opt.labelKey)}</p>
+                    <p className="text-xs text-muted-foreground">{t(opt.descKey)}</p>
                   </div>
                 </label>
               ))}
@@ -709,8 +713,8 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
           {/* Batch toggle */}
           <div className="flex items-center justify-between rounded-md border border-border p-3">
             <div>
-              <p className="text-sm font-medium text-foreground">バッチから自動作成</p>
-              <p className="text-xs text-muted-foreground">クリエイティブバッチからバリアントを自動取り込み</p>
+              <p className="text-sm font-medium text-foreground">{t('abTests.batchAutoCreate')}</p>
+              <p className="text-xs text-muted-foreground">{t('abTests.batchAutoCreateDesc')}</p>
             </div>
             <button
               type="button"
@@ -740,7 +744,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
             >
               <div className="flex items-center gap-2">
                 <Settings2 size={14} className="text-muted-foreground" />
-                統計設定
+                {t('abTests.statisticalSettings')}
               </div>
               <ChevronDown size={14} className={cn('transition-transform', showAdvanced && 'rotate-180')} />
             </button>
@@ -748,7 +752,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
               <div className="space-y-4 border-t border-border px-4 py-4">
                 <div>
                   <div className="flex items-center justify-between">
-                    <label htmlFor="ab-mde" className="text-sm font-medium text-foreground">最小検出効果 (MDE)</label>
+                    <label htmlFor="ab-mde" className="text-sm font-medium text-foreground">{t('abTests.mde')}</label>
                     <span className="text-sm font-semibold text-primary">{mde}%</span>
                   </div>
                   <input
@@ -763,7 +767,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                   />
                 </div>
                 <div>
-                  <label htmlFor="ab-alpha" className="mb-1 block text-sm font-medium text-foreground">有意水準 (alpha)</label>
+                  <label htmlFor="ab-alpha" className="mb-1 block text-sm font-medium text-foreground">{t('abTests.alpha')}</label>
                   <input
                     id="ab-alpha"
                     type="number"
@@ -776,7 +780,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                   />
                 </div>
                 <div>
-                  <label htmlFor="ab-power" className="mb-1 block text-sm font-medium text-foreground">検出力 (1-beta)</label>
+                  <label htmlFor="ab-power" className="mb-1 block text-sm font-medium text-foreground">{t('abTests.power')}</label>
                   <input
                     id="ab-power"
                     type="number"
@@ -794,14 +798,14 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
 
           {/* Auto-calculated sample */}
           <div className="rounded-md bg-primary/5 p-4">
-            <p className="text-xs font-semibold text-primary">必要サンプルサイズ (自動計算)</p>
+            <p className="text-xs font-semibold text-primary">{t('abTests.requiredSampleSize')}</p>
             <p className="mt-1 text-sm text-foreground">
-              各バリアント <span className="font-bold">{perVariant.toLocaleString()}</span> impressions
-              <span className="text-muted-foreground"> (合計 {totalSample.toLocaleString()})</span>
+              {t('abTests.perVariant')} <span className="font-bold">{perVariant.toLocaleString()}</span> {t('abTests.impressionsUnit')}
+              <span className="text-muted-foreground"> ({t('abTests.totalLabel')} {totalSample.toLocaleString()})</span>
             </p>
             {estimatedDays > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                推定 <span className="font-semibold text-foreground">{estimatedDays}日</span> で結果判明
+                {t('abTests.estimatedDays', { days: String(estimatedDays) })}
               </p>
             )}
           </div>
@@ -813,14 +817,14 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={!name || variants.some((v) => !v.name)}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              テストを作成
+              {t('abTests.createTest')}
             </button>
           </div>
         </form>
@@ -850,9 +854,10 @@ function BulkActionsBar({
   onDeclareWinners,
   onClearSelection,
 }: BulkActionsBarProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-      <span className="text-sm font-semibold text-foreground">{selectedCount}件選択中</span>
+      <span className="text-sm font-semibold text-foreground">{t('abTests.selectedCount', { count: String(selectedCount) })}</span>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -860,7 +865,7 @@ function BulkActionsBar({
           className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
         >
           <Pause size={12} />
-          一括停止
+          {t('abTests.bulkPause')}
         </button>
         <button
           type="button"
@@ -868,7 +873,7 @@ function BulkActionsBar({
           className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
         >
           <Play size={12} />
-          一括再開
+          {t('abTests.bulkResume')}
         </button>
         {hasSignificantTests && (
           <button
@@ -877,7 +882,7 @@ function BulkActionsBar({
             className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700"
           >
             <Trophy size={12} />
-            勝者一括確定
+            {t('abTests.bulkDeclareWinners')}
           </button>
         )}
         <button
@@ -886,7 +891,7 @@ function BulkActionsBar({
           className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-card px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
         >
           <Trash2 size={12} />
-          一括削除
+          {t('abTests.bulkDelete')}
         </button>
       </div>
       <button
@@ -894,7 +899,7 @@ function BulkActionsBar({
         onClick={onClearSelection}
         className="ml-auto text-xs text-muted-foreground hover:text-foreground"
       >
-        選択解除
+        {t('abTests.deselect')}
       </button>
     </div>
   );
@@ -1061,28 +1066,28 @@ export default function ABTestsPage(): React.ReactElement {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KPICard
-          label="稼働中テスト"
+          label={t('abTests.kpiRunningTests')}
           value={String(runningCount)}
           icon={<FlaskConical size={20} />}
-          trend="前週比 +12件"
+          trend={t('abTests.trendWeekly', { count: '12' })}
         />
         <KPICard
-          label="本日の勝者確定"
+          label={t('abTests.kpiTodayWinners')}
           value={String(winnersToday)}
           icon={<Trophy size={20} />}
-          trend="過去7日平均: 18件"
+          trend={t('abTests.trendAvg7d', { count: '18' })}
         />
         <KPICard
-          label="平均有意水準到達日数"
-          value={`${avgSignificanceDays}日`}
+          label={t('abTests.kpiAvgDays')}
+          value={`${avgSignificanceDays}${t('abTests.daysUnit')}`}
           icon={<Clock size={20} />}
-          trend="前月比 -0.8日"
+          trend={t('abTests.trendMonthly', { days: '0.8' })}
         />
         <KPICard
-          label="総サンプル処理"
+          label={t('abTests.kpiTotalSamples')}
           value="12.4M"
           icon={<BarChart3 size={20} />}
-          trend="impressions (直近30日)"
+          trend={t('abTests.trendImpressions30d')}
         />
       </div>
 
@@ -1097,13 +1102,13 @@ export default function ABTestsPage(): React.ReactElement {
               setCurrentPage(1);
             }}
             className="appearance-none rounded-md border border-input bg-background py-1.5 pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="ステータスフィルター"
+            aria-label={t('abTests.filterStatusLabel')}
           >
-            <option value="all">すべて</option>
-            <option value="running">稼働中</option>
-            <option value="completed">完了</option>
-            <option value="paused">一時停止</option>
-            <option value="draft">下書き</option>
+            <option value="all">{t('abTests.filterAll')}</option>
+            <option value="running">{t('abTests.running')}</option>
+            <option value="completed">{t('abTests.completed')}</option>
+            <option value="paused">{t('abTests.paused')}</option>
+            <option value="draft">{t('abTests.draft')}</option>
           </select>
           <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
         </div>
@@ -1117,11 +1122,11 @@ export default function ABTestsPage(): React.ReactElement {
               setCurrentPage(1);
             }}
             className="appearance-none rounded-md border border-input bg-background py-1.5 pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="テストタイプフィルター"
+            aria-label={t('abTests.filterTypeLabel')}
           >
-            <option value="all">全タイプ</option>
+            <option value="all">{t('abTests.filterAllTypes')}</option>
             {Object.entries(TEST_TYPE_CONFIG).map(([key, config]) => (
-              <option key={key} value={key}>{config.label}</option>
+              <option key={key} value={key}>{t(config.labelKey)}</option>
             ))}
           </select>
           <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -1136,9 +1141,9 @@ export default function ABTestsPage(): React.ReactElement {
               setCurrentPage(1);
             }}
             className="appearance-none rounded-md border border-input bg-background py-1.5 pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="指標フィルター"
+            aria-label={t('abTests.filterMetricLabel')}
           >
-            <option value="all">全指標</option>
+            <option value="all">{t('abTests.filterAllMetrics')}</option>
             {Object.entries(METRIC_CONFIG).map(([key, config]) => (
               <option key={key} value={key}>{config.label}</option>
             ))}
@@ -1157,7 +1162,7 @@ export default function ABTestsPage(): React.ReactElement {
               setCurrentPage(1);
             }}
             className="w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder="テスト名で検索..."
+            placeholder={t('abTests.searchPlaceholder')}
           />
         </div>
 
@@ -1167,11 +1172,11 @@ export default function ABTestsPage(): React.ReactElement {
             value={sortKey}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortKey(e.target.value as SortKey)}
             className="appearance-none rounded-md border border-input bg-background py-1.5 pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="並び替え"
+            aria-label={t('abTests.sortLabel')}
           >
-            <option value="created">作成日</option>
-            <option value="significance">有意水準</option>
-            <option value="lift">リフト率</option>
+            <option value="created">{t('abTests.sortCreated')}</option>
+            <option value="significance">{t('abTests.sortSignificance')}</option>
+            <option value="lift">{t('abTests.sortLift')}</option>
           </select>
           <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
         </div>
@@ -1196,11 +1201,11 @@ export default function ABTestsPage(): React.ReactElement {
           <FlaskConical size={48} className="text-muted-foreground/30" />
           <p className="text-muted-foreground">
             {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || metricFilter !== 'all'
-              ? '条件に一致するテストがありません'
-              : 'A/Bテストがまだありません'}
+              ? t('abTests.emptyNoMatch')
+              : t('abTests.emptyNoTests')}
           </p>
           <p className="text-sm text-muted-foreground/70">
-            「新規テスト作成」ボタンから最初のテストを開始しましょう
+            {t('abTests.emptyHint')}
           </p>
         </div>
       ) : (
@@ -1214,18 +1219,18 @@ export default function ABTestsPage(): React.ReactElement {
                     checked={paginatedTests.length > 0 && paginatedTests.every((t) => selectedIds.has(t.id))}
                     onChange={toggleSelectAll}
                     className="h-4 w-4 rounded border-input accent-primary"
-                    aria-label="全て選択"
+                    aria-label={t('abTests.selectAll')}
                   />
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">テスト名</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">タイプ</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">指標</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground">バリアント</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">サンプル数</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">有意水準</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">最良バリアント</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">ステータス</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">アクション</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{t('abTests.tableTestName')}</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{t('abTests.tableType')}</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{t('abTests.tableMetric')}</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground">{t('abTests.tableVariants')}</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{t('abTests.tableSamples')}</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">{t('abTests.tableSignificance')}</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{t('abTests.tableBestVariant')}</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{t('abTests.tableStatus')}</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">{t('abTests.tableAction')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1292,8 +1297,8 @@ export default function ABTestsPage(): React.ReactElement {
                         type="button"
                         onClick={() => setDetailTest(test)}
                         className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                        aria-label="詳細"
-                        title="詳細"
+                        aria-label={t('abTests.actionDetail')}
+                        title={t('abTests.actionDetail')}
                       >
                         <ChevronRight size={14} />
                       </button>
@@ -1304,8 +1309,8 @@ export default function ABTestsPage(): React.ReactElement {
                             prev.map((t) => (t.id === test.id ? { ...t, status: 'paused' as const } : t)),
                           )}
                           className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                          aria-label="停止"
-                          title="停止"
+                          aria-label={t('abTests.actionPause')}
+                          title={t('abTests.actionPause')}
                         >
                           <Pause size={14} />
                         </button>
@@ -1317,8 +1322,8 @@ export default function ABTestsPage(): React.ReactElement {
                             prev.map((t) => (t.id === test.id ? { ...t, status: 'running' as const } : t)),
                           )}
                           className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                          aria-label="再開"
-                          title="再開"
+                          aria-label={t('abTests.actionResume')}
+                          title={t('abTests.actionResume')}
                         >
                           <Play size={14} />
                         </button>
@@ -1328,8 +1333,8 @@ export default function ABTestsPage(): React.ReactElement {
                           type="button"
                           onClick={() => handleDeclareWinner(test.id)}
                           className="rounded p-1 text-green-600 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
-                          aria-label="勝者確定"
-                          title="勝者確定"
+                          aria-label={t('abTests.actionDeclareWinner')}
+                          title={t('abTests.actionDeclareWinner')}
                         >
                           <Award size={14} />
                         </button>
@@ -1347,7 +1352,7 @@ export default function ABTestsPage(): React.ReactElement {
       {sortedTests.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{sortedTests.length}件中 {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, sortedTests.length)}件表示</span>
+            <span>{t('abTests.paginationShowing', { total: String(sortedTests.length), from: String((currentPage - 1) * perPage + 1), to: String(Math.min(currentPage * perPage, sortedTests.length)) })}</span>
             <div className="relative">
               <select
                 value={perPage}
@@ -1356,11 +1361,11 @@ export default function ABTestsPage(): React.ReactElement {
                   setCurrentPage(1);
                 }}
                 className="appearance-none rounded-md border border-input bg-background py-1 pl-2 pr-7 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label="表示件数"
+                aria-label={t('abTests.paginationPerPage')}
               >
-                <option value={20}>20件</option>
-                <option value={50}>50件</option>
-                <option value={100}>100件</option>
+                <option value={20}>{t('abTests.paginationItems', { count: '20' })}</option>
+                <option value={50}>{t('abTests.paginationItems', { count: '50' })}</option>
+                <option value={100}>{t('abTests.paginationItems', { count: '100' })}</option>
               </select>
               <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
@@ -1372,7 +1377,7 @@ export default function ABTestsPage(): React.ReactElement {
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
               className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30"
-              aria-label="前のページ"
+              aria-label={t('abTests.prevPage')}
             >
               <ChevronLeft size={16} />
             </button>
@@ -1408,7 +1413,7 @@ export default function ABTestsPage(): React.ReactElement {
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
               className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30"
-              aria-label="次のページ"
+              aria-label={t('abTests.nextPage')}
             >
               <ChevronRight size={16} />
             </button>

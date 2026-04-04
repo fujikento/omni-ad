@@ -8,6 +8,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -44,18 +45,20 @@ interface ClientRow {
 // Constants
 // ============================================================
 
-const STATUS_CONFIG: Record<ClientStatus, { label: string; className: string }> = {
-  good: { label: '順調', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  warning: { label: '注意', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  critical: { label: '要対応', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+const STATUS_CONFIG: Record<ClientStatus, { labelKey: string; className: string }> = {
+  good: { labelKey: 'clients.statusGood', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  warning: { labelKey: 'clients.statusWarning', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  critical: { labelKey: 'clients.statusCritical', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
-const MOCK_PORTFOLIO_KPI: PortfolioKpi[] = [
-  { label: '総クライアント数', value: '12社', trend: 'up', trendValue: '+2' },
-  { label: '総広告費(今月)', value: '¥28,500,000', trend: 'up', trendValue: '+12%' },
-  { label: '平均ROAS', value: '3.2x', trend: 'up', trendValue: '+0.3' },
-  { label: '予算消化率', value: '72%', trend: 'flat', trendValue: '正常' },
-];
+function getMockPortfolioKpi(t: (key: string) => string): PortfolioKpi[] {
+  return [
+    { label: t('clients.totalClients'), value: '12', trend: 'up', trendValue: '+2' },
+    { label: t('clients.totalAdSpend'), value: '¥28,500,000', trend: 'up', trendValue: '+12%' },
+    { label: t('clients.avgRoas'), value: '3.2x', trend: 'up', trendValue: '+0.3' },
+    { label: t('clients.budgetSpendRate'), value: '72%', trend: 'flat', trendValue: t('clients.normal') },
+  ];
+}
 
 const MOCK_CLIENTS: ClientRow[] = [
   { id: 'c1', name: '株式会社テックフォワード', plan: 'エンタープライズ', monthlyBudget: 5000000, spendRate: 78, roas: 4.2, activeCampaigns: 8, status: 'good', metrics: { ctr: 3.8, cpa: 2800 } },
@@ -68,11 +71,11 @@ const MOCK_CLIENTS: ClientRow[] = [
   { id: 'c8', name: '株式会社トラベルジャパン', plan: 'エンタープライズ', monthlyBudget: 6500000, spendRate: 68, roas: 3.9, activeCampaigns: 10, status: 'good', metrics: { ctr: 3.5, cpa: 3000 } },
 ];
 
-const HEATMAP_METRICS: { key: HeatmapMetric; label: string }[] = [
-  { key: 'roas', label: 'ROAS' },
-  { key: 'ctr', label: 'CTR' },
-  { key: 'cpa', label: 'CPA' },
-  { key: 'spendRate', label: '予算消化率' },
+const HEATMAP_METRICS: { key: HeatmapMetric; labelKey: string }[] = [
+  { key: 'roas', labelKey: 'metrics.roas' },
+  { key: 'ctr', labelKey: 'metrics.ctr' },
+  { key: 'cpa', labelKey: 'metrics.cpa' },
+  { key: 'spendRate', labelKey: 'clients.budgetSpendRate' },
 ];
 
 // ============================================================
@@ -150,6 +153,7 @@ function getSortValue(client: ClientRow, field: SortField): string | number {
 // ============================================================
 
 function PortfolioCard({ kpi }: { kpi: PortfolioKpi }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
@@ -163,7 +167,7 @@ function PortfolioCard({ kpi }: { kpi: PortfolioKpi }): React.ReactElement {
         )}>
           {kpi.trendValue}
         </span>
-        {kpi.trend !== 'flat' && <span className="text-xs text-muted-foreground">前月比</span>}
+        {kpi.trend !== 'flat' && <span className="text-xs text-muted-foreground">{t('clients.vsLastMonth')}</span>}
       </div>
     </div>
   );
@@ -205,6 +209,7 @@ function SortableColumnHeader({
 // ============================================================
 
 export default function ClientsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
@@ -226,16 +231,16 @@ export default function ClientsPage(): React.ReactElement {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          クライアント管理
+          {t('clients.title')}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          担当クライアントのパフォーマンスを横断的に管理します
+          {t('clients.description')}
         </p>
       </div>
 
       {/* Portfolio Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {MOCK_PORTFOLIO_KPI.map((kpi) => (
+        {getMockPortfolioKpi(t).map((kpi) => (
           <PortfolioCard key={kpi.label} kpi={kpi} />
         ))}
       </div>
@@ -244,19 +249,19 @@ export default function ClientsPage(): React.ReactElement {
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="flex items-center gap-2 border-b border-border px-6 py-4">
           <Building2 size={18} className="text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">クライアント一覧</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('clients.clientList')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <SortableColumnHeader label="クライアント名" field="name" currentSort={sortField} onSort={handleSort} />
-                <SortableColumnHeader label="プラン" field="plan" currentSort={sortField} onSort={handleSort} />
-                <SortableColumnHeader label="月間予算" field="budget" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label="消化率" field="spendRate" currentSort={sortField} onSort={handleSort} align="right" />
+                <SortableColumnHeader label={t('clients.clientName')} field="name" currentSort={sortField} onSort={handleSort} />
+                <SortableColumnHeader label={t('clients.plan')} field="plan" currentSort={sortField} onSort={handleSort} />
+                <SortableColumnHeader label={t('clients.monthlyBudget')} field="budget" currentSort={sortField} onSort={handleSort} align="right" />
+                <SortableColumnHeader label={t('clients.spendRate')} field="spendRate" currentSort={sortField} onSort={handleSort} align="right" />
                 <SortableColumnHeader label="ROAS" field="roas" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label="キャンペーン" field="activeCampaigns" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label="ステータス" field="status" currentSort={sortField} onSort={handleSort} />
+                <SortableColumnHeader label={t('clients.activeCampaigns')} field="activeCampaigns" currentSort={sortField} onSort={handleSort} align="right" />
+                <SortableColumnHeader label={t('common.status')} field="status" currentSort={sortField} onSort={handleSort} />
               </tr>
             </thead>
             <tbody>
@@ -305,7 +310,7 @@ export default function ClientsPage(): React.ReactElement {
                   <td className="px-4 py-3 text-right text-foreground">{client.activeCampaigns}</td>
                   <td className="px-4 py-3">
                     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CONFIG[client.status].className)}>
-                      {STATUS_CONFIG[client.status].label}
+                      {t(STATUS_CONFIG[client.status].labelKey)}
                     </span>
                   </td>
                 </tr>
@@ -318,17 +323,17 @@ export default function ClientsPage(): React.ReactElement {
       {/* Performance Heatmap */}
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">パフォーマンスヒートマップ</h2>
-          <p className="mt-1 text-sm text-muted-foreground">クライアント x 指標のパフォーマンスを色で可視化</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('clients.performanceHeatmap')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('clients.heatmapDescription')}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">クライアント</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('clients.client')}</th>
                 {HEATMAP_METRICS.map((metric) => (
                   <th key={metric.key} className="px-4 py-3 text-center font-medium text-muted-foreground">
-                    {metric.label}
+                    {t(metric.labelKey)}
                   </th>
                 ))}
               </tr>

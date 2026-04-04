@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -73,12 +74,14 @@ interface TopCustomerRow {
 // Mock Data
 // ============================================================
 
-const MOCK_KPI: KpiCardData[] = [
-  { label: '平均LTV', value: '¥42,800', trend: 'up', trendValue: '+8.2%', colorClass: 'text-blue-500' },
-  { label: '平均CAC', value: '¥12,500', trend: 'down', trendValue: '-3.1%', colorClass: 'text-orange-500' },
-  { label: 'LTV/CAC比率', value: '3.4x', trend: 'up', trendValue: '+0.4', colorClass: 'text-green-500' },
-  { label: '顧客リピート率', value: '38%', trend: 'up', trendValue: '+2.3%', colorClass: 'text-purple-500' },
-];
+function getMockKpi(t: (key: string) => string): KpiCardData[] {
+  return [
+    { label: t('ltv.avgLtv'), value: '¥42,800', trend: 'up', trendValue: '+8.2%', colorClass: 'text-blue-500' },
+    { label: t('ltv.avgCac'), value: '¥12,500', trend: 'down', trendValue: '-3.1%', colorClass: 'text-orange-500' },
+    { label: t('ltv.ltvCacRatio'), value: '3.4x', trend: 'up', trendValue: '+0.4', colorClass: 'text-green-500' },
+    { label: t('ltv.repeatRate'), value: '38%', trend: 'up', trendValue: '+2.3%', colorClass: 'text-purple-500' },
+  ];
+}
 
 const MOCK_COHORTS: CohortRow[] = [
   { cohort: '2026-01', acquired: 342, totalCost: 4104000, cac: 12000, avgLtv: 38500, ltvCacRatio: 3.2, retention1m: 72, retention3m: 45, retention6m: 28 },
@@ -144,6 +147,7 @@ function getRetentionColorClass(rate: number): string {
 // ============================================================
 
 function KpiCard({ card }: { card: KpiCardData }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
@@ -155,7 +159,7 @@ function KpiCard({ card }: { card: KpiCardData }): React.ReactElement {
           <TrendingDown size={14} className="text-green-500" />
         ) : null}
         <span className="text-xs font-medium text-green-600">{card.trendValue}</span>
-        <span className="text-xs text-muted-foreground">前月比</span>
+        <span className="text-xs text-muted-foreground">{t('ltv.vsLastMonth')}</span>
       </div>
     </div>
   );
@@ -197,6 +201,7 @@ function SortableHeader({
 // ============================================================
 
 export default function LtvPage(): React.ReactElement {
+  const { t } = useI18n();
   const [sortField, setSortField] = useState<SortField>('cohort');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [refreshing, setRefreshing] = useState(false);
@@ -225,16 +230,16 @@ export default function LtvPage(): React.ReactElement {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          LTV / CAC 分析
+          {t('ltv.title')}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          顧客生涯価値と獲得コストを追跡し、収益性を最大化します
+          {t('ltv.description')}
         </p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {MOCK_KPI.map((card) => (
+        {getMockKpi(t).map((card) => (
           <KpiCard key={card.label} card={card} />
         ))}
       </div>
@@ -242,18 +247,18 @@ export default function LtvPage(): React.ReactElement {
       {/* Cohort Analysis Table */}
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">コホート分析</h2>
-          <p className="mt-1 text-sm text-muted-foreground">月別獲得コホートのLTV/CAC推移</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('ltv.cohortAnalysis')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('ltv.cohortDescription')}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <SortableHeader label="コホート" field="cohort" currentSort={sortField} onSort={handleSort} />
-                <SortableHeader label="獲得数" field="acquired" currentSort={sortField} onSort={handleSort} />
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">獲得コスト</th>
+                <SortableHeader label={t('ltv.cohort')} field="cohort" currentSort={sortField} onSort={handleSort} />
+                <SortableHeader label={t('ltv.acquired')} field="acquired" currentSort={sortField} onSort={handleSort} />
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('ltv.acquisitionCost')}</th>
                 <SortableHeader label="CAC" field="cac" currentSort={sortField} onSort={handleSort} />
-                <SortableHeader label="平均LTV" field="avgLtv" currentSort={sortField} onSort={handleSort} />
+                <SortableHeader label={t('ltv.avgLtv')} field="avgLtv" currentSort={sortField} onSort={handleSort} />
                 <SortableHeader label="LTV/CAC" field="ltvCacRatio" currentSort={sortField} onSort={handleSort} />
                 <SortableHeader label="1M" field="retention1m" currentSort={sortField} onSort={handleSort} />
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">3M</th>
@@ -293,8 +298,8 @@ export default function LtvPage(): React.ReactElement {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* LTV Distribution Chart */}
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground">LTV分布</h2>
-          <p className="mt-1 text-sm text-muted-foreground">顧客LTVの分布状況</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('ltv.ltvDistribution')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('ltv.ltvDistributionDescription')}</p>
           <div className="mt-4">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={MOCK_LTV_DISTRIBUTION} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -308,9 +313,9 @@ export default function LtvPage(): React.ReactElement {
                     borderRadius: '8px',
                     color: 'hsl(var(--foreground))',
                   }}
-                  formatter={(value: number) => [`${value}人`, '顧客数']}
+                  formatter={(value: number) => [`${value}`, t('ltv.customerCount')]}
                 />
-                <Bar dataKey="count" name="顧客数" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" name={t('ltv.customerCount')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -318,17 +323,17 @@ export default function LtvPage(): React.ReactElement {
 
         {/* Platform Comparison */}
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground">プラットフォーム別LTV比較</h2>
-          <p className="mt-1 text-sm text-muted-foreground">どのプラットフォームが高LTV顧客を獲得しているか</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('ltv.platformComparison')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('ltv.platformComparisonDescription')}</p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">プラットフォーム</th>
-                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">平均LTV</th>
-                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">平均CAC</th>
-                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">LTV/CAC</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">最優秀キャンペーン</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t('ltv.platformColumn')}</th>
+                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">{t('ltv.avgLtvColumn')}</th>
+                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">{t('ltv.avgCacColumn')}</th>
+                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">{t('ltv.ltvCacColumn')}</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t('ltv.bestCampaign')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -357,9 +362,9 @@ export default function LtvPage(): React.ReactElement {
           <div>
             <div className="flex items-center gap-2">
               <Users size={18} className="text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">高LTV顧客 TOP 5</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t('ltv.topCustomers')}</h2>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">匿名化された顧客IDによる上位顧客</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('ltv.topCustomersDescription')}</p>
           </div>
           <button
             type="button"
@@ -368,13 +373,13 @@ export default function LtvPage(): React.ReactElement {
               setRefreshing(true);
               setTimeout(() => {
                 setRefreshing(false);
-                showToast('データを更新しました');
+                showToast(t('ltv.dataRefreshed'));
               }, 1500);
             }}
             className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
             <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
-            更新
+            {t('ltv.refresh')}
           </button>
         </div>
         <div className="overflow-x-auto">
@@ -382,11 +387,11 @@ export default function LtvPage(): React.ReactElement {
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">#</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">顧客ID (ハッシュ)</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">累計売上</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">CV数</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">初回獲得日</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">獲得チャネル</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('ltv.customerId')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('ltv.totalRevenue')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('ltv.cvCount')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('ltv.firstAcquisition')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('ltv.acquisitionChannel')}</th>
               </tr>
             </thead>
             <tbody>

@@ -87,58 +87,58 @@ interface BeforeAfterChartData {
 
 const DECISION_TYPE_CONFIG: Record<
   DecisionType,
-  { icon: React.ReactNode; label: string; badgeClass: string }
+  { icon: React.ReactNode; labelKey: string; badgeClass: string }
 > = {
   budget_adjustment: {
     icon: <BadgeJapaneseYen size={16} />,
-    label: '予算調整',
+    labelKey: 'aiPilot.budgetAdjustment',
     badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   },
   campaign_pause: {
     icon: <Pause size={16} />,
-    label: 'キャンペーン停止',
+    labelKey: 'aiPilot.campaignPause',
     badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
   campaign_resume: {
     icon: <Play size={16} />,
-    label: 'キャンペーン再開',
+    labelKey: 'aiPilot.campaignResume',
     badgeClass: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   creative_rotation: {
     icon: <RefreshCw size={16} />,
-    label: 'クリエイティブ変更',
+    labelKey: 'aiPilot.creativeRotation',
     badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   },
   campaign_creation: {
     icon: <Plus size={16} />,
-    label: 'キャンペーン作成',
+    labelKey: 'aiPilot.campaignCreation',
     badgeClass: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
   },
   strategy_insight: {
     icon: <Lightbulb size={16} />,
-    label: '戦略インサイト',
+    labelKey: 'aiPilot.strategyInsight',
     badgeClass: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
 };
 
 const STATUS_CONFIG: Record<
   DecisionStatus,
-  { label: string; badgeClass: string }
+  { labelKey: string; badgeClass: string }
 > = {
   executed: {
-    label: '実行済み',
+    labelKey: 'aiPilot.executed',
     badgeClass: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   pending_approval: {
-    label: '承認待ち',
+    labelKey: 'aiPilot.pendingApproval',
     badgeClass: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
   rejected: {
-    label: '却下',
+    labelKey: 'aiPilot.rejected',
     badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
   skipped: {
-    label: 'スキップ',
+    labelKey: 'aiPilot.skipped',
     badgeClass: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
   },
 };
@@ -150,11 +150,18 @@ const STATUS_CONFIG: Record<
 const MOCK_STRATEGY_SUMMARY =
   '現在の分析に基づき、TikTok広告の予算を増額し、Google広告のクリエイティブを刷新することを推奨します。春の新生活シーズンに合わせ、ターゲティングを25-35歳女性に最適化中です。Meta広告のリターゲティングは好調を維持しており、LINEリマーケティングはフリークエンシー上限に近づいているため配信ペースを調整しています。全体として、ROAS目標3.0xに対し現在3.24xと順調に推移しています。';
 
-const MOCK_STATUS_CARDS: StatusCardData[] = [
-  { label: 'ステータス', value: 'ON', subLabel: '承認モード' },
-  { label: '最終実行', value: '2時間前', subLabel: '2026-04-02 12:00 JST' },
-  { label: '次回実行', value: '1時間後', subLabel: '14:00 JST' },
-  { label: '今日の判断', value: '7件', subLabel: '5実行, 2提案中' },
+interface MockStatusCardDef {
+  labelKey: string;
+  value: string;
+  subLabelKey?: string;
+  subLabelLiteral?: string;
+}
+
+const MOCK_STATUS_CARD_DEFS: MockStatusCardDef[] = [
+  { labelKey: 'aiPilot.status', value: 'ON', subLabelKey: 'aiPilot.approvalMode' },
+  { labelKey: 'aiPilot.lastRun', value: '2時間前', subLabelLiteral: '2026-04-02 12:00 JST' },
+  { labelKey: 'aiPilot.nextRun', value: '1時間後', subLabelLiteral: '14:00 JST' },
+  { labelKey: 'aiPilot.todayDecisions', value: '7件', subLabelLiteral: '5実行, 2提案中' },
 ];
 
 const MOCK_DECISIONS: AiDecision[] = [
@@ -345,14 +352,15 @@ function StatusPanel({
 }: {
   cards: StatusCardData[];
   isActive: boolean;
+  statusLabel?: string;
 }): React.ReactElement {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {cards.map((card) => (
+      {cards.map((card, idx) => (
         <div key={card.label} className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
           <p className="mt-1 text-xl font-bold text-foreground">
-            {card.label === 'ステータス' ? (
+            {idx === 0 ? (
               <span className="flex items-center gap-2">
                 <span
                   className={cn(
@@ -382,14 +390,15 @@ function StrategySummaryCard({
   summary: string;
   updatedAt: string;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-5">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles size={18} className="text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">AIの判断方針</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('aiPilot.aiPolicy')}</h3>
       </div>
       <p className="text-sm leading-relaxed text-foreground">{summary}</p>
-      <p className="mt-3 text-xs text-muted-foreground">最終更新: {updatedAt}</p>
+      <p className="mt-3 text-xs text-muted-foreground">{t('aiPilot.lastUpdated')}: {updatedAt}</p>
     </div>
   );
 }
@@ -403,6 +412,7 @@ function DecisionCard({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const typeConfig = DECISION_TYPE_CONFIG[decision.type];
   const statusConfig = STATUS_CONFIG[decision.status];
   const isPending = decision.status === 'pending_approval';
@@ -412,7 +422,7 @@ function DecisionCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg" role="img" aria-label={typeConfig.label}>
+          <span className="text-lg" role="img" aria-label={t(typeConfig.labelKey)}>
             {typeConfig.icon}
           </span>
           <span
@@ -421,7 +431,7 @@ function DecisionCard({
               typeConfig.badgeClass,
             )}
           >
-            {typeConfig.label}
+            {t(typeConfig.labelKey)}
           </span>
           <span
             className={cn(
@@ -429,7 +439,7 @@ function DecisionCard({
               statusConfig.badgeClass,
             )}
           >
-            {statusConfig.label}
+            {t(statusConfig.labelKey)}
           </span>
         </div>
         <span className="flex-shrink-0 text-xs text-muted-foreground">
@@ -446,13 +456,13 @@ function DecisionCard({
 
       {/* Reasoning */}
       <div className="mt-3 rounded-md border-l-4 border-primary/30 bg-muted/50 px-4 py-3">
-        <p className="text-xs font-medium text-muted-foreground mb-1">AIの理由</p>
+        <p className="text-xs font-medium text-muted-foreground mb-1">{t('aiPilot.aiReasoning')}</p>
         <p className="text-sm leading-relaxed text-foreground">{decision.reasoning}</p>
       </div>
 
       {/* Confidence */}
       <div className="mt-3 flex items-center gap-3">
-        <span className="text-xs text-muted-foreground">確信度</span>
+        <span className="text-xs text-muted-foreground">{t('aiPilot.confidence')}</span>
         <div className="flex-1 h-2 rounded-full bg-muted">
           <div
             className={cn(
@@ -471,7 +481,7 @@ function DecisionCard({
 
       {/* Action summary */}
       <div className="mt-3">
-        <p className="text-xs font-medium text-muted-foreground mb-1">アクション</p>
+        <p className="text-xs font-medium text-muted-foreground mb-1">{t('aiPilot.actionLabel')}</p>
         <p className="text-sm text-foreground whitespace-pre-line">{decision.actionSummary}</p>
       </div>
 
@@ -494,7 +504,7 @@ function DecisionCard({
             className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
           >
             <Check size={14} />
-            承認して実行
+            {t('aiPilot.approve')}
           </button>
           <button
             type="button"
@@ -502,7 +512,7 @@ function DecisionCard({
             className="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
           >
             <X size={14} />
-            却下
+            {t('aiPilot.reject')}
           </button>
         </div>
       )}
@@ -521,28 +531,29 @@ function FilterBar({
   onStatusFilterChange: (filter: StatusFilter) => void;
   onTypeFilterChange: (filter: TypeFilter) => void;
 }): React.ReactElement {
-  const statusOptions: { value: StatusFilter; label: string }[] = [
-    { value: 'all', label: 'すべて' },
-    { value: 'executed', label: '実行済み' },
-    { value: 'pending_approval', label: '承認待ち' },
-    { value: 'rejected', label: '却下' },
+  const { t } = useI18n();
+  const statusOptions: { value: StatusFilter; labelKey: string }[] = [
+    { value: 'all', labelKey: 'aiPilot.all' },
+    { value: 'executed', labelKey: 'aiPilot.executed' },
+    { value: 'pending_approval', labelKey: 'aiPilot.pendingApproval' },
+    { value: 'rejected', labelKey: 'aiPilot.rejected' },
   ];
 
-  const typeOptions: { value: TypeFilter; label: string }[] = [
-    { value: 'all', label: 'すべて' },
-    { value: 'budget_adjustment', label: '予算調整' },
-    { value: 'campaign_pause', label: '停止' },
-    { value: 'campaign_resume', label: '再開' },
-    { value: 'creative_rotation', label: 'クリエイティブ' },
-    { value: 'campaign_creation', label: '新規作成' },
-    { value: 'strategy_insight', label: 'インサイト' },
+  const typeOptions: { value: TypeFilter; labelKey: string }[] = [
+    { value: 'all', labelKey: 'aiPilot.all' },
+    { value: 'budget_adjustment', labelKey: 'aiPilot.budgetAdjustment' },
+    { value: 'campaign_pause', labelKey: 'aiPilot.filterPause' },
+    { value: 'campaign_resume', labelKey: 'aiPilot.filterResume' },
+    { value: 'creative_rotation', labelKey: 'aiPilot.filterCreative' },
+    { value: 'campaign_creation', labelKey: 'aiPilot.filterCreation' },
+    { value: 'strategy_insight', labelKey: 'aiPilot.filterInsight' },
   ];
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-1.5">
         <Filter size={14} className="text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">ステータス:</span>
+        <span className="text-xs font-medium text-muted-foreground">{t('aiPilot.filterStatus')}</span>
       </div>
       <div className="flex flex-wrap gap-1">
         {statusOptions.map((opt) => (
@@ -557,7 +568,7 @@ function FilterBar({
                 : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         ))}
       </div>
@@ -565,7 +576,7 @@ function FilterBar({
       <div className="h-4 w-px bg-border" />
 
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-medium text-muted-foreground">種類:</span>
+        <span className="text-xs font-medium text-muted-foreground">{t('aiPilot.filterType')}</span>
       </div>
       <div className="flex flex-wrap gap-1">
         {typeOptions.map((opt) => (
@@ -580,7 +591,7 @@ function FilterBar({
                 : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         ))}
       </div>
@@ -595,6 +606,7 @@ function PerformanceImpactSection({
   metrics: PerformanceMetric[];
   chartData: BeforeAfterChartData[];
 }): React.ReactElement {
+  const { t } = useI18n();
   function formatValue(value: number, format: PerformanceMetric['format']): string {
     switch (format) {
       case 'roas':
@@ -625,7 +637,7 @@ function PerformanceImpactSection({
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp size={18} className="text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">パフォーマンス影響</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('aiPilot.performanceImpactTitle')}</h3>
       </div>
 
       {/* Metric comparison cards */}
@@ -651,9 +663,9 @@ function PerformanceImpactSection({
                 </span>
               </div>
               <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-                <span>前: {formatValue(metric.before, metric.format)}</span>
+                <span>{t('aiPilot.beforeLabel')}: {formatValue(metric.before, metric.format)}</span>
                 <ArrowRight size={8} />
-                <span>後: {formatValue(metric.after, metric.format)}</span>
+                <span>{t('aiPilot.afterLabel')}: {formatValue(metric.after, metric.format)}</span>
               </div>
             </div>
           );
@@ -665,11 +677,11 @@ function PerformanceImpactSection({
         <div className="flex items-center gap-4 mb-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-gray-400" />
-            AI有効化前 (7日間)
+            {t('aiPilot.beforeAi7days')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-blue-500" />
-            AI有効化後 (7日間)
+            {t('aiPilot.afterAi7days')}
           </span>
         </div>
         <div className="h-48">
@@ -696,8 +708,8 @@ function PerformanceImpactSection({
                   fontSize: '12px',
                 }}
               />
-              <Bar dataKey="before" name="AI有効化前" fill={CHART_COLORS.before} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="after" name="AI有効化後" fill={CHART_COLORS.after} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="before" name={t('aiPilot.before')} fill={CHART_COLORS.before} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="after" name={t('aiPilot.after')} fill={CHART_COLORS.after} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -863,28 +875,36 @@ export default function AiPilotPage(): React.ReactElement {
         <div className="flex items-center gap-3 rounded-lg bg-yellow-50 p-4 dark:bg-yellow-950/30">
           <Clock size={18} className="flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
           <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-            {pendingCount}件の承認待ちの提案があります
+            {t('aiPilot.pendingApprovalBanner', { count: pendingCount })}
           </p>
           <button
             type="button"
             onClick={() => setStatusFilter('pending_approval')}
             className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-yellow-700 hover:text-yellow-800 dark:text-yellow-400"
           >
-            確認する
+            {t('aiPilot.reviewPending')}
             <ArrowRight size={12} />
           </button>
         </div>
       )}
 
       {/* Status panel */}
-      <StatusPanel cards={MOCK_STATUS_CARDS} isActive={isActive} />
+      <StatusPanel
+        cards={MOCK_STATUS_CARD_DEFS.map((def) => ({
+          label: t(def.labelKey),
+          value: def.value,
+          subLabel: def.subLabelKey ? t(def.subLabelKey) : def.subLabelLiteral,
+        }))}
+        isActive={isActive}
+        statusLabel={t('aiPilot.status')}
+      />
 
       {/* Strategy summary */}
       <StrategySummaryCard summary={MOCK_STRATEGY_SUMMARY} updatedAt="2時間前" />
 
       {/* Filter bar */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-3">AI判断タイムライン</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-3">{t('aiPilot.decisionTimeline')}</h2>
         <FilterBar
           statusFilter={statusFilter}
           typeFilter={typeFilter}
@@ -899,7 +919,7 @@ export default function AiPilotPage(): React.ReactElement {
           <div className="rounded-lg border border-border bg-card p-12 text-center">
             <Lightbulb size={32} className="mx-auto text-muted-foreground/50" />
             <p className="mt-3 text-sm text-muted-foreground">
-              該当する判断がありません
+              {t('aiPilot.noDecisions')}
             </p>
           </div>
         ) : (

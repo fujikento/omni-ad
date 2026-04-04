@@ -28,6 +28,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -116,17 +117,17 @@ interface AccountAnalysisData {
 // Constants & Mock Data
 // ============================================================
 
-const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
-  active: { label: '配信中', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  paused: { label: '停止中', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  completed: { label: '完了', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
+const STATUS_CONFIG: Record<CampaignStatus, { labelKey: string; className: string }> = {
+  active: { labelKey: 'accountAnalysis.statusActive', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  paused: { labelKey: 'accountAnalysis.statusPaused', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  completed: { labelKey: 'accountAnalysis.statusCompleted', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
 };
 
-const OBJECTIVE_LABELS: Record<CampaignObjective, string> = {
-  conversions: 'コンバージョン',
-  traffic: 'トラフィック',
-  awareness: '認知',
-  engagement: 'エンゲージメント',
+const OBJECTIVE_LABEL_KEYS: Record<CampaignObjective, string> = {
+  conversions: 'accountAnalysis.objectiveConversions',
+  traffic: 'accountAnalysis.objectiveTraffic',
+  awareness: 'accountAnalysis.objectiveAwareness',
+  engagement: 'accountAnalysis.objectiveEngagement',
 };
 
 const PRIORITY_CONFIG: Record<SuggestionPriority, { borderClass: string; icon: React.ReactNode; bgClass: string }> = {
@@ -315,6 +316,7 @@ function KpiCard({
 // ============================================================
 
 function CampaignTable({ campaigns }: { campaigns: Campaign[] }): React.ReactElement {
+  const { t } = useI18n();
   const [sortKey, setSortKey] = useState<SortKey>('roas');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
@@ -357,11 +359,11 @@ function CampaignTable({ campaigns }: { campaigns: Campaign[] }): React.ReactEle
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/50">
-            <th className="px-4 py-3 text-left"><SortHeader label="名前" columnKey="name" /></th>
-            <th className="px-4 py-3 text-left"><SortHeader label="ステータス" columnKey="status" /></th>
-            <th className="px-4 py-3 text-left"><SortHeader label="目的" columnKey="objective" /></th>
-            <th className="px-4 py-3 text-right"><SortHeader label="日次予算" columnKey="dailyBudget" /></th>
-            <th className="px-4 py-3 text-right"><SortHeader label="30日間支出" columnKey="spend30d" /></th>
+            <th className="px-4 py-3 text-left"><SortHeader label={t('accountAnalysis.campaignName')} columnKey="name" /></th>
+            <th className="px-4 py-3 text-left"><SortHeader label={t('accountAnalysis.campaignStatus')} columnKey="status" /></th>
+            <th className="px-4 py-3 text-left"><SortHeader label={t('accountAnalysis.campaignObjective')} columnKey="objective" /></th>
+            <th className="px-4 py-3 text-right"><SortHeader label={t('accountAnalysis.dailyBudget')} columnKey="dailyBudget" /></th>
+            <th className="px-4 py-3 text-right"><SortHeader label={t('accountAnalysis.spend30d')} columnKey="spend30d" /></th>
             <th className="px-4 py-3 text-right"><SortHeader label="ROAS" columnKey="roas" /></th>
             <th className="px-4 py-3 text-right"><SortHeader label="CTR" columnKey="ctr" /></th>
             <th className="px-4 py-3 text-right"><SortHeader label="IMP" columnKey="impressions" /></th>
@@ -375,10 +377,10 @@ function CampaignTable({ campaigns }: { campaigns: Campaign[] }): React.ReactEle
                 <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
                 <td className="px-4 py-3">
                   <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusCfg.className)}>
-                    {statusCfg.label}
+                    {t(statusCfg.labelKey)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{OBJECTIVE_LABELS[c.objective]}</td>
+                <td className="px-4 py-3 text-muted-foreground">{t(OBJECTIVE_LABEL_KEYS[c.objective])}</td>
                 <td className="px-4 py-3 text-right text-foreground">
                   {c.dailyBudget > 0 ? `\u00A5${c.dailyBudget.toLocaleString('ja-JP')}` : '-'}
                 </td>
@@ -470,6 +472,7 @@ const TOOLTIP_STYLE = {
 // ============================================================
 
 export default function AccountAnalysisPage(): React.ReactElement {
+  const { t } = useI18n();
   const { connectionId } = useParams<{ connectionId: string }>();
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [isLoading] = useState(false);
@@ -490,10 +493,10 @@ export default function AccountAnalysisPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground" aria-label="パンくずリスト">
-        <a href="/settings" className="hover:text-foreground transition-colors">設定</a>
+      <nav className="flex items-center gap-1 text-sm text-muted-foreground" aria-label={t('accountAnalysis.breadcrumbLabel')}>
+        <a href="/settings" className="hover:text-foreground transition-colors">{t('accountAnalysis.breadcrumbSettings')}</a>
         <ChevronRight size={14} />
-        <span className="text-foreground font-medium">アカウント分析</span>
+        <span className="text-foreground font-medium">{t('accountAnalysis.breadcrumbAnalysis')}</span>
         <ChevronRight size={14} />
         <span className="text-foreground font-medium">{data.platformLabel}</span>
       </nav>
@@ -513,12 +516,12 @@ export default function AccountAnalysisPage(): React.ReactElement {
               </div>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              総合スコア: <span className="font-semibold text-foreground">{data.overallScore}/100</span>
+              {t('accountAnalysis.overallScore')} <span className="font-semibold text-foreground">{data.overallScore}/100</span>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">分析日: {data.analysisDate}</span>
+          <span className="text-xs text-muted-foreground">{t('accountAnalysis.analysisDate')} {data.analysisDate}</span>
           <button
             type="button"
             onClick={handleReanalyze}
@@ -530,7 +533,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
             ) : (
               <RefreshCw size={14} />
             )}
-            {isReanalyzing ? '分析中...' : '再分析'}
+            {isReanalyzing ? t('accountAnalysis.reanalyzing') : t('accountAnalysis.reanalyze')}
           </button>
         </div>
       </div>
@@ -539,7 +542,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
       <div className="rounded-lg border border-primary/20 bg-primary/5 p-6">
         <div className="mb-3 flex items-center gap-2">
           <Sparkles size={18} className="text-primary" />
-          <h2 className="text-sm font-semibold text-primary">Claude AI 分析サマリー</h2>
+          <h2 className="text-sm font-semibold text-primary">{t('accountAnalysis.aiSummary')}</h2>
         </div>
         <div className="space-y-3">
           {data.aiSummary.split('\n\n').map((paragraph, idx) => (
@@ -553,20 +556,20 @@ export default function AccountAnalysisPage(): React.ReactElement {
       {/* Overview KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          label="総キャンペーン数"
+          label={t('accountAnalysis.totalCampaigns')}
           value={String(data.totalCampaigns)}
-          subLabel={`アクティブ: ${data.activeCampaigns}`}
+          subLabel={`${t('accountAnalysis.activeCampaignsLabel')} ${data.activeCampaigns}`}
         />
         <KpiCard
-          label="過去30日間の総支出"
+          label={t('accountAnalysis.totalSpend30d')}
           value={`\u00A5${data.totalSpend30d.toLocaleString('ja-JP')}`}
         />
         <KpiCard
-          label="平均ROAS"
+          label={t('accountAnalysis.avgRoas')}
           value={`${data.averageRoas.toFixed(1)}x`}
         />
         <KpiCard
-          label="平均CTR"
+          label={t('accountAnalysis.avgCtr')}
           value={`${data.averageCtr.toFixed(1)}%`}
         />
       </div>
@@ -574,25 +577,25 @@ export default function AccountAnalysisPage(): React.ReactElement {
       {/* Campaign Table */}
       <div className="rounded-lg border border-border bg-card">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">既存キャンペーン一覧</h2>
-          <p className="mt-1 text-sm text-muted-foreground">全{data.campaigns.length}キャンペーン</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('accountAnalysis.campaignList')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('accountAnalysis.totalCampaignsCount').replace('{count}', String(data.campaigns.length))}</p>
         </div>
         <CampaignTable campaigns={data.campaigns} />
       </div>
 
       {/* Spend Pattern Charts */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">支出パターン</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('accountAnalysis.spendPattern')}</h2>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {/* Daily Spend Trend */}
           <div className="rounded-lg border border-border bg-card p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">日次支出推移（30日間）</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('accountAnalysis.dailySpendTrend')}</h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <TrendingUp size={12} className="text-green-500" />
-                <span>ピーク: {data.peakDay}</span>
+                <span>{t('accountAnalysis.peak')} {data.peakDay}</span>
                 <TrendingDown size={12} className="text-red-500" />
-                <span>最低: {data.lowDay}</span>
+                <span>{t('accountAnalysis.lowest')} {data.lowDay}</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
@@ -602,12 +605,12 @@ export default function AccountAnalysisPage(): React.ReactElement {
                 <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={(value: number) => [`\u00A5${value.toLocaleString('ja-JP')}`, '支出']}
+                  formatter={(value: number) => [`\u00A5${value.toLocaleString('ja-JP')}`, t('accountAnalysis.spend')]}
                 />
                 <Line
                   type="monotone"
                   dataKey="spend"
-                  name="支出"
+                  name={t('accountAnalysis.spend')}
                   stroke="hsl(221, 83%, 53%)"
                   strokeWidth={2}
                   dot={false}
@@ -619,7 +622,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
           {/* Weekday Average */}
           <div className="rounded-lg border border-border bg-card p-6">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">曜日別平均支出</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">{t('accountAnalysis.weekdayAverage')}</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={data.weekdayAverage} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -627,11 +630,11 @@ export default function AccountAnalysisPage(): React.ReactElement {
                 <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={(value: number) => [`\u00A5${value.toLocaleString('ja-JP')}`, '平均支出']}
+                  formatter={(value: number) => [`\u00A5${value.toLocaleString('ja-JP')}`, t('accountAnalysis.avgSpend')]}
                 />
                 <Bar
                   dataKey="average"
-                  name="平均支出"
+                  name={t('accountAnalysis.avgSpend')}
                   fill="hsl(262, 83%, 58%)"
                   radius={[4, 4, 0, 0]}
                 />
@@ -643,13 +646,13 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
       {/* Performance Diagnosis */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">パフォーマンス診断</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('accountAnalysis.performanceDiagnosis')}</h2>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {/* Top Performers */}
           <div>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-green-600">
               <TrendingUp size={16} />
-              トップパフォーマー
+              {t('accountAnalysis.topPerformers')}
             </h3>
             <div className="space-y-3">
               {data.topPerformers.map((p) => (
@@ -662,7 +665,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
           <div>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-600">
               <TrendingDown size={16} />
-              アンダーパフォーマー
+              {t('accountAnalysis.underPerformers')}
             </h3>
             <div className="space-y-3">
               {data.underPerformers.map((p) => (
@@ -676,7 +679,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
         <div className="rounded-lg border border-border bg-card p-6">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
             <Lightbulb size={16} className="text-yellow-500" />
-            改善機会
+            {t('accountAnalysis.improvementOpportunities')}
           </h3>
           <ul className="space-y-2">
             {data.opportunities.map((opp, idx) => (
@@ -691,7 +694,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
       {/* AI Improvement Suggestions */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">AI改善提案</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('accountAnalysis.aiSuggestions')}</h2>
         <div className="space-y-3">
           {data.suggestions.map((s) => {
             const cfg = PRIORITY_CONFIG[s.priority];
@@ -721,7 +724,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
                       </div>
                       <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{s.description}</p>
                       <p className="mt-2 text-xs font-medium text-foreground">
-                        推定効果: <span className="text-primary">{s.estimatedImpact}</span>
+                        {t('accountAnalysis.estimatedImpact')} <span className="text-primary">{s.estimatedImpact}</span>
                       </p>
                     </div>
                   </div>
@@ -729,7 +732,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
                     type="button"
                     className="flex-shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                   >
-                    実行
+                    {t('accountAnalysis.execute')}
                   </button>
                 </div>
               </div>
@@ -742,7 +745,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
       <div className="space-y-4">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <ShieldAlert size={18} className="text-red-500" />
-          リスク検出
+          {t('accountAnalysis.riskDetection')}
         </h2>
         <div className="space-y-3">
           {data.risks.map((r) => {

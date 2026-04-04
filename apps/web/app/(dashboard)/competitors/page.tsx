@@ -41,6 +41,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -134,20 +135,20 @@ interface KpiCardData {
 
 const STRATEGY_CONFIG: Record<
   CompetitorStrategy,
-  { label: string; badgeClass: string }
+  { labelKey: string; badgeClass: string }
 > = {
   aggressive: {
-    label: '攻撃的',
+    labelKey: 'competitors.strategyAggressive',
     badgeClass:
       'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
   defensive: {
-    label: '防御的',
+    labelKey: 'competitors.strategyDefensive',
     badgeClass:
       'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   },
   opportunistic: {
-    label: '機会主義',
+    labelKey: 'competitors.strategyOpportunistic',
     badgeClass:
       'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
@@ -173,47 +174,47 @@ const ALERT_TYPE_ICONS: Record<AlertType, ReactNode> = {
 
 const COUNTER_ACTION_CONFIG: Record<
   CounterActionType,
-  { icon: ReactNode; label: string; badgeClass: string }
+  { icon: ReactNode; labelKey: string; badgeClass: string }
 > = {
   bid_adjustment: {
     icon: <BadgeJapaneseYen size={16} />,
-    label: '入札調整',
+    labelKey: 'competitors.counterBidAdjustment',
     badgeClass:
       'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   },
   budget_shift: {
     icon: <BarChart3 size={16} />,
-    label: '予算シフト',
+    labelKey: 'competitors.counterBudgetShift',
     badgeClass:
       'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   creative_counter: {
     icon: <Palette size={16} />,
-    label: 'クリエイティブ対抗',
+    labelKey: 'competitors.counterCreativeCounter',
     badgeClass:
       'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   },
   targeting_expansion: {
     icon: <Target size={16} />,
-    label: 'ターゲティング拡張',
+    labelKey: 'competitors.counterTargetingExpansion',
     badgeClass:
       'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   },
   keyword_defense: {
     icon: <Shield size={16} />,
-    label: 'キーワード防御',
+    labelKey: 'competitors.counterKeywordDefense',
     badgeClass:
       'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
   timing_attack: {
     icon: <Clock size={16} />,
-    label: 'タイミング攻撃',
+    labelKey: 'competitors.counterTimingAttack',
     badgeClass:
       'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
   },
   skip: {
     icon: <Pause size={16} />,
-    label: '見送り',
+    labelKey: 'competitors.counterSkip',
     badgeClass:
       'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
   },
@@ -221,20 +222,20 @@ const COUNTER_ACTION_CONFIG: Record<
 
 const COUNTER_STATUS_CONFIG: Record<
   CounterActionStatus,
-  { label: string; badgeClass: string }
+  { labelKey: string; badgeClass: string }
 > = {
   executed: {
-    label: '実行済み',
+    labelKey: 'competitors.statusExecuted',
     badgeClass:
       'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   proposed: {
-    label: '提案中',
+    labelKey: 'competitors.statusProposed',
     badgeClass:
       'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
   rolled_back: {
-    label: 'ロールバック済み',
+    labelKey: 'competitors.statusRolledBack',
     badgeClass:
       'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
   },
@@ -244,33 +245,32 @@ const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日'] as const;
 
 const STRATEGY_RADIO_OPTIONS: {
   value: CompetitorStrategy;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   borderColor: string;
   bgColor: string;
   textColor: string;
 }[] = [
   {
     value: 'aggressive',
-    label: '攻撃的',
-    description:
-      'CPCを積極的に上げて競合を押し出す。ROAS目標が高い場合に有効',
+    labelKey: 'competitors.strategyAggressive',
+    descriptionKey: 'competitors.strategyAggressiveDesc',
     borderColor: 'border-red-500',
     bgColor: 'bg-red-50 dark:bg-red-950/30',
     textColor: 'text-red-600 dark:text-red-400',
   },
   {
     value: 'defensive',
-    label: '防御的',
-    description: '現在のポジションを最小コストで維持。安定した運用向け',
+    labelKey: 'competitors.strategyDefensive',
+    descriptionKey: 'competitors.strategyDefensiveDesc',
     borderColor: 'border-blue-500',
     bgColor: 'bg-blue-50 dark:bg-blue-950/30',
     textColor: 'text-blue-600 dark:text-blue-400',
   },
   {
     value: 'opportunistic',
-    label: '機会主義的',
-    description: '競合の弱い時間帯・市場を狙い撃ち。コスパ重視',
+    labelKey: 'competitors.strategyOpportunisticLabel',
+    descriptionKey: 'competitors.strategyOpportunisticDesc',
     borderColor: 'border-yellow-500',
     bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
     textColor: 'text-yellow-600 dark:text-yellow-400',
@@ -416,29 +416,33 @@ const MOCK_COMPETITORS: Competitor[] = [
   },
 ];
 
-const MOCK_KPI_CARDS: KpiCardData[] = [
+const MOCK_KPI_CARDS: (Omit<KpiCardData, 'label' | 'value' | 'trend'> & { labelKey: string; valueKey?: string; value: string; trendKey?: string; trend: string })[] = [
   {
-    label: '平均インプレッションシェア',
+    labelKey: 'competitors.kpiAvgImpressionShare',
     value: '42.3%',
     trend: '+2.1%',
     trendPositive: true,
   },
   {
-    label: '平均掲載順位',
-    value: '1.8位',
+    labelKey: 'competitors.kpiAvgPosition',
+    value: '1.8',
+    valueKey: 'competitors.positionUnit',
     trend: '+0.3',
     trendPositive: true,
   },
   {
-    label: '競合検出数',
-    value: '7社',
+    labelKey: 'competitors.kpiDetectedCount',
+    value: '7',
+    valueKey: 'competitors.companiesUnit',
     trend: '+2',
     trendPositive: false,
   },
   {
-    label: '今月の対抗アクション',
-    value: '23回',
-    trend: '18成功',
+    labelKey: 'competitors.kpiMonthlyActions',
+    value: '23',
+    valueKey: 'competitors.timesUnit',
+    trendKey: 'competitors.successCount',
+    trend: '18',
     trendPositive: true,
   },
 ];
@@ -743,6 +747,7 @@ function AlertBanner({
   alerts: CompetitorAlert[];
   onAcknowledge: (id: string) => void;
 }): React.ReactElement | null {
+  const { t } = useI18n();
   const unacknowledged = alerts.filter((a) => !a.acknowledged);
   if (unacknowledged.length === 0) return null;
 
@@ -757,7 +762,7 @@ function AlertBanner({
           className="text-yellow-600 dark:text-yellow-400"
         />
         <span className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
-          {unacknowledged.length}件の新しい競合アラート
+          {t('competitors.alertCount', { count: unacknowledged.length })}
         </span>
       </div>
       <div className="space-y-2">
@@ -780,7 +785,7 @@ function AlertBanner({
               onClick={() => onAcknowledge(alert.id)}
               className="rounded-md bg-yellow-200 px-2.5 py-1 text-xs font-medium text-yellow-800 hover:bg-yellow-300 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700"
             >
-              確認
+              {t('competitors.acknowledge')}
             </button>
           </div>
         ))}
@@ -792,21 +797,22 @@ function AlertBanner({
 function KpiCardRow({
   cards,
 }: {
-  cards: KpiCardData[];
+  cards: typeof MOCK_KPI_CARDS;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {cards.map((card) => (
         <div
-          key={card.label}
+          key={card.labelKey}
           className="rounded-lg border border-border bg-card p-4"
         >
           <p className="text-xs font-medium text-muted-foreground">
-            {card.label}
+            {t(card.labelKey)}
           </p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-foreground">
-              {card.value}
+              {card.value}{card.valueKey ? t(card.valueKey) : ''}
             </span>
             <span
               className={cn(
@@ -821,7 +827,7 @@ function KpiCardRow({
               ) : (
                 <ArrowDownRight size={12} />
               )}
-              {card.trend}
+              {card.trendKey ? t(card.trendKey, { count: card.trend }) : card.trend}
             </span>
           </div>
         </div>
@@ -835,6 +841,7 @@ function StrategyBadge({
 }: {
   strategy: CompetitorStrategy;
 }): React.ReactElement {
+  const { t } = useI18n();
   const config = STRATEGY_CONFIG[strategy];
   return (
     <span
@@ -843,7 +850,7 @@ function StrategyBadge({
         config.badgeClass
       )}
     >
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
@@ -876,10 +883,11 @@ function ImpressionShareChart({
 }: {
   data: ImpressionShareDataPoint[];
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <h2 className="mb-4 text-lg font-semibold text-foreground">
-        インプレッションシェア推移
+        {t('competitors.impressionShareTrend')}
       </h2>
       <ResponsiveContainer width="100%" height={350}>
         <LineChart
@@ -921,7 +929,7 @@ function ImpressionShareChart({
           <Line
             type="monotone"
             dataKey="ours"
-            name="自社"
+            name={t('competitors.ownCompany')}
             stroke="#3B82F6"
             strokeWidth={3}
             dot={false}
@@ -968,6 +976,7 @@ function CompetitorMapCard({
   onSettings: (id: string) => void;
   onDelete: (id: string) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between">
@@ -979,7 +988,7 @@ function CompetitorMapCard({
             {competitor.active && (
               <span
                 className="inline-flex h-2 w-2 rounded-full bg-green-500"
-                title="アクティブ"
+                title={t('competitors.active')}
               />
             )}
           </div>
@@ -1003,20 +1012,20 @@ function CompetitorMapCard({
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         <div>
-          <p className="text-[10px] text-muted-foreground">検出広告数</p>
+          <p className="text-[10px] text-muted-foreground">{t('competitors.adCount')}</p>
           <p className="text-lg font-bold text-foreground">
             {competitor.adCount}
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground">推定月間予算</p>
+          <p className="text-[10px] text-muted-foreground">{t('competitors.estimatedBudget')}</p>
           <p className="text-lg font-bold text-foreground">
-            {(competitor.estimatedMonthlyBudget / 10000).toFixed(0)}万
+            {(competitor.estimatedMonthlyBudget / 10000).toFixed(0)}{t('competitors.tenThousandUnit')}
           </p>
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground">
-            オーバーラップ率
+            {t('competitors.overlapRate')}
           </p>
           <p className="text-lg font-bold text-foreground">
             {competitor.overlapRate}%
@@ -1036,25 +1045,25 @@ function CompetitorMapCard({
           href={`/competitors/${competitor.id}`}
           className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          詳細
+          {t('competitors.detail')}
         </a>
         <button
           type="button"
           onClick={() => onSettings(competitor.id)}
           className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-          aria-label={`${competitor.name}の設定`}
+          aria-label={`${competitor.name} ${t('competitors.settings')}`}
         >
           <Settings size={12} className="mr-1 inline" />
-          設定
+          {t('competitors.settings')}
         </button>
         <button
           type="button"
           onClick={() => onDelete(competitor.id)}
           className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
-          aria-label={`${competitor.name}を削除`}
+          aria-label={`${competitor.name} ${t('common.delete')}`}
         >
           <Trash2 size={12} className="mr-1 inline" />
-          削除
+          {t('common.delete')}
         </button>
       </div>
     </div>
@@ -1066,6 +1075,7 @@ function CounterActionCard({
 }: {
   action: CounterAction;
 }): React.ReactElement {
+  const { t } = useI18n();
   const typeConfig = COUNTER_ACTION_CONFIG[action.type];
   const statusConfig = COUNTER_STATUS_CONFIG[action.status];
 
@@ -1074,10 +1084,10 @@ function CounterActionCard({
     medium: 'text-yellow-600 dark:text-yellow-400',
     low: 'text-green-600 dark:text-green-400',
   };
-  const riskLabelMap: Record<CounterAction['risk'], string> = {
-    high: '高',
-    medium: '中',
-    low: '低',
+  const riskLabelKeyMap: Record<CounterAction['risk'], string> = {
+    high: 'competitors.riskHigh',
+    medium: 'competitors.riskMedium',
+    low: 'competitors.riskLow',
   };
 
   return (
@@ -1091,7 +1101,7 @@ function CounterActionCard({
             typeConfig.badgeClass
           )}
         >
-          {typeConfig.label}
+          {t(typeConfig.labelKey)}
         </span>
         <span
           className={cn(
@@ -1099,7 +1109,7 @@ function CounterActionCard({
             statusConfig.badgeClass
           )}
         >
-          {statusConfig.label}
+          {t(statusConfig.labelKey)}
         </span>
         <span className="ml-auto text-xs text-muted-foreground">
           {action.timeAgo}
@@ -1122,7 +1132,7 @@ function CounterActionCard({
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <span className="inline-flex items-center gap-1 text-xs">
           <Target size={10} className="text-primary" />
-          確信度: {action.confidence}%
+          {t('competitors.confidence')}: {action.confidence}%
         </span>
         <span
           className={cn(
@@ -1131,7 +1141,7 @@ function CounterActionCard({
           )}
         >
           <Shield size={10} />
-          リスク: {riskLabelMap[action.risk]}
+          {t('competitors.risk')}: {t(riskLabelKeyMap[action.risk])}
         </span>
       </div>
 
@@ -1144,7 +1154,7 @@ function CounterActionCard({
       {action.result !== null && (
         <div className="mt-2 flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
           <TrendingUp size={12} />
-          結果: {action.result}
+          {t('competitors.result')}: {action.result}
         </div>
       )}
 
@@ -1155,7 +1165,7 @@ function CounterActionCard({
           className="mt-2 inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
           <RotateCcw size={10} />
-          ロールバック
+          {t('competitors.rollback')}
         </button>
       )}
     </div>
@@ -1171,6 +1181,7 @@ function CounterActionTimeline({
   expanded: boolean;
   onToggle: () => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card">
       <button
@@ -1182,10 +1193,10 @@ function CounterActionTimeline({
         <div className="flex items-center gap-2">
           <Zap size={20} className="text-primary" />
           <h2 className="text-lg font-semibold text-foreground">
-            自動対抗ログ
+            {t('competitors.counterLog')}
           </h2>
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {actions.length}件
+            {t('competitors.counterLogCount', { count: actions.length })}
           </span>
         </div>
         {expanded ? (
@@ -1211,6 +1222,7 @@ function WeakWindowsHeatmap({
 }: {
   data: WeakWindowCell[];
 }): React.ReactElement {
+  const { t } = useI18n();
   const [hoveredCell, setHoveredCell] =
     useState<WeakWindowCell | null>(null);
 
@@ -1227,14 +1239,14 @@ function WeakWindowsHeatmap({
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <h2 className="mb-1 text-lg font-semibold text-foreground">
-        競合弱点マップ
+        {t('competitors.weakWindowMap')}
       </h2>
       <p className="mb-4 text-xs text-muted-foreground">
-        緑 = 競合が弱い(低CPC) / 赤 = 競合が強い(高CPC)
+        {t('competitors.weakWindowDesc')}
       </p>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[700px]" role="grid" aria-label="競合弱点ヒートマップ">
+        <div className="min-w-[700px]" role="grid" aria-label={t('competitors.weakWindowLabel')}>
           {/* Hour labels */}
           <div className="mb-1 flex" role="row">
             <div className="w-10 flex-shrink-0" role="columnheader" />
@@ -1309,17 +1321,17 @@ function WeakWindowsHeatmap({
         <div className="flex items-center gap-1">
           <div className="h-3 w-3 rounded-sm bg-green-500/80" />
           <span className="text-[10px] text-muted-foreground">
-            競合弱い
+            {t('competitors.legendWeak')}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-3 w-3 rounded-sm bg-yellow-300/40" />
-          <span className="text-[10px] text-muted-foreground">拮抗</span>
+          <span className="text-[10px] text-muted-foreground">{t('competitors.legendEven')}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-3 w-3 rounded-sm bg-red-500/80" />
           <span className="text-[10px] text-muted-foreground">
-            競合強い
+            {t('competitors.legendStrong')}
           </span>
         </div>
       </div>
@@ -1336,6 +1348,7 @@ function AddCompetitorModal({
   open,
   onClose,
 }: AddCompetitorModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [domain, setDomain] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(
@@ -1364,7 +1377,7 @@ function AddCompetitorModal({
     setIsAdding(true);
     setTimeout(() => {
       setIsAdding(false);
-      showToast(`${name}を競合リストに追加しました`);
+      showToast(t('competitors.addedToast', { name }));
       onClose();
     }, 1500);
   }
@@ -1382,7 +1395,7 @@ function AddCompetitorModal({
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">
-            競合を追加
+            {t('competitors.modalTitle')}
           </h2>
           <button
             type="button"
@@ -1401,7 +1414,7 @@ function AddCompetitorModal({
               htmlFor="comp-name"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              ブランド名
+              {t('competitors.brandName')}
             </label>
             <input
               id="comp-name"
@@ -1422,7 +1435,7 @@ function AddCompetitorModal({
               htmlFor="comp-domain"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              ドメイン
+              {t('competitors.domain')}
             </label>
             <input
               id="comp-domain"
@@ -1440,7 +1453,7 @@ function AddCompetitorModal({
           {/* Platforms */}
           <div>
             <p className="mb-2 text-sm font-medium text-foreground">
-              監視プラットフォーム
+              {t('competitors.monitorPlatforms')}
             </p>
             <div className="flex flex-wrap gap-2">
               {allPlatforms.map((p) => {
@@ -1474,7 +1487,7 @@ function AddCompetitorModal({
               htmlFor="comp-keywords"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              監視キーワード
+              {t('competitors.keywords')}
             </label>
             <input
               id="comp-keywords"
@@ -1484,17 +1497,17 @@ function AddCompetitorModal({
                 setKeywords(e.target.value)
               }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="カンマ区切りで入力 (例: マーケティングツール, 広告運用)"
+              placeholder={t('competitors.keywordsPlaceholder')}
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              カンマ区切りで複数入力できます
+              {t('competitors.keywordsHint')}
             </p>
           </div>
 
           {/* Strategy */}
           <div>
             <p className="mb-2 text-sm font-medium text-foreground">
-              対抗戦略
+              {t('competitors.counterStrategy')}
             </p>
             <div className="space-y-2">
               {STRATEGY_RADIO_OPTIONS.map((opt) => {
@@ -1528,10 +1541,10 @@ function AddCompetitorModal({
                             : 'text-foreground'
                         )}
                       >
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {opt.description}
+                        {t(opt.descriptionKey)}
                       </p>
                     </div>
                   </button>
@@ -1543,12 +1556,12 @@ function AddCompetitorModal({
           {/* Guardrails */}
           <div className="space-y-4 rounded-lg border border-border p-4">
             <h3 className="text-sm font-medium text-foreground">
-              ガードレール
+              {t('competitors.guardrails')}
             </h3>
 
             <div>
               <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>最大入札上昇率</span>
+                <span>{t('competitors.maxBidIncrease')}</span>
                 <span className="font-medium text-foreground">
                   {maxBidIncrease}%
                 </span>
@@ -1573,7 +1586,7 @@ function AddCompetitorModal({
 
             <div>
               <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>最大予算シフト率</span>
+                <span>{t('competitors.maxBudgetShift')}</span>
                 <span className="font-medium text-foreground">
                   {maxBudgetShift}%
                 </span>
@@ -1616,7 +1629,7 @@ function AddCompetitorModal({
               ) : (
                 <Plus size={14} />
               )}
-              追加
+              {t('competitors.addBtn')}
             </button>
           </div>
         </form>
@@ -1630,6 +1643,7 @@ function AddCompetitorModal({
 // ============================================================
 
 export default function CompetitorsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [counterLogExpanded, setCounterLogExpanded] = useState(true);
   const [alerts, setAlerts] =
@@ -1654,7 +1668,7 @@ export default function CompetitorsPage(): React.ReactElement {
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
-      showToast('スキャンが完了しました');
+      showToast(t('competitors.scanComplete'));
     }, 3000);
   }
 
@@ -1664,10 +1678,10 @@ export default function CompetitorsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            競合インテリジェンス
+            {t('competitors.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            競合の動きをリアルタイム監視し、AIが自動対抗策を実行します
+            {t('competitors.description')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1687,7 +1701,7 @@ export default function CompetitorsPage(): React.ReactElement {
                   : 'bg-gray-500'
               )}
             />
-            自動監視: {monitoringEnabled ? 'ON' : 'OFF'}
+            {t('competitors.autoMonitoring')}: {monitoringEnabled ? t('competitors.monitoringOn') : t('competitors.monitoringOff')}
           </span>
           <button
             type="button"
@@ -1699,7 +1713,7 @@ export default function CompetitorsPage(): React.ReactElement {
               size={14}
               className={cn(scanning && 'animate-spin')}
             />
-            スキャン実行
+            {t('competitors.scan')}
           </button>
           <button
             type="button"
@@ -1707,7 +1721,7 @@ export default function CompetitorsPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Plus size={14} />
-            競合を追加
+            {t('competitors.addCompetitor')}
           </button>
         </div>
       </div>
@@ -1727,7 +1741,7 @@ export default function CompetitorsPage(): React.ReactElement {
       {/* Competitor map */}
       <div>
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          競合マップ
+          {t('competitors.competitorMap')}
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {MOCK_COMPETITORS.map((competitor) => (
@@ -1735,11 +1749,11 @@ export default function CompetitorsPage(): React.ReactElement {
               key={competitor.id}
               competitor={competitor}
               onSettings={() => {
-                showToast(`${competitor.name}の設定は準備中です`);
+                showToast(t('competitors.settingsToast', { name: competitor.name }));
               }}
               onDelete={() => {
-                if (window.confirm(`${competitor.name}を削除しますか？`)) {
-                  showToast(`${competitor.name}を削除しました`);
+                if (window.confirm(t('competitors.deleteConfirm', { name: competitor.name }))) {
+                  showToast(t('competitors.deleteToast', { name: competitor.name }));
                 }
               }}
             />

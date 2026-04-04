@@ -7,6 +7,7 @@ import {
   ScanSearch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -30,11 +31,11 @@ interface PlatformConnection {
 // Constants
 // ============================================================
 
-const STATUS_CONFIG: Record<ConnectionStatus, { label: string; className: string }> = {
-  connected: { label: '接続済み', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  disconnected: { label: '未接続', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
-  error: { label: 'エラー', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  expired: { label: '期限切れ', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+const STATUS_CONFIG: Record<ConnectionStatus, { labelKey: string; className: string }> = {
+  connected: { labelKey: 'settings.connected', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  disconnected: { labelKey: 'settings.disconnected', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
+  error: { labelKey: 'settings.error', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  expired: { labelKey: 'settings.expired', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
 };
 
 const MOCK_CONNECTIONS: PlatformConnection[] = [
@@ -68,6 +69,7 @@ function getScoreBg(score: number): string {
 // ============================================================
 
 export default function AccountAnalysisListPage(): React.ReactElement {
+  const { t } = useI18n();
   const [navigating, setNavigating] = useState<Platform | null>(null);
   const connectedPlatforms = MOCK_CONNECTIONS.filter((c) => c.status === 'connected');
   const otherPlatforms = MOCK_CONNECTIONS.filter((c) => c.status !== 'connected');
@@ -81,16 +83,16 @@ export default function AccountAnalysisListPage(): React.ReactElement {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">アカウント分析</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('accountAnalysis.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          接続済みの広告プラットフォームアカウントをClaude AIが診断します
+          {t('accountAnalysis.description')}
         </p>
       </div>
 
       {/* Connected platforms */}
       {connectedPlatforms.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">分析可能なアカウント</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t('accountAnalysis.analyzableAccounts')}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {connectedPlatforms.map((conn) => (
               <button
@@ -108,7 +110,7 @@ export default function AccountAnalysisListPage(): React.ReactElement {
                   <p className="text-xs text-muted-foreground">{conn.accountName}</p>
                   {conn.lastAnalysis && (
                     <p className="mt-1 text-[10px] text-muted-foreground/60">
-                      最終分析: {conn.lastAnalysis}
+                      {t('accountAnalysis.lastAnalysis')} {conn.lastAnalysis}
                     </p>
                   )}
                 </div>
@@ -118,7 +120,7 @@ export default function AccountAnalysisListPage(): React.ReactElement {
                       {conn.score}
                     </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">未分析</span>
+                    <span className="text-xs text-muted-foreground">{t('accountAnalysis.notAnalyzed')}</span>
                   )}
                 </div>
                 {navigating === conn.platform ? (
@@ -136,15 +138,15 @@ export default function AccountAnalysisListPage(): React.ReactElement {
       {connectedPlatforms.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
           <ScanSearch size={48} className="text-muted-foreground/30" />
-          <p className="mt-4 text-sm font-medium text-foreground">接続済みのアカウントがありません</p>
+          <p className="mt-4 text-sm font-medium text-foreground">{t('accountAnalysis.noConnectedAccounts')}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            設定画面からプラットフォームを接続してください
+            {t('accountAnalysis.noConnectedAccountsHint')}
           </p>
           <a
             href="/settings"
             className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            設定に移動
+            {t('accountAnalysis.goToSettings')}
           </a>
         </div>
       )}
@@ -152,7 +154,7 @@ export default function AccountAnalysisListPage(): React.ReactElement {
       {/* Other platforms */}
       {otherPlatforms.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground">未接続のプラットフォーム</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t('accountAnalysis.disconnectedPlatforms')}</h2>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {otherPlatforms.map((conn) => {
               const statusCfg = STATUS_CONFIG[conn.status];
@@ -167,7 +169,7 @@ export default function AccountAnalysisListPage(): React.ReactElement {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{conn.label}</p>
                     <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium', statusCfg.className)}>
-                      {statusCfg.label}
+                      {t(statusCfg.labelKey)}
                     </span>
                   </div>
                 </div>

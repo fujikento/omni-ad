@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -52,13 +53,13 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   microsoft: 'Microsoft',
 };
 
-const FORMAT_LABELS: Record<CreativeFormat, string> = {
-  image: '画像',
-  video: '動画',
-  carousel: 'カルーセル',
-  text: 'テキスト',
-  html5: 'HTML5',
-  responsive: 'レスポンシブ',
+const FORMAT_LABEL_KEYS: Record<CreativeFormat, string> = {
+  image: 'creatives.format.image',
+  video: 'creatives.format.video',
+  carousel: 'creatives.format.carousel',
+  text: 'creatives.format.text',
+  html5: 'creatives.format.html5',
+  responsive: 'creatives.format.responsive',
 };
 
 const MOCK_CREATIVES: Creative[] = [
@@ -101,17 +102,17 @@ interface CreativeBatch {
   createdAt: string;
 }
 
-const BATCH_STATUS_CONFIG: Record<BatchStatus, { label: string; className: string }> = {
+const BATCH_STATUS_CONFIG: Record<BatchStatus, { labelKey: string; className: string }> = {
   processing: {
-    label: '生成中',
+    labelKey: 'creatives.batch.processing',
     className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
   completed: {
-    label: '完了',
+    labelKey: 'creatives.batch.completed',
     className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   failed: {
-    label: 'エラー',
+    labelKey: 'creatives.batch.failed',
     className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
 };
@@ -123,6 +124,7 @@ const MOCK_BATCHES: CreativeBatch[] = [
 ];
 
 function BatchRow({ batch }: { batch: CreativeBatch }): React.ReactElement {
+  const { t } = useI18n();
   const pct = batch.total > 0 ? Math.round((batch.completed / batch.total) * 100) : 0;
   const statusConfig = BATCH_STATUS_CONFIG[batch.status];
 
@@ -151,12 +153,12 @@ function BatchRow({ batch }: { batch: CreativeBatch }): React.ReactElement {
           </span>
         </div>
         <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', statusConfig.className)}>
-          {statusConfig.label}
+          {t(statusConfig.labelKey)}
         </span>
         <Link
           href="/creatives/mass-production"
           className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="詳細を見る"
+          aria-label={t('creatives.batch.viewDetail')}
         >
           <ChevronRight size={14} />
         </Link>
@@ -165,11 +167,11 @@ function BatchRow({ batch }: { batch: CreativeBatch }): React.ReactElement {
   );
 }
 
-const WIZARD_STEPS: { step: WizardStep; label: string }[] = [
-  { step: 1, label: '商品情報入力' },
-  { step: 2, label: 'プラットフォーム選択' },
-  { step: 3, label: '生成設定' },
-  { step: 4, label: '生成結果プレビュー' },
+const WIZARD_STEPS: { step: WizardStep; labelKey: string }[] = [
+  { step: 1, labelKey: 'creatives.wizard.step1' },
+  { step: 2, labelKey: 'creatives.wizard.step2' },
+  { step: 3, labelKey: 'creatives.wizard.step3' },
+  { step: 4, labelKey: 'creatives.wizard.step4' },
 ];
 
 // -- Subcomponents --
@@ -193,6 +195,7 @@ function CreativeCard({
   creative: Creative;
   onSelect: (id: string) => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -221,7 +224,7 @@ function CreativeCard({
           ))}
         </div>
         <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{FORMAT_LABELS[creative.format]}</span>
+          <span>{t(FORMAT_LABEL_KEYS[creative.format])}</span>
           <span>CTR {creative.ctr}%</span>
         </div>
       </div>
@@ -235,12 +238,13 @@ interface CreativeDetailProps {
 }
 
 function CreativeDetail({ creative, onClose }: CreativeDetailProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-2xl rounded-lg border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">{creative.headline}</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
@@ -253,26 +257,26 @@ function CreativeDetail({ creative, onClose }: CreativeDetailProps): React.React
           {/* Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-muted-foreground">見出し</p>
+              <p className="text-xs text-muted-foreground">{t('creatives.headline')}</p>
               <p className="text-sm font-medium text-foreground">{creative.headline}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">説明</p>
+              <p className="text-xs text-muted-foreground">{t('creatives.descriptionLabel')}</p>
               <p className="text-sm text-foreground">{creative.description}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">フォーマット</p>
-              <p className="text-sm text-foreground">{FORMAT_LABELS[creative.format]}</p>
+              <p className="text-xs text-muted-foreground">{t('creatives.formatLabel')}</p>
+              <p className="text-sm text-foreground">{t(FORMAT_LABEL_KEYS[creative.format])}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">スコア</p>
+              <p className="text-xs text-muted-foreground">{t('creatives.scoreLabel')}</p>
               <ScoreBadge score={creative.score} />
             </div>
           </div>
 
           {/* Platform variants */}
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">プラットフォーム別バリアント</p>
+            <p className="mb-2 text-sm font-medium text-foreground">{t('creatives.platformVariants')}</p>
             <div className="space-y-2">
               {creative.platforms.map((p) => (
                 <div key={p} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
@@ -298,6 +302,7 @@ interface GenerateWizardProps {
 }
 
 function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [step, setStep] = useState<WizardStep>(1);
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
@@ -340,9 +345,9 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">AI クリエイティブ生成</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('creatives.wizard.title')}</h2>
           </div>
-          <button type="button" onClick={handleClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={handleClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
@@ -361,7 +366,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                     : 'border-transparent text-muted-foreground',
               )}
             >
-              {s.label}
+              {t(s.labelKey)}
             </div>
           ))}
         </div>
@@ -371,7 +376,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label htmlFor="gen-product-name" className="mb-1 block text-sm font-medium text-foreground">商品名</label>
+                <label htmlFor="gen-product-name" className="mb-1 block text-sm font-medium text-foreground">{t('creatives.wizard.productName')}</label>
                 <input
                   id="gen-product-name"
                   type="text"
@@ -382,7 +387,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                 />
               </div>
               <div>
-                <label htmlFor="gen-description" className="mb-1 block text-sm font-medium text-foreground">商品説明</label>
+                <label htmlFor="gen-description" className="mb-1 block text-sm font-medium text-foreground">{t('creatives.wizard.productDescription')}</label>
                 <textarea
                   id="gen-description"
                   value={productDescription}
@@ -393,7 +398,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                 />
               </div>
               <div>
-                <label htmlFor="gen-usp" className="mb-1 block text-sm font-medium text-foreground">USP (差別化ポイント)</label>
+                <label htmlFor="gen-usp" className="mb-1 block text-sm font-medium text-foreground">{t('creatives.wizard.usp')}</label>
                 <input
                   id="gen-usp"
                   type="text"
@@ -404,7 +409,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                 />
               </div>
               <div>
-                <label htmlFor="gen-audience" className="mb-1 block text-sm font-medium text-foreground">ターゲットオーディエンス</label>
+                <label htmlFor="gen-audience" className="mb-1 block text-sm font-medium text-foreground">{t('creatives.wizard.targetAudience')}</label>
                 <input
                   id="gen-audience"
                   type="text"
@@ -419,7 +424,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
 
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">クリエイティブを配信するプラットフォームを選択してください</p>
+              <p className="text-sm text-muted-foreground">{t('creatives.wizard.selectPlatforms')}</p>
               <div className="grid grid-cols-2 gap-3">
                 {(Object.entries(PLATFORM_LABELS) as [Platform, string][]).map(([key, label]) => (
                   <button
@@ -444,7 +449,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
             <div className="space-y-4">
               <div>
                 <label htmlFor="gen-variants" className="mb-1 block text-sm font-medium text-foreground">
-                  バリエーション数
+                  {t('creatives.wizard.variantCount')}
                 </label>
                 <div className="relative">
                   <select
@@ -461,7 +466,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                 </div>
               </div>
               <div>
-                <label htmlFor="gen-language" className="mb-1 block text-sm font-medium text-foreground">言語</label>
+                <label htmlFor="gen-language" className="mb-1 block text-sm font-medium text-foreground">{t('creatives.wizard.language')}</label>
                 <div className="relative">
                   <select
                     id="gen-language"
@@ -476,12 +481,12 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                 </div>
               </div>
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">敬語レベル</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('creatives.wizard.keigoLevel')}</span>
                 <div className="flex gap-2">
                   {([
-                    { value: 'casual', label: 'カジュアル' },
-                    { value: 'polite', label: '丁寧' },
-                    { value: 'formal', label: 'フォーマル' },
+                    { value: 'casual', labelKey: 'creatives.wizard.keigoCasual' },
+                    { value: 'polite', labelKey: 'creatives.wizard.keigoPolite' },
+                    { value: 'formal', labelKey: 'creatives.wizard.keigoFormal' },
                   ] as const).map((option) => (
                     <button
                       key={option.value}
@@ -494,7 +499,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                           : 'border-border text-muted-foreground hover:border-primary/50',
                       )}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -507,15 +512,15 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
               {isGenerating ? (
                 <div className="flex h-48 flex-col items-center justify-center gap-3">
                   <Loader2 size={32} className="animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">AIがクリエイティブを生成中...</p>
+                  <p className="text-sm text-muted-foreground">{t('creatives.wizard.generating')}</p>
                 </div>
               ) : generated ? (
                 <div className="space-y-3">
-                  <p className="text-sm font-medium text-green-600">生成完了</p>
+                  <p className="text-sm font-medium text-green-600">{t('creatives.wizard.generationComplete')}</p>
                   {Array.from({ length: variantCount }, (_, i) => (
                     <div key={i} className="rounded-lg border border-border p-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">バリアント {i + 1}</span>
+                        <span className="text-xs text-muted-foreground">{t('creatives.wizard.variant')} {i + 1}</span>
                         <ScoreBadge score={85 - i * 5} />
                       </div>
                       <p className="mt-2 text-sm font-semibold text-foreground">
@@ -530,7 +535,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
               ) : (
                 <div className="flex h-48 flex-col items-center justify-center gap-3">
                   <BrainCircuit size={40} className="text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">「生成」ボタンを押してクリエイティブを生成</p>
+                  <p className="text-sm text-muted-foreground">{t('creatives.wizard.pressGenerate')}</p>
                 </div>
               )}
             </div>
@@ -546,7 +551,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
             className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-30"
           >
             <ArrowLeft size={14} />
-            戻る
+            {t('common.back')}
           </button>
           {step < 4 ? (
             <button
@@ -554,7 +559,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
               onClick={() => setStep((step + 1) as WizardStep)}
               className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              次へ
+              {t('common.next')}
               <ArrowRight size={14} />
             </button>
           ) : !generated ? (
@@ -565,7 +570,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-              生成
+              {t('creatives.wizard.generateBtn')}
             </button>
           ) : (
             <button
@@ -573,7 +578,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
               onClick={handleClose}
               className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
             >
-              完了
+              {t('creatives.wizard.doneBtn')}
             </button>
           )}
         </div>
@@ -604,6 +609,7 @@ function FileUploadSection({
 }: {
   onUploadComplete: () => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -705,7 +711,7 @@ function FileUploadSection({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-foreground">ファイルアップロード</h2>
+      <h2 className="text-lg font-semibold text-foreground">{t('creatives.upload.title')}</h2>
 
       {/* Drop zone */}
       <div
@@ -722,10 +728,10 @@ function FileUploadSection({
         <Upload size={32} className="text-muted-foreground/50" />
         <div className="text-center">
           <p className="text-sm font-medium text-foreground">
-            ファイルをドラッグ&ドロップ
+            {t('creatives.upload.dragDrop')}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            または
+            {t('creatives.upload.or')}
           </p>
         </div>
         <button
@@ -734,10 +740,10 @@ function FileUploadSection({
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Upload size={14} />
-          ファイルを選択
+          {t('creatives.upload.selectFiles')}
         </button>
         <p className="text-xs text-muted-foreground">
-          jpg, png, gif, mp4, mov -- 最大{MAX_FILE_SIZE_MB}MB
+          {t('creatives.upload.maxSize').replace('{size}', String(MAX_FILE_SIZE_MB))}
         </p>
         <input
           ref={fileInputRef}
@@ -746,7 +752,7 @@ function FileUploadSection({
           multiple
           onChange={handleFileSelect}
           className="hidden"
-          aria-label="ファイルを選択"
+          aria-label={t('creatives.upload.selectFiles')}
         />
       </div>
 
@@ -790,7 +796,7 @@ function FileUploadSection({
                   <p className="mt-1 text-xs text-destructive">{file.errorMessage}</p>
                 )}
                 {file.status === 'complete' && (
-                  <p className="mt-1 text-xs font-medium text-green-600">アップロード完了</p>
+                  <p className="mt-1 text-xs font-medium text-green-600">{t('creatives.upload.complete')}</p>
                 )}
               </div>
 
@@ -814,6 +820,7 @@ function FileUploadSection({
 // -- Main Page --
 
 export default function CreativesPage(): React.ReactElement {
+  const { t } = useI18n();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [uploadRefreshKey, setUploadRefreshKey] = useState(0);
@@ -832,10 +839,10 @@ export default function CreativesPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            AIクリエイティブスタジオ
+            {t('creatives.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            AIを活用した広告クリエイティブの自動生成と最適化
+            {t('creatives.description')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -844,7 +851,7 @@ export default function CreativesPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Rocket size={16} />
-            大量生産
+            {t('creatives.massProduction')}
           </Link>
           <button
             type="button"
@@ -852,7 +859,7 @@ export default function CreativesPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Sparkles size={16} />
-            AI生成
+            {t('creatives.generate')}
           </button>
         </div>
       </div>
@@ -871,12 +878,12 @@ export default function CreativesPage(): React.ReactElement {
       {/* Batch list */}
       <section>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">バッチ一覧</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('creatives.batchList')}</h2>
           <Link
             href="/creatives/mass-production"
             className="text-sm font-medium text-primary hover:text-primary/80"
           >
-            すべて表示
+            {t('creatives.showAll')}
           </Link>
         </div>
         <div className="mt-3 space-y-2">
@@ -903,8 +910,8 @@ export default function CreativesPage(): React.ReactElement {
         <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-border bg-card">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <BrainCircuit size={48} className="text-muted-foreground/30" />
-            <p className="text-lg font-medium">クリエイティブがまだありません</p>
-            <p className="text-sm">「AI生成」ボタンから最初のクリエイティブを作成しましょう</p>
+            <p className="text-lg font-medium">{t('creatives.noCreatives')}</p>
+            <p className="text-sm">{t('creatives.noCreativesHint')}</p>
           </div>
         </div>
       ) : (

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -60,60 +61,60 @@ interface ApprovalPolicy {
 
 interface TabDef {
   id: ApprovalTab;
-  label: string;
+  labelKey: string;
 }
 
 // ============================================================
 // Constants
 // ============================================================
 
-const TABS: TabDef[] = [
-  { id: 'pending', label: '承認待ち' },
-  { id: 'my-requests', label: '自分のリクエスト' },
-  { id: 'policies', label: '承認ポリシー' },
+const TAB_KEYS: TabDef[] = [
+  { id: 'pending', labelKey: 'approvals.tabPending' },
+  { id: 'my-requests', labelKey: 'approvals.tabMyRequests' },
+  { id: 'policies', labelKey: 'approvals.tabPolicies' },
 ];
 
-const REQUEST_TYPE_CONFIG: Record<RequestType, { label: string; className: string }> = {
-  budget_change: { label: '予算変更', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-  campaign_create: { label: 'キャンペーン作成', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  creative_publish: { label: 'クリエイティブ配信', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  rule_change: { label: 'ルール変更', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+const REQUEST_TYPE_KEYS: Record<RequestType, { labelKey: string; className: string }> = {
+  budget_change: { labelKey: 'approvals.requestBudgetChange', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+  campaign_create: { labelKey: 'approvals.requestCampaignCreate', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  creative_publish: { labelKey: 'approvals.requestCreativePublish', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  rule_change: { labelKey: 'approvals.requestRuleChange', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
 };
 
-const STATUS_CONFIG: Record<RequestStatus, { label: string; className: string; icon: React.ReactNode }> = {
+const STATUS_KEYS: Record<RequestStatus, { labelKey: string; className: string; icon: React.ReactNode }> = {
   pending: {
-    label: '承認待ち',
+    labelKey: 'approvals.statusPending',
     className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
     icon: <Clock size={12} />,
   },
   approved: {
-    label: '承認済み',
+    labelKey: 'approvals.statusApproved',
     className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     icon: <Check size={12} />,
   },
   rejected: {
-    label: '却下',
+    labelKey: 'approvals.statusRejected',
     className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     icon: <XCircle size={12} />,
   },
   cancelled: {
-    label: '取消',
+    labelKey: 'approvals.statusCancelled',
     className: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
     icon: <X size={12} />,
   },
 };
 
-const POLICY_TARGET_LABELS: Record<PolicyTarget, string> = {
-  campaign: 'キャンペーン',
-  budget: '予算配分',
-  creative: 'クリエイティブ',
-  auto_rule: '自動ルール',
+const POLICY_TARGET_LABEL_KEYS: Record<PolicyTarget, string> = {
+  campaign: 'approvals.targetCampaign',
+  budget: 'approvals.targetBudget',
+  creative: 'approvals.targetCreative',
+  auto_rule: 'approvals.targetAutoRule',
 };
 
-const APPROVER_ROLE_LABELS: Record<ApproverRole, string> = {
-  owner: 'オーナー',
-  admin: '管理者',
-  manager: 'マネージャー',
+const APPROVER_ROLE_LABEL_KEYS: Record<ApproverRole, string> = {
+  owner: 'approvals.roleOwner',
+  admin: 'approvals.roleAdmin',
+  manager: 'approvals.roleManager',
 };
 
 // ============================================================
@@ -327,20 +328,22 @@ function formatYen(value: number): string {
 // ============================================================
 
 function RequestTypeBadge({ type }: { type: RequestType }): React.ReactElement {
-  const config = REQUEST_TYPE_CONFIG[type];
+  const { t } = useI18n();
+  const config = REQUEST_TYPE_KEYS[type];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
 
 function StatusBadge({ status }: { status: RequestStatus }): React.ReactElement {
-  const config = STATUS_CONFIG[status];
+  const { t } = useI18n();
+  const config = STATUS_KEYS[status];
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
       {config.icon}
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
@@ -354,6 +357,7 @@ function PendingRequestCard({
   onApprove: () => void;
   onReject: () => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -405,7 +409,7 @@ function PendingRequestCard({
       {/* Reason */}
       {request.reason && (
         <p className="mt-2 text-sm text-muted-foreground">
-          <span className="font-medium">理由: </span>
+          <span className="font-medium">{t('approvals.reason')}: </span>
           {request.reason}
         </p>
       )}
@@ -419,7 +423,7 @@ function PendingRequestCard({
             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
           >
             <MessageSquare size={12} />
-            コメント ({request.comments.length})
+            {t('approvals.comments', { count: request.comments.length })}
             <ChevronDown
               size={12}
               className={cn('transition-transform', commentsExpanded && 'rotate-180')}
@@ -449,7 +453,7 @@ function PendingRequestCard({
           className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
         >
           <Check size={14} />
-          承認
+          {t('approvals.approve')}
         </button>
         {showRejectInput ? (
           <div className="flex flex-1 items-center gap-2">
@@ -458,7 +462,7 @@ function PendingRequestCard({
               value={rejectReason}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRejectReason(e.target.value)}
               className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="却下理由を入力..."
+              placeholder={t('approvals.rejectPlaceholder')}
               autoFocus
             />
             <button
@@ -469,14 +473,14 @@ function PendingRequestCard({
               }}
               className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
             >
-              却下
+              {t('approvals.reject')}
             </button>
             <button
               type="button"
               onClick={() => setShowRejectInput(false)}
               className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
           </div>
         ) : (
@@ -486,7 +490,7 @@ function PendingRequestCard({
             className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
           >
             <XCircle size={14} />
-            却下
+            {t('approvals.reject')}
           </button>
         )}
         <button
@@ -495,7 +499,7 @@ function PendingRequestCard({
           className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >
           <MessageSquare size={14} />
-          コメント
+          {t('approvals.comment')}
         </button>
       </div>
 
@@ -507,14 +511,14 @@ function PendingRequestCard({
             value={commentText}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommentText(e.target.value)}
             className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder="コメントを入力..."
+            placeholder={t('approvals.commentPlaceholder')}
             autoFocus
           />
           <button
             type="button"
             onClick={() => {
               if (commentText.trim()) {
-                showToast('コメントを投稿しました');
+                showToast(t('approvals.commentPosted'));
                 setCommentText('');
                 setShowCommentInput(false);
               }
@@ -522,7 +526,7 @@ function PendingRequestCard({
             disabled={!commentText.trim()}
             className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            送信
+            {t('approvals.send')}
           </button>
         </div>
       )}
@@ -531,6 +535,7 @@ function PendingRequestCard({
 }
 
 function MyRequestCard({ request, onCancel }: { request: ApprovalRequest; onCancel?: (id: string) => void }): React.ReactElement {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -554,14 +559,14 @@ function MyRequestCard({ request, onCancel }: { request: ApprovalRequest; onCanc
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('このリクエストを取り消しますか？')) {
+              if (window.confirm(t('approvals.cancelConfirm'))) {
                 onCancel?.(request.id);
-                showToast('リクエストを取り消しました');
+                showToast(t('approvals.cancelSuccess'));
               }
             }}
             className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            取り消し
+            {t('approvals.cancelRequest')}
           </button>
         )}
       </div>
@@ -594,6 +599,7 @@ function PolicyCreateModal({
   open: boolean;
   onClose: () => void;
 }): React.ReactElement | null {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [target, setTarget] = useState<PolicyTarget>('campaign');
   const [threshold, setThreshold] = useState('');
@@ -619,8 +625,8 @@ function PolicyCreateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg rounded-lg border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">ポリシー作成</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <h2 className="text-lg font-semibold text-foreground">{t('approvals.policyCreate')}</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
@@ -629,7 +635,7 @@ function PolicyCreateModal({
           {/* Policy name */}
           <div>
             <label htmlFor="policy-name" className="mb-1 block text-sm font-medium text-foreground">
-              ポリシー名
+              {t('approvals.policyName')}
             </label>
             <input
               id="policy-name"
@@ -637,14 +643,14 @@ function PolicyCreateModal({
               value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="高額予算変更ポリシー"
+              placeholder={t('approvals.policyNamePlaceholder')}
             />
           </div>
 
           {/* Target */}
           <div>
             <label htmlFor="policy-target" className="mb-1 block text-sm font-medium text-foreground">
-              対象
+              {t('approvals.policyTarget')}
             </label>
             <div className="relative">
               <select
@@ -653,8 +659,8 @@ function PolicyCreateModal({
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTarget(e.target.value as PolicyTarget)}
                 className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {(Object.entries(POLICY_TARGET_LABELS) as [PolicyTarget, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(Object.entries(POLICY_TARGET_LABEL_KEYS) as [PolicyTarget, string][]).map(([key, labelKey]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </select>
               <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -664,9 +670,9 @@ function PolicyCreateModal({
           {/* Threshold */}
           <div>
             <label htmlFor="policy-threshold" className="mb-1 block text-sm font-medium text-foreground">
-              予算しきい値 (JPY)
+              {t('approvals.policyThreshold')}
             </label>
-            <p className="mb-1 text-xs text-muted-foreground">この金額以上の変更に承認が必要</p>
+            <p className="mb-1 text-xs text-muted-foreground">{t('approvals.policyThresholdHint')}</p>
             <input
               id="policy-threshold"
               type="number"
@@ -680,7 +686,7 @@ function PolicyCreateModal({
 
           {/* Required approvers */}
           <div>
-            <span className="mb-1 block text-sm font-medium text-foreground">必要承認数</span>
+            <span className="mb-1 block text-sm font-medium text-foreground">{t('approvals.policyRequiredApprovers')}</span>
             <div className="flex gap-2">
               {[1, 2, 3].map((n) => (
                 <button
@@ -702,9 +708,9 @@ function PolicyCreateModal({
 
           {/* Approver roles */}
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">承認可能ロール</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('approvals.policyApproverRoles')}</span>
             <div className="space-y-2">
-              {(Object.entries(APPROVER_ROLE_LABELS) as [ApproverRole, string][]).map(([key, label]) => (
+              {(Object.entries(APPROVER_ROLE_LABEL_KEYS) as [ApproverRole, string][]).map(([key, labelKey]) => (
                 <label key={key} className="flex items-center gap-2 text-sm text-foreground">
                   <input
                     type="checkbox"
@@ -712,7 +718,7 @@ function PolicyCreateModal({
                     onChange={() => toggleRole(key)}
                     className="rounded border-input"
                   />
-                  {label}
+                  {t(labelKey)}
                 </label>
               ))}
             </div>
@@ -721,9 +727,9 @@ function PolicyCreateModal({
           {/* Auto-approve */}
           <div>
             <label htmlFor="policy-auto" className="mb-1 block text-sm font-medium text-foreground">
-              自動承認上限 (JPY)
+              {t('approvals.policyAutoApprove')}
             </label>
-            <p className="mb-1 text-xs text-muted-foreground">この金額以下は自動承認</p>
+            <p className="mb-1 text-xs text-muted-foreground">{t('approvals.policyAutoApproveHint')}</p>
             <input
               id="policy-auto"
               type="number"
@@ -742,13 +748,13 @@ function PolicyCreateModal({
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
             <button
               type="button"
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              作成
+              {t('common.create')}
             </button>
           </div>
         </div>
@@ -758,6 +764,7 @@ function PolicyCreateModal({
 }
 
 function PoliciesTab(): React.ReactElement {
+  const { t } = useI18n();
   const [policies, setPolicies] = useState<ApprovalPolicy[]>(MOCK_POLICIES);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -770,23 +777,23 @@ function PoliciesTab(): React.ReactElement {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground">承認ポリシー</h3>
+        <h3 className="text-lg font-semibold text-foreground">{t('approvals.policyTitle')}</h3>
         <button
           type="button"
           onClick={() => setCreateModalOpen(true)}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus size={16} />
-          ポリシー作成
+          {t('approvals.policyCreate')}
         </button>
       </div>
 
       {policies.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
           <Shield size={40} className="mb-3 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-foreground">ポリシーがありません</p>
+          <p className="text-sm font-medium text-foreground">{t('approvals.policyEmpty')}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            承認ポリシーを作成して承認フローを管理しましょう
+            {t('approvals.policyEmptyHint')}
           </p>
         </div>
       ) : (
@@ -794,28 +801,28 @@ function PoliciesTab(): React.ReactElement {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">ポリシー名</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">対象</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">しきい値</th>
-                <th className="px-4 py-3 text-center font-medium text-muted-foreground">承認数</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">承認ロール</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">自動承認上限</th>
-                <th className="px-4 py-3 text-center font-medium text-muted-foreground">状態</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">操作</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('approvals.policyTableName')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('approvals.policyTableTarget')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('approvals.policyTableThreshold')}</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">{t('approvals.policyTableApproverCount')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('approvals.policyTableApproverRoles')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('approvals.policyTableAutoApprove')}</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">{t('approvals.policyTableState')}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('approvals.policyTableActions')}</th>
               </tr>
             </thead>
             <tbody>
               {policies.map((policy) => (
                 <tr key={policy.id} className="border-b border-border transition-colors hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium text-foreground">{policy.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{POLICY_TARGET_LABELS[policy.target]}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{t(POLICY_TARGET_LABEL_KEYS[policy.target])}</td>
                   <td className="px-4 py-3 text-right text-foreground">{formatYen(policy.budgetThreshold)}</td>
                   <td className="px-4 py-3 text-center text-foreground">{policy.requiredApprovers}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {policy.approverRoles.map((role) => (
                         <span key={role} className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">
-                          {APPROVER_ROLE_LABELS[role]}
+                          {t(APPROVER_ROLE_LABEL_KEYS[role])}
                         </span>
                       ))}
                     </div>
@@ -831,7 +838,7 @@ function PoliciesTab(): React.ReactElement {
                       )}
                       role="switch"
                       aria-checked={policy.enabled}
-                      aria-label={policy.enabled ? '有効' : '無効'}
+                      aria-label={policy.enabled ? t('autoRules.enabled') : t('autoRules.disabled')}
                     >
                       <span className={cn(
                         'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
@@ -874,6 +881,7 @@ function PoliciesTab(): React.ReactElement {
 // ============================================================
 
 export default function ApprovalsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<ApprovalTab>('pending');
   const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>(MOCK_PENDING);
   const [myRequests, setMyRequests] = useState<ApprovalRequest[]>(MOCK_MY_REQUESTS);
@@ -893,17 +901,17 @@ export default function ApprovalsPage(): React.ReactElement {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          承認管理 (稟議)
+          {t('approvals.title')}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          予算変更やキャンペーン作成の承認フローを管理します
+          {t('approvals.description')}
         </p>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-border">
-        <nav className="-mb-px flex gap-6" aria-label="タブナビゲーション">
-          {TABS.map((tab) => (
+        <nav className="-mb-px flex gap-6" aria-label={t('approvals.tabNav')}>
+          {TAB_KEYS.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -917,7 +925,7 @@ export default function ApprovalsPage(): React.ReactElement {
               aria-selected={activeTab === tab.id}
               role="tab"
             >
-              {tab.label}
+              {t(tab.labelKey)}
               {tab.id === 'pending' && pendingCount > 0 && (
                 <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                   {pendingCount}
@@ -934,9 +942,9 @@ export default function ApprovalsPage(): React.ReactElement {
           {pendingRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
               <CheckSquare size={40} className="mb-3 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">承認待ちのリクエストはありません</p>
+              <p className="text-sm font-medium text-foreground">{t('approvals.emptyPending')}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                すべてのリクエストが処理されています
+                {t('approvals.emptyPendingDetail')}
               </p>
             </div>
           ) : (
@@ -957,7 +965,7 @@ export default function ApprovalsPage(): React.ReactElement {
           {myRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
               <AlertCircle size={40} className="mb-3 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">リクエストはありません</p>
+              <p className="text-sm font-medium text-foreground">{t('approvals.emptyMyRequests')}</p>
             </div>
           ) : (
             myRequests.map((request) => (

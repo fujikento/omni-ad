@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -120,19 +121,19 @@ const MOCK_MONTHLY_PACING: MonthlyPacing = {
   status: 'caution',
 };
 
-const PACING_STATUS_CONFIG: Record<PacingStatus, { label: string; className: string; badgeClass: string }> = {
+const PACING_STATUS_CONFIG: Record<PacingStatus, { labelKey: string; className: string; badgeClass: string }> = {
   normal: {
-    label: '正常',
+    labelKey: 'budgets.pacingNormal',
     className: 'bg-green-500',
     badgeClass: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   },
   caution: {
-    label: '注意',
+    labelKey: 'budgets.pacingCaution',
     className: 'bg-yellow-500',
     badgeClass: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   },
   danger: {
-    label: '超過危険',
+    labelKey: 'budgets.pacingDanger',
     className: 'bg-red-500',
     badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
@@ -141,6 +142,7 @@ const PACING_STATUS_CONFIG: Record<PacingStatus, { label: string; className: str
 // -- Subcomponents --
 
 function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.ReactElement {
+  const { t } = useI18n();
   const [adjusting, setAdjusting] = useState(false);
   const percentage = Math.round((pacing.spent / pacing.total) * 100);
   const statusConfig = PACING_STATUS_CONFIG[pacing.status];
@@ -152,10 +154,10 @@ function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.Reac
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarDays size={18} className="text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">月次予算ペーシング</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('budgets.monthlyPacing')}</h2>
         </div>
         <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusConfig.badgeClass)}>
-          {statusConfig.label}
+          {t(statusConfig.labelKey)}
         </span>
       </div>
 
@@ -165,7 +167,7 @@ function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.Reac
           <p className="text-lg font-bold text-foreground">
             {formatYen(pacing.spent)}
             <span className="text-sm font-normal text-muted-foreground">
-              {' '}/ {formatYen(pacing.total)} 消化済み ({percentage}%)
+              {' '}/ {formatYen(pacing.total)} {t('budgets.spent')} ({percentage}%)
             </span>
           </p>
         </div>
@@ -182,19 +184,19 @@ function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.Reac
         <div className="rounded-md bg-muted/50 p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarDays size={12} />
-            残り日数
+            {t('budgets.daysRemaining')}
           </div>
-          <p className="mt-1 text-lg font-bold text-foreground">残り{pacing.daysRemaining}日</p>
+          <p className="mt-1 text-lg font-bold text-foreground">{t('budgets.daysRemainingValue', { count: pacing.daysRemaining })}</p>
         </div>
         <div className="rounded-md bg-muted/50 p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <TrendingUp size={12} />
-            予想月末消化
+            {t('budgets.projectedMonthEnd')}
           </div>
           <p className="mt-1 text-lg font-bold text-foreground">{formatYen(pacing.projectedSpend)}</p>
           {pacing.projectedOverage > 0 && (
             <p className="mt-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-              +{pacing.projectedOverage}% 超過見込み
+              {t('budgets.overageProjection', { percent: pacing.projectedOverage })}
             </p>
           )}
         </div>
@@ -206,13 +208,13 @@ function MonthlyPacingSection({ pacing }: { pacing: MonthlyPacing }): React.Reac
               setAdjusting(true);
               setTimeout(() => {
                 setAdjusting(false);
-                showToast('ペーシング自動調整が完了しました');
+                showToast(t('budgets.autoAdjustComplete'));
               }, 1500);
             }}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             {adjusting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            自動調整を実行
+            {t('budgets.autoAdjust')}
           </button>
         </div>
       </div>
@@ -329,6 +331,7 @@ function BudgetSlider({ label, value, min, max, color, onChange }: SliderProps):
 // -- Main Page --
 
 export default function BudgetsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [showRecommendation, setShowRecommendation] = useState(false);
 
@@ -373,10 +376,10 @@ export default function BudgetsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            予算最適化
+            {t('budgets.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            AIによるリアルタイム予算配分の最適化
+            {t('budgets.description')}
           </p>
         </div>
         <button
@@ -386,7 +389,7 @@ export default function BudgetsPage(): React.ReactElement {
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           {isOptimizing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          最適化を実行
+          {t('budgets.runOptimization')}
         </button>
       </div>
 
@@ -397,8 +400,8 @@ export default function BudgetsPage(): React.ReactElement {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Current allocation donut */}
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground">現在の予算配分</h2>
-          <p className="mt-1 text-sm text-muted-foreground">チャネル別の予算配分状況</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('budgets.currentAllocation')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('budgets.channelAllocationStatus')}</p>
           {isLoading ? (
             <div className="mt-6 flex h-64 animate-pulse items-center justify-center rounded-md bg-muted/30">
               <div className="h-4 w-24 rounded bg-muted" />
@@ -414,26 +417,25 @@ export default function BudgetsPage(): React.ReactElement {
         <div className="rounded-lg border border-border bg-card p-6">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">AI推奨配分</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('budgets.aiRecommendation')}</h2>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            パフォーマンスデータに基づく最適配分
+            {t('budgets.performanceBasedOptimal')}
           </p>
           {!showRecommendation ? (
             <div className="mt-6 flex h-64 items-center justify-center rounded-md border border-dashed border-border bg-muted/30">
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Gauge size={48} className="text-muted-foreground/30" />
-                <p className="text-sm">最適化を実行するとAI推奨が表示されます</p>
+                <p className="text-sm">{t('budgets.runToSeeRecommendation')}</p>
               </div>
             </div>
           ) : (
             <div className="mt-4">
               <AllocationDiffTable allocations={allocations} />
               <div className="mt-4 rounded-md bg-primary/5 p-3">
-                <p className="text-sm font-medium text-primary">AI分析結果</p>
+                <p className="text-sm font-medium text-primary">{t('budgets.aiAnalysisResult')}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Google広告とMeta広告のROASが高いため、予算を増額することを推奨します。
-                  X広告とYahoo!広告はROASが低いため、予算を削減し高パフォーマンスチャネルに再配分します。
+                  {t('budgets.aiAnalysisDetail')}
                 </p>
               </div>
             </div>
@@ -445,20 +447,20 @@ export default function BudgetsPage(): React.ReactElement {
       <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-center gap-2">
           <TrendingUp size={18} className="text-green-500" />
-          <h2 className="text-lg font-semibold text-foreground">ROAS予測</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('budgets.roasForecast')}</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          プラットフォーム別の予測ROASと信頼区間
+          {t('budgets.roasForecastDesc')}
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-2 text-left font-medium text-muted-foreground">プラットフォーム</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">予測ROAS</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">信頼区間 (下限)</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">信頼区間 (上限)</th>
-                <th className="px-4 py-2 text-left font-medium text-muted-foreground">信頼度</th>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">{t('campaigns.platform')}</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">{t('budgets.predictedRoas')}</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">{t('budgets.confidenceLow')}</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">{t('budgets.confidenceHigh')}</th>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">{t('budgets.confidenceLevel')}</th>
               </tr>
             </thead>
             <tbody>
@@ -495,9 +497,9 @@ export default function BudgetsPage(): React.ReactElement {
 
       {/* What-If Simulator */}
       <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold text-foreground">What-If シミュレーター</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('budgets.whatIfSimulator')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          予算配分を調整して予測ROASの変化を確認
+          {t('budgets.whatIfDescription')}
         </p>
         <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-4">
@@ -514,7 +516,7 @@ export default function BudgetsPage(): React.ReactElement {
             ))}
             <div className="border-t border-border pt-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">合計予算</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('budgets.totalBudget')}</span>
                 <span className="text-lg font-bold text-foreground">
                   {(totalSimBudget / 1000).toFixed(0)}K
                 </span>
@@ -547,7 +549,7 @@ export default function BudgetsPage(): React.ReactElement {
                   }
                 />
                 <Legend />
-                <Bar dataKey="budget" name="予算 (JPY)" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="budget" name={t('budgets.budgetJpy')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -557,7 +559,7 @@ export default function BudgetsPage(): React.ReactElement {
       {/* Historical allocation timeline */}
       <div className="rounded-lg border border-border bg-card p-6">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          予算配分推移
+          {t('budgets.allocationTrend')}
         </h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={history} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>

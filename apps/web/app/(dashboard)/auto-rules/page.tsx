@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -126,13 +127,13 @@ interface RuleExecution {
 // Constants
 // ============================================================
 
-const METRIC_LABELS: Record<MetricName, string> = {
+const METRIC_LABEL_KEYS: Record<MetricName, string> = {
   cpa: 'CPA',
   roas: 'ROAS',
   ctr: 'CTR',
-  spend: '費用',
-  impressions: 'インプレッション',
-  conversions: 'コンバージョン',
+  spend: 'autoRules.metricSpend',
+  impressions: 'autoRules.metricImpressions',
+  conversions: 'autoRules.metricConversions',
 };
 
 const OPERATOR_LABELS: Record<Operator, string> = {
@@ -142,52 +143,52 @@ const OPERATOR_LABELS: Record<Operator, string> = {
   lte: '<=',
 };
 
-const DURATION_LABELS: Record<Duration, string> = {
-  hourly: '1時間',
-  daily: '1日',
-  '3days': '3日間',
-  '7days': '7日間',
+const DURATION_LABEL_KEYS: Record<Duration, string> = {
+  hourly: 'autoRules.durationHourly',
+  daily: 'autoRules.durationDaily',
+  '3days': 'autoRules.duration3days',
+  '7days': 'autoRules.duration7days',
 };
 
-const ACTION_TYPE_LABELS: Record<ActionType, string> = {
-  pause_campaign: 'キャンペーン停止',
-  resume_campaign: 'キャンペーン再開',
-  adjust_budget: '予算調整',
-  rotate_creative: 'クリエイティブ変更',
-  send_notification: '通知送信',
-  adjust_bid: '入札調整',
+const ACTION_TYPE_LABEL_KEYS: Record<ActionType, string> = {
+  pause_campaign: 'autoRules.actionPauseCampaign',
+  resume_campaign: 'autoRules.actionResumeCampaign',
+  adjust_budget: 'autoRules.actionAdjustBudget',
+  rotate_creative: 'autoRules.actionRotateCreative',
+  send_notification: 'autoRules.actionSendNotification',
+  adjust_bid: 'autoRules.actionAdjustBid',
 };
 
-const CONDITION_TYPE_LABELS: Record<ConditionType, string> = {
-  metric_threshold: '指標しきい値',
-  budget_pacing: '予算ペーシング',
-  creative_fatigue: 'クリエイティブ疲労',
-  time_based: '時間帯',
+const CONDITION_TYPE_LABEL_KEYS: Record<ConditionType, string> = {
+  metric_threshold: 'autoRules.conditionMetricThreshold',
+  budget_pacing: 'autoRules.conditionBudgetPacing',
+  creative_fatigue: 'autoRules.conditionCreativeFatigue',
+  time_based: 'autoRules.conditionTimeBased',
 };
 
-const DAY_LABELS: Record<number, string> = {
-  0: '日',
-  1: '月',
-  2: '火',
-  3: '水',
-  4: '木',
-  5: '金',
-  6: '土',
+const DAY_LABEL_KEYS: Record<number, string> = {
+  0: 'autoRules.daySun',
+  1: 'autoRules.dayMon',
+  2: 'autoRules.dayTue',
+  3: 'autoRules.dayWed',
+  4: 'autoRules.dayThu',
+  5: 'autoRules.dayFri',
+  6: 'autoRules.daySat',
 };
 
-const EXECUTION_STATUS_CONFIG: Record<ExecutionStatus, { label: string; className: string }> = {
-  success: { label: '成功', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  failed: { label: '失敗', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  skipped: { label: 'スキップ', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+const EXECUTION_STATUS_KEYS: Record<ExecutionStatus, { labelKey: string; className: string }> = {
+  success: { labelKey: 'autoRules.statusSuccess', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  failed: { labelKey: 'autoRules.statusFailed', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  skipped: { labelKey: 'autoRules.statusSkipped', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
 };
 
 const COOLDOWN_OPTIONS = [
-  { value: 15, label: '15分' },
-  { value: 30, label: '30分' },
-  { value: 60, label: '1時間' },
-  { value: 120, label: '2時間' },
-  { value: 240, label: '4時間' },
-  { value: 1440, label: '24時間' },
+  { value: 15, labelKey: 'autoRules.cooldown15m' },
+  { value: 30, labelKey: 'autoRules.cooldown30m' },
+  { value: 60, labelKey: 'autoRules.cooldown1h' },
+  { value: 120, labelKey: 'autoRules.cooldown2h' },
+  { value: 240, labelKey: 'autoRules.cooldown4h' },
+  { value: 1440, labelKey: 'autoRules.cooldown24h' },
 ];
 
 // ============================================================
@@ -283,16 +284,19 @@ const MOCK_EXECUTIONS: RuleExecution[] = [
 // Helper Functions
 // ============================================================
 
-function describeCondition(condition: RuleCondition): string {
+function describeCondition(condition: RuleCondition, t: (key: string, params?: Record<string, string | number>) => string): string {
   switch (condition.type) {
-    case 'metric_threshold':
-      return `${METRIC_LABELS[condition.metric]} ${OPERATOR_LABELS[condition.operator]} ${formatConditionValue(condition.metric, condition.value)} が ${DURATION_LABELS[condition.duration]}`;
+    case 'metric_threshold': {
+      const metricKey = METRIC_LABEL_KEYS[condition.metric];
+      const metricLabel = metricKey.startsWith('autoRules.') ? t(metricKey) : metricKey;
+      return `${metricLabel} ${OPERATOR_LABELS[condition.operator]} ${formatConditionValue(condition.metric, condition.value)} が ${t(DURATION_LABEL_KEYS[condition.duration])}`;
+    }
     case 'budget_pacing':
-      return `予算ペーシング${condition.pace === 'over' ? '超過' : '不足'} ${condition.threshold}%`;
+      return `${t('autoRules.conditionBudgetPacing')}${condition.pace === 'over' ? t('autoRules.paceOver') : t('autoRules.paceUnder')} ${condition.threshold}%`;
     case 'creative_fatigue':
-      return `CTR ${condition.ctrDeclinePercent}%低下が ${condition.days}日間`;
+      return `CTR ${condition.ctrDeclinePercent}%${t('autoRules.ctrDeclineRate')} ${condition.days}${t('autoRules.dayUnit')}`;
     case 'time_based': {
-      const days = condition.dayOfWeek.map((d) => DAY_LABELS[d] ?? String(d)).join('');
+      const days = condition.dayOfWeek.map((d) => t(DAY_LABEL_KEYS[d] ?? '') || String(d)).join('');
       return `${days} ${condition.hourRange[0]}:00-${condition.hourRange[1]}:00`;
     }
     default:
@@ -314,20 +318,20 @@ function formatConditionValue(metric: MetricName, value: number): string {
   }
 }
 
-function describeAction(action: RuleAction): string {
+function describeAction(action: RuleAction, t: (key: string) => string): string {
   switch (action.type) {
     case 'pause_campaign':
-      return 'キャンペーン停止';
+      return t('autoRules.actionPauseCampaign');
     case 'resume_campaign':
-      return 'キャンペーン再開';
+      return t('autoRules.actionResumeCampaign');
     case 'adjust_budget':
-      return `予算${action.value}${action.adjustmentType === 'percent' ? '%' : '円'}${action.direction === 'increase' ? '増額' : '減額'}`;
+      return `${t('autoRules.actionAdjustBudget')}${action.value}${action.adjustmentType === 'percent' ? '%' : '円'}${action.direction === 'increase' ? t('autoRules.increase') : t('autoRules.decrease')}`;
     case 'rotate_creative':
-      return 'クリエイティブ変更';
+      return t('autoRules.actionRotateCreative');
     case 'send_notification':
-      return `${action.channels.join('/')}に通知`;
+      return `${action.channels.join('/')}`;
     case 'adjust_bid':
-      return `入札${action.value}%${action.direction === 'increase' ? '引き上げ' : '引き下げ'}`;
+      return `${t('autoRules.actionAdjustBid')}${action.value}%${action.direction === 'increase' ? t('autoRules.bidIncrease') : t('autoRules.bidDecrease')}`;
     default:
       return '';
   }
@@ -405,6 +409,7 @@ interface RuleCardProps {
 }
 
 function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className={cn(
       'rounded-lg border bg-card p-5 transition-colors',
@@ -417,7 +422,7 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardPro
           <div>
             <h3 className="text-sm font-semibold text-foreground">{rule.name}</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              クールダウン: {COOLDOWN_OPTIONS.find((o) => o.value === rule.cooldownMinutes)?.label ?? `${rule.cooldownMinutes}分`}
+              {t('autoRules.cooldown')}: {COOLDOWN_OPTIONS.find((o) => o.value === rule.cooldownMinutes) ? t(COOLDOWN_OPTIONS.find((o) => o.value === rule.cooldownMinutes)!.labelKey) : `${rule.cooldownMinutes}${t('autoRules.minuteUnit')}`}
             </p>
           </div>
         </div>
@@ -426,8 +431,8 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardPro
             type="button"
             onClick={() => onEdit(rule.id)}
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            title="編集"
-            aria-label={`${rule.name}を編集`}
+            title={t('common.edit')}
+            aria-label={`${rule.name}${t('common.edit')}`}
           >
             <Zap size={14} />
           </button>
@@ -435,8 +440,8 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardPro
             type="button"
             onClick={() => onDuplicate(rule.id)}
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            title="複製"
-            aria-label={`${rule.name}を複製`}
+            title={t('autoRules.duplicate')}
+            aria-label={`${rule.name}${t('autoRules.duplicate')}`}
           >
             <Copy size={14} />
           </button>
@@ -444,8 +449,8 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardPro
             type="button"
             onClick={() => onDelete(rule.id)}
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-            title="削除"
-            aria-label={`${rule.name}を削除`}
+            title={t('common.delete')}
+            aria-label={`${rule.name}${t('common.delete')}`}
           >
             <Trash2 size={14} />
           </button>
@@ -454,32 +459,32 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete }: RuleCardPro
 
       {/* Conditions */}
       <div className="mt-3 space-y-1.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">条件 (IF)</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t('autoRules.conditionIf')}</p>
         {rule.conditions.map((condition, idx) => (
           <div key={idx} className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-1.5">
             <span className="flex-shrink-0 text-muted-foreground">{getConditionIcon(condition.type)}</span>
-            <span className="text-xs text-foreground">{describeCondition(condition)}</span>
+            <span className="text-xs text-foreground">{describeCondition(condition, t)}</span>
           </div>
         ))}
       </div>
 
       {/* Actions */}
       <div className="mt-3 space-y-1.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">アクション (THEN)</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t('autoRules.actionThen')}</p>
         {rule.actions.map((action, idx) => (
           <div key={idx} className="flex items-center gap-2 rounded-md bg-primary/5 px-3 py-1.5">
             <ArrowRight size={12} className="flex-shrink-0 text-primary" />
             <span className="flex-shrink-0 text-primary">{getActionIcon(action.type)}</span>
-            <span className="text-xs font-medium text-primary">{describeAction(action)}</span>
+            <span className="text-xs font-medium text-primary">{describeAction(action, t)}</span>
           </div>
         ))}
       </div>
 
       {/* Stats */}
       <div className="mt-3 flex items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
-        <span>発動 <span className="font-semibold text-foreground">{rule.triggerCount}回</span></span>
+        <span>{t('autoRules.triggerCount')} <span className="font-semibold text-foreground">{t('autoRules.triggerUnit', { count: rule.triggerCount })}</span></span>
         {rule.lastTriggered && (
-          <span>最終発動: <span className="font-medium text-foreground">{rule.lastTriggered}</span></span>
+          <span>{t('autoRules.lastTriggered')}: <span className="font-medium text-foreground">{rule.lastTriggered}</span></span>
         )}
       </div>
     </div>
@@ -547,6 +552,7 @@ function createEmptyAction(): FormAction {
 }
 
 function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState(editingRule?.name ?? '');
   const [cooldown, setCooldown] = useState(editingRule?.cooldownMinutes ?? 60);
@@ -612,15 +618,18 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
   function buildConditionPreview(): string {
     return conditions.map((c) => {
       switch (c.type) {
-        case 'metric_threshold':
-          return `${METRIC_LABELS[c.metric]} が ${c.value || '?'} を${c.operator === 'gt' || c.operator === 'gte' ? '超えた' : '下回った'}状態が ${DURATION_LABELS[c.duration]} 続いた場合`;
+        case 'metric_threshold': {
+          const metricKey = METRIC_LABEL_KEYS[c.metric];
+          const metricLabel = metricKey.startsWith('autoRules.') ? t(metricKey) : metricKey;
+          return `${metricLabel} ${c.value || '?'} ${t(DURATION_LABEL_KEYS[c.duration])}`;
+        }
         case 'budget_pacing':
-          return `予算ペーシングが ${c.threshold || '?'}% ${c.pace === 'over' ? '超過' : '不足'}の場合`;
+          return `${t('autoRules.conditionBudgetPacing')} ${c.threshold || '?'}% ${c.pace === 'over' ? t('autoRules.paceOver') : t('autoRules.paceUnder')}`;
         case 'creative_fatigue':
-          return `CTRが ${c.ctrDeclinePercent || '?'}% 低下した状態が ${c.days || '?'}日間 続いた場合`;
+          return `CTR ${c.ctrDeclinePercent || '?'}% ${c.days || '?'}${t('autoRules.dayUnit')}`;
         case 'time_based': {
-          const days = c.dayOfWeek.map((d) => DAY_LABELS[d] ?? '').join('');
-          return `${days} ${c.hourStart}:00-${c.hourEnd}:00 の場合`;
+          const days = c.dayOfWeek.map((d) => t(DAY_LABEL_KEYS[d] ?? '') || '').join('');
+          return `${days} ${c.hourStart}:00-${c.hourEnd}:00`;
         }
         default:
           return '';
@@ -632,21 +641,21 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
     return actions.map((a) => {
       switch (a.type) {
         case 'pause_campaign':
-          return 'キャンペーンを停止';
+          return t('autoRules.actionPauseCampaign');
         case 'resume_campaign':
-          return 'キャンペーンを再開';
+          return t('autoRules.actionResumeCampaign');
         case 'adjust_budget':
-          return `予算を${a.value || '?'}${a.adjustmentType === 'percent' ? '%' : '円'}${a.direction === 'increase' ? '増額' : '減額'}`;
+          return `${t('autoRules.actionAdjustBudget')} ${a.value || '?'}${a.adjustmentType === 'percent' ? '%' : ''}${a.direction === 'increase' ? t('autoRules.increase') : t('autoRules.decrease')}`;
         case 'rotate_creative':
-          return 'クリエイティブをローテーション';
+          return t('autoRules.actionRotateCreative');
         case 'send_notification':
-          return `${a.channels.join('/')}に通知を送信`;
+          return `${a.channels.join('/')} ${t('autoRules.actionSendNotification')}`;
         case 'adjust_bid':
-          return `入札を${a.value || '?'}%${a.direction === 'increase' ? '引き上げ' : '引き下げ'}`;
+          return `${t('autoRules.actionAdjustBid')} ${a.value || '?'}% ${a.direction === 'increase' ? t('autoRules.bidIncrease') : t('autoRules.bidDecrease')}`;
         default:
           return '';
       }
-    }).join('し、');
+    }).join(', ');
   }
 
   function handleSubmit(): void {
@@ -660,22 +669,22 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">新規ルール作成</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('autoRules.modalTitle')}</h2>
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
               <span className={cn('rounded-full px-2 py-0.5 font-medium', step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                1. 基本情報
+                {t('autoRules.step1')}
               </span>
               <ChevronRight size={12} />
               <span className={cn('rounded-full px-2 py-0.5 font-medium', step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                2. 条件設定
+                {t('autoRules.step2')}
               </span>
               <ChevronRight size={12} />
               <span className={cn('rounded-full px-2 py-0.5 font-medium', step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                3. アクション
+                {t('autoRules.step3')}
               </span>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
@@ -686,7 +695,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
             <div className="space-y-5">
               <div>
                 <label htmlFor="rule-name" className="mb-1 block text-sm font-medium text-foreground">
-                  ルール名
+                  {t('autoRules.ruleName')}
                 </label>
                 <input
                   id="rule-name"
@@ -694,13 +703,13 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                   value={name}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="CPA上限で停止"
+                  placeholder={t('autoRules.ruleNamePlaceholder')}
                   required
                 />
               </div>
               <div>
                 <label htmlFor="rule-cooldown" className="mb-1 block text-sm font-medium text-foreground">
-                  クールダウン
+                  {t('autoRules.cooldown')}
                 </label>
                 <div className="relative">
                   <select
@@ -710,7 +719,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                     className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     {COOLDOWN_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                     ))}
                   </select>
                   <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -722,14 +731,14 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
           {/* Step 2: Conditions */}
           {step === 2 && (
             <div className="space-y-5">
-              <p className="text-sm font-medium text-foreground">条件設定 (IF)</p>
+              <p className="text-sm font-medium text-foreground">{t('autoRules.conditionSettings')}</p>
               <div className="space-y-4">
                 {conditions.map((cond, idx) => (
                   <div key={idx} className="rounded-md border border-border p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">条件 {idx + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{t('autoRules.conditionN', { n: idx + 1 })}</span>
                       {conditions.length > 1 && (
-                        <button type="button" onClick={() => removeCondition(idx)} className="rounded p-0.5 text-muted-foreground hover:text-red-600" aria-label="条件を削除">
+                        <button type="button" onClick={() => removeCondition(idx)} className="rounded p-0.5 text-muted-foreground hover:text-red-600" aria-label={t('autoRules.removeCondition')}>
                           <Minus size={14} />
                         </button>
                       )}
@@ -741,10 +750,10 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                         value={cond.type}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(idx, 'type', e.target.value as ConditionType)}
                         className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        aria-label="条件タイプ"
+                        aria-label={t('autoRules.conditionType')}
                       >
-                        {(Object.entries(CONDITION_TYPE_LABELS) as [ConditionType, string][]).map(([k, v]) => (
-                          <option key={k} value={k}>{v}</option>
+                        {(Object.entries(CONDITION_TYPE_LABEL_KEYS) as [ConditionType, string][]).map(([k, v]) => (
+                          <option key={k} value={k}>{t(v)}</option>
                         ))}
                       </select>
                       <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -758,10 +767,10 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={cond.metric}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(idx, 'metric', e.target.value as MetricName)}
                             className="w-full appearance-none rounded-md border border-input bg-background px-2 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="指標"
+                            aria-label={t('autoRules.metricLabel')}
                           >
-                            {(Object.entries(METRIC_LABELS) as [MetricName, string][]).map(([k, v]) => (
-                              <option key={k} value={k}>{v}</option>
+                            {(Object.entries(METRIC_LABEL_KEYS) as [MetricName, string][]).map(([k, v]) => (
+                              <option key={k} value={k}>{v.startsWith('autoRules.') ? t(v) : v}</option>
                             ))}
                           </select>
                           <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -771,7 +780,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={cond.operator}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(idx, 'operator', e.target.value as Operator)}
                             className="w-full appearance-none rounded-md border border-input bg-background px-2 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="演算子"
+                            aria-label={t('autoRules.operatorLabel')}
                           >
                             {(Object.entries(OPERATOR_LABELS) as [Operator, string][]).map(([k, v]) => (
                               <option key={k} value={k}>{v}</option>
@@ -784,18 +793,18 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                           value={cond.value}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(idx, 'value', e.target.value)}
                           className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                          placeholder="値"
-                          aria-label="しきい値"
+                          placeholder={t('autoRules.valueLabel')}
+                          aria-label={t('autoRules.thresholdLabel')}
                         />
                         <div className="relative">
                           <select
                             value={cond.duration}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(idx, 'duration', e.target.value as Duration)}
                             className="w-full appearance-none rounded-md border border-input bg-background px-2 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="期間"
+                            aria-label={t('autoRules.durationLabel')}
                           >
-                            {(Object.entries(DURATION_LABELS) as [Duration, string][]).map(([k, v]) => (
-                              <option key={k} value={k}>{v}</option>
+                            {(Object.entries(DURATION_LABEL_KEYS) as [Duration, string][]).map(([k, v]) => (
+                              <option key={k} value={k}>{t(v)}</option>
                             ))}
                           </select>
                           <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -811,10 +820,10 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={cond.pace}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCondition(idx, 'pace', e.target.value as 'over' | 'under')}
                             className="w-full appearance-none rounded-md border border-input bg-background px-3 py-1.5 pr-8 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="ペース"
+                            aria-label={t('autoRules.paceLabel')}
                           >
-                            <option value="over">超過</option>
-                            <option value="under">不足</option>
+                            <option value="over">{t('autoRules.paceOver')}</option>
+                            <option value="under">{t('autoRules.paceUnder')}</option>
                           </select>
                           <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         </div>
@@ -825,7 +834,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(idx, 'threshold', e.target.value)}
                             className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             placeholder="20"
-                            aria-label="しきい値パーセント"
+                            aria-label={t('autoRules.thresholdPercent')}
                           />
                           <span className="text-xs text-muted-foreground">%</span>
                         </div>
@@ -836,28 +845,28 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                     {cond.type === 'creative_fatigue' && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground">CTR低下率</span>
+                          <span className="text-xs text-muted-foreground">{t('autoRules.ctrDeclineRate')}</span>
                           <input
                             type="number"
                             value={cond.ctrDeclinePercent}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(idx, 'ctrDeclinePercent', e.target.value)}
                             className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             placeholder="15"
-                            aria-label="CTR低下率"
+                            aria-label={t('autoRules.ctrDeclineRate')}
                           />
                           <span className="text-xs text-muted-foreground">%</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground">期間</span>
+                          <span className="text-xs text-muted-foreground">{t('autoRules.periodDays')}</span>
                           <input
                             type="number"
                             value={cond.days}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(idx, 'days', e.target.value)}
                             className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             placeholder="5"
-                            aria-label="日数"
+                            aria-label={t('autoRules.periodDays')}
                           />
-                          <span className="text-xs text-muted-foreground">日</span>
+                          <span className="text-xs text-muted-foreground">{t('autoRules.dayUnit')}</span>
                         </div>
                       </div>
                     )}
@@ -866,7 +875,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                     {cond.type === 'time_based' && (
                       <div className="mt-3 space-y-3">
                         <div>
-                          <span className="text-xs text-muted-foreground">曜日</span>
+                          <span className="text-xs text-muted-foreground">{t('autoRules.dayOfWeek')}</span>
                           <div className="mt-1 flex gap-1">
                             {[0, 1, 2, 3, 4, 5, 6].map((day) => (
                               <button
@@ -880,13 +889,13 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                                     : 'border border-border text-muted-foreground hover:border-primary/50',
                                 )}
                               >
-                                {DAY_LABELS[day]}
+                                {t(DAY_LABEL_KEYS[day] ?? '')}
                               </button>
                             ))}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">時間帯</span>
+                          <span className="text-xs text-muted-foreground">{t('autoRules.timeRange')}</span>
                           <input
                             type="number"
                             min={0}
@@ -894,7 +903,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={cond.hourStart}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(idx, 'hourStart', Number(e.target.value))}
                             className="w-16 rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="開始時間"
+                            aria-label={t('autoRules.startTime')}
                           />
                           <span className="text-xs text-muted-foreground">:00 -</span>
                           <input
@@ -904,7 +913,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={cond.hourEnd}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCondition(idx, 'hourEnd', Number(e.target.value))}
                             className="w-16 rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="終了時間"
+                            aria-label={t('autoRules.endTime')}
                           />
                           <span className="text-xs text-muted-foreground">:00</span>
                         </div>
@@ -920,13 +929,13 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                 className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
               >
                 <Plus size={14} />
-                条件を追加
+                {t('autoRules.addCondition')}
               </button>
 
               {/* Preview */}
               <div className="rounded-md bg-muted/50 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">プレビュー</p>
-                <p className="mt-1 text-xs text-foreground">{buildConditionPreview() || '条件を設定してください'}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t('autoRules.preview')}</p>
+                <p className="mt-1 text-xs text-foreground">{buildConditionPreview() || t('autoRules.noCondition')}</p>
               </div>
             </div>
           )}
@@ -934,14 +943,14 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
           {/* Step 3: Actions */}
           {step === 3 && (
             <div className="space-y-5">
-              <p className="text-sm font-medium text-foreground">アクション設定 (THEN)</p>
+              <p className="text-sm font-medium text-foreground">{t('autoRules.actionSettings')}</p>
               <div className="space-y-4">
                 {actions.map((act, idx) => (
                   <div key={idx} className="rounded-md border border-border p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">アクション {idx + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{t('autoRules.actionN', { n: idx + 1 })}</span>
                       {actions.length > 1 && (
-                        <button type="button" onClick={() => removeAction(idx)} className="rounded p-0.5 text-muted-foreground hover:text-red-600" aria-label="アクションを削除">
+                        <button type="button" onClick={() => removeAction(idx)} className="rounded p-0.5 text-muted-foreground hover:text-red-600" aria-label={t('autoRules.removeAction')}>
                           <Minus size={14} />
                         </button>
                       )}
@@ -953,10 +962,10 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                         value={act.type}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateAction(idx, 'type', e.target.value as ActionType)}
                         className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        aria-label="アクションタイプ"
+                        aria-label={t('autoRules.actionType')}
                       >
-                        {(Object.entries(ACTION_TYPE_LABELS) as [ActionType, string][]).map(([k, v]) => (
-                          <option key={k} value={k}>{v}</option>
+                        {(Object.entries(ACTION_TYPE_LABEL_KEYS) as [ActionType, string][]).map(([k, v]) => (
+                          <option key={k} value={k}>{t(v)}</option>
                         ))}
                       </select>
                       <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -970,10 +979,10 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={act.adjustmentType}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateAction(idx, 'adjustmentType', e.target.value as AdjustMethod)}
                             className="w-full appearance-none rounded-md border border-input bg-background px-2 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="調整方法"
+                            aria-label={t('autoRules.adjustMethod')}
                           >
-                            <option value="percent">パーセント</option>
-                            <option value="absolute">固定金額</option>
+                            <option value="percent">{t('autoRules.adjustPercent')}</option>
+                            <option value="absolute">{t('autoRules.adjustAbsolute')}</option>
                           </select>
                           <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         </div>
@@ -983,17 +992,17 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAction(idx, 'value', e.target.value)}
                           className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                           placeholder="20"
-                          aria-label="調整値"
+                          aria-label={t('autoRules.adjustValue')}
                         />
                         <div className="relative">
                           <select
                             value={act.direction}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateAction(idx, 'direction', e.target.value as AdjustDirection)}
                             className="w-full appearance-none rounded-md border border-input bg-background px-2 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="方向"
+                            aria-label={t('autoRules.adjustDirection')}
                           >
-                            <option value="increase">増額</option>
-                            <option value="decrease">減額</option>
+                            <option value="increase">{t('autoRules.increase')}</option>
+                            <option value="decrease">{t('autoRules.decrease')}</option>
                           </select>
                           <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         </div>
@@ -1010,7 +1019,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAction(idx, 'value', e.target.value)}
                             className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             placeholder="10"
-                            aria-label="調整率"
+                            aria-label={t('autoRules.adjustRate')}
                           />
                           <span className="text-xs text-muted-foreground">%</span>
                         </div>
@@ -1019,10 +1028,10 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             value={act.direction}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateAction(idx, 'direction', e.target.value as AdjustDirection)}
                             className="w-full appearance-none rounded-md border border-input bg-background px-2 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-label="方向"
+                            aria-label={t('autoRules.adjustDirection')}
                           >
-                            <option value="increase">引き上げ</option>
-                            <option value="decrease">引き下げ</option>
+                            <option value="increase">{t('autoRules.bidIncrease')}</option>
+                            <option value="decrease">{t('autoRules.bidDecrease')}</option>
                           </select>
                           <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         </div>
@@ -1033,7 +1042,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                     {act.type === 'send_notification' && (
                       <div className="mt-3 space-y-3">
                         <div>
-                          <span className="text-xs text-muted-foreground">チャネル</span>
+                          <span className="text-xs text-muted-foreground">{t('autoRules.channel')}</span>
                           <div className="mt-1 flex flex-wrap gap-2">
                             {(['dashboard', 'slack', 'line', 'email'] as const).map((ch) => (
                               <button
@@ -1047,14 +1056,14 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                                     : 'border-border text-muted-foreground hover:border-primary/50',
                                 )}
                               >
-                                {ch === 'dashboard' ? 'ダッシュボード' : ch === 'slack' ? 'Slack' : ch === 'line' ? 'LINE' : 'メール'}
+                                {ch === 'dashboard' ? t('autoRules.channelDashboard') : ch === 'slack' ? 'Slack' : ch === 'line' ? 'LINE' : t('autoRules.channelEmail')}
                               </button>
                             ))}
                           </div>
                         </div>
                         <div>
                           <label htmlFor={`notif-msg-${idx}`} className="text-xs text-muted-foreground">
-                            メッセージテンプレート
+                            {t('autoRules.messageTemplate')}
                           </label>
                           <textarea
                             id={`notif-msg-${idx}`}
@@ -1062,7 +1071,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateAction(idx, 'message', e.target.value)}
                             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             rows={2}
-                            placeholder="ルールが発動しました: {{rule_name}}"
+                            placeholder={t('autoRules.messagePlaceholder')}
                           />
                         </div>
                       </div>
@@ -1077,15 +1086,15 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                 className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
               >
                 <Plus size={14} />
-                アクションを追加
+                {t('autoRules.addAction')}
               </button>
 
               {/* Preview */}
               <div className="rounded-md bg-primary/5 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">プレビュー</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t('autoRules.preview')}</p>
                 <p className="mt-1 text-xs text-foreground">
                   <ArrowRight size={12} className="mr-1 inline text-primary" />
-                  {buildActionPreview() || 'アクションを設定してください'}
+                  {buildActionPreview() || t('autoRules.noAction')}
                 </p>
               </div>
             </div>
@@ -1101,7 +1110,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                 onClick={() => setStep((step - 1) as 1 | 2 | 3)}
                 className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
               >
-                戻る
+                {t('common.back')}
               </button>
             )}
           </div>
@@ -1111,7 +1120,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
             {step < 3 ? (
               <button
@@ -1120,7 +1129,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                 disabled={step === 1 && !name}
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                次へ
+                {t('common.next')}
                 <ChevronRight size={14} />
               </button>
             ) : (
@@ -1130,7 +1139,7 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Check size={14} />
-                ルールを作成
+                {t('autoRules.submitRule')}
               </button>
             )}
           </div>
@@ -1143,15 +1152,17 @@ function CreateRuleModal({ open, onClose, editingRule }: CreateRuleModalProps): 
 // -- Execution History --
 
 function ExecutionStatusBadge({ status }: { status: ExecutionStatus }): React.ReactElement {
-  const config = EXECUTION_STATUS_CONFIG[status];
+  const { t } = useI18n();
+  const config = EXECUTION_STATUS_KEYS[status];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
 
 function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }): React.ReactElement {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [page, setPage] = useState(0);
   const pageSize = 5;
@@ -1167,8 +1178,8 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
       >
         <div className="flex items-center gap-2">
           <Clock size={16} className="text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">実行履歴</h3>
-          <span className="text-xs text-muted-foreground">({executions.length}件)</span>
+          <h3 className="text-sm font-semibold text-foreground">{t('autoRules.executionHistory')}</h3>
+          <span className="text-xs text-muted-foreground">{t('autoRules.executionCount', { count: executions.length })}</span>
         </div>
         <ChevronDown size={14} className={cn('text-muted-foreground transition-transform', expanded && 'rotate-180')} />
       </button>
@@ -1179,12 +1190,12 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">日時</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ルール名</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">キャンペーン</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">条件値</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">実行アクション</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ステータス</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('autoRules.execDatetime')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('autoRules.execRuleName')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('autoRules.execCampaign')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('autoRules.execConditionValue')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('autoRules.execAction')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('autoRules.execStatus')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1217,7 +1228,7 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
                   disabled={page === 0}
                   className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
                 >
-                  前へ
+                  {t('autoRules.paginationPrev')}
                 </button>
                 <button
                   type="button"
@@ -1225,7 +1236,7 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
                   disabled={page >= totalPages - 1}
                   className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
                 >
-                  次へ
+                  {t('autoRules.paginationNext')}
                 </button>
               </div>
             </div>
@@ -1241,6 +1252,7 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
 // ============================================================
 
 export default function AutoRulesPage(): React.ReactElement {
+  const { t } = useI18n();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [rules, setRules] = useState<AutoRule[]>(MOCK_RULES);
@@ -1267,7 +1279,7 @@ export default function AutoRulesPage(): React.ReactElement {
     const newRule: AutoRule = {
       ...source,
       id: `r${Date.now()}`,
-      name: `${source.name} (コピー)`,
+      name: `${source.name} ${t('autoRules.copyLabel')}`,
       triggerCount: 0,
       lastTriggered: null,
     };
@@ -1291,10 +1303,10 @@ export default function AutoRulesPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            自動ルール管理
+            {t('autoRules.title')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            条件ベースの自動化ルールでキャンペーン運用を自動最適化します
+            {t('autoRules.description')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -1305,7 +1317,7 @@ export default function AutoRulesPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
             {evaluating ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            全ルール評価
+            {t('autoRules.evaluateAll')}
           </button>
           <button
             type="button"
@@ -1313,7 +1325,7 @@ export default function AutoRulesPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Plus size={16} />
-            新規ルール作成
+            {t('autoRules.createRule')}
           </button>
         </div>
       </div>
@@ -1335,9 +1347,9 @@ export default function AutoRulesPage(): React.ReactElement {
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-16">
           <Workflow size={48} className="text-muted-foreground/30" />
-          <p className="text-muted-foreground">自動ルールがまだありません</p>
+          <p className="text-muted-foreground">{t('autoRules.empty')}</p>
           <p className="text-sm text-muted-foreground/70">
-            「新規ルール作成」ボタンから最初のルールを作成しましょう
+            {t('autoRules.emptyHint')}
           </p>
         </div>
       )}

@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -45,28 +46,28 @@ interface ScheduleConfig {
 
 // -- Constants --
 
-const REPORT_TYPE_LABELS: Record<ReportType, string> = {
-  performance: 'パフォーマンス',
-  budget: '予算',
-  attribution: 'アトリビューション',
-  audience: 'オーディエンス',
-  creative: 'クリエイティブ',
-  funnel: 'ファネル',
-  executive_summary: 'エグゼクティブサマリー',
+const REPORT_TYPE_LABEL_KEYS: Record<ReportType, string> = {
+  performance: 'reports.type.performance',
+  budget: 'reports.type.budget',
+  attribution: 'reports.type.attribution',
+  audience: 'reports.type.audience',
+  creative: 'reports.type.creative',
+  funnel: 'reports.type.funnel',
+  executive_summary: 'reports.type.executiveSummary',
 };
 
-const STATUS_CONFIG: Record<ReportStatus, { label: string; className: string }> = {
-  ready: { label: '完了', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  generating: { label: '生成中', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  scheduled: { label: '予約済', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  failed: { label: 'エラー', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+const STATUS_CONFIG: Record<ReportStatus, { labelKey: string; className: string }> = {
+  ready: { labelKey: 'reports.status.ready', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  generating: { labelKey: 'reports.status.generating', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  scheduled: { labelKey: 'reports.status.scheduled', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  failed: { labelKey: 'reports.status.failed', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
-const FREQUENCY_LABELS: Record<Frequency, string> = {
-  daily: '日次',
-  weekly: '週次',
-  biweekly: '隔週',
-  monthly: '月次',
+const FREQUENCY_LABEL_KEYS: Record<Frequency, string> = {
+  daily: 'reports.frequency.daily',
+  weekly: 'reports.frequency.weekly',
+  biweekly: 'reports.frequency.biweekly',
+  monthly: 'reports.frequency.monthly',
 };
 
 const MOCK_REPORTS: Report[] = [
@@ -108,11 +109,12 @@ const MOCK_SCHEDULES: ScheduleConfig[] = [
 // -- Subcomponents --
 
 function StatusBadge({ status }: { status: ReportStatus }): React.ReactElement {
+  const { t } = useI18n();
   const config = STATUS_CONFIG[status];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
       {status === 'generating' && <Loader2 size={10} className="mr-1 animate-spin" />}
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
@@ -123,38 +125,39 @@ interface ReportPreviewProps {
 }
 
 function ReportPreview({ report, onClose }: ReportPreviewProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg rounded-lg border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">{report.title}</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-muted-foreground">レポートタイプ</p>
-              <p className="text-sm font-medium text-foreground">{REPORT_TYPE_LABELS[report.type]}</p>
+              <p className="text-xs text-muted-foreground">{t('reports.reportType')}</p>
+              <p className="text-sm font-medium text-foreground">{t(REPORT_TYPE_LABEL_KEYS[report.type])}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">期間</p>
+              <p className="text-xs text-muted-foreground">{t('reports.period')}</p>
               <p className="text-sm text-foreground">{report.dateRange}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">フォーマット</p>
+              <p className="text-xs text-muted-foreground">{t('reports.format')}</p>
               <p className="text-sm text-foreground">{report.format}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">ステータス</p>
+              <p className="text-xs text-muted-foreground">{t('common.status')}</p>
               <StatusBadge status={report.status} />
             </div>
           </div>
 
           {report.insights.length > 0 && (
             <div>
-              <p className="mb-2 text-sm font-medium text-foreground">AIインサイト</p>
+              <p className="mb-2 text-sm font-medium text-foreground">{t('reports.aiInsights')}</p>
               <div className="space-y-2">
                 {report.insights.map((insight, idx) => (
                   <div key={idx} className="flex items-start gap-2 rounded-md bg-primary/5 p-3">
@@ -179,7 +182,7 @@ function ReportPreview({ report, onClose }: ReportPreviewProps): React.ReactElem
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Download size={16} />
-              ダウンロード ({report.format})
+              {t('reports.download')} ({report.format})
             </button>
           )}
         </div>
@@ -194,6 +197,7 @@ interface GenerateModalProps {
 }
 
 function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [reportType, setReportType] = useState<ReportType>('performance');
   const [frequency, setFrequency] = useState<'once' | 'daily' | 'weekly' | 'monthly'>('once');
   const [startDate, setStartDate] = useState('');
@@ -216,15 +220,15 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">レポート生成</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <h2 className="text-lg font-semibold text-foreground">{t('reports.generateModal.title')}</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleGenerate} className="space-y-4">
           <div>
-            <label htmlFor="report-type" className="mb-1 block text-sm font-medium text-foreground">レポートタイプ</label>
+            <label htmlFor="report-type" className="mb-1 block text-sm font-medium text-foreground">{t('reports.reportType')}</label>
             <div className="relative">
               <select
                 id="report-type"
@@ -232,8 +236,8 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReportType(e.target.value as ReportType)}
                 className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {(Object.entries(REPORT_TYPE_LABELS) as [ReportType, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(Object.entries(REPORT_TYPE_LABEL_KEYS) as [ReportType, string][]).map(([key, labelKey]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -241,13 +245,13 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
           </div>
 
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">生成頻度</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('reports.generateModal.frequency')}</span>
             <div className="flex gap-2">
               {([
-                { value: 'once', label: '一回のみ' },
-                { value: 'daily', label: '日次' },
-                { value: 'weekly', label: '週次' },
-                { value: 'monthly', label: '月次' },
+                { value: 'once', labelKey: 'reports.generateModal.once' },
+                { value: 'daily', labelKey: 'reports.generateModal.daily' },
+                { value: 'weekly', labelKey: 'reports.generateModal.weekly' },
+                { value: 'monthly', labelKey: 'reports.generateModal.monthly' },
               ] as const).map((option) => (
                 <button
                   key={option.value}
@@ -260,7 +264,7 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
                       : 'border-border text-muted-foreground hover:border-primary/50',
                   )}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               ))}
             </div>
@@ -268,7 +272,7 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="report-start" className="mb-1 block text-sm font-medium text-foreground">開始日</label>
+              <label htmlFor="report-start" className="mb-1 block text-sm font-medium text-foreground">{t('reports.generateModal.startDate')}</label>
               <input
                 id="report-start"
                 type="date"
@@ -279,7 +283,7 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
               />
             </div>
             <div>
-              <label htmlFor="report-end" className="mb-1 block text-sm font-medium text-foreground">終了日</label>
+              <label htmlFor="report-end" className="mb-1 block text-sm font-medium text-foreground">{t('reports.generateModal.endDate')}</label>
               <input
                 id="report-end"
                 type="date"
@@ -297,7 +301,7 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -305,7 +309,7 @@ function GenerateModal({ open, onClose }: GenerateModalProps): React.ReactElemen
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-              生成
+              {t('reports.generateModal.generate')}
             </button>
           </div>
         </form>
@@ -335,15 +339,25 @@ function downloadBlob(content: string, filename: string, mimeType: string): void
   URL.revokeObjectURL(url);
 }
 
+// Static labels for CSV/HTML exports (these run outside React context)
+const REPORT_TYPE_EXPORT_LABELS: Record<ReportType, string> = {
+  performance: 'Performance', budget: 'Budget', attribution: 'Attribution',
+  audience: 'Audience', creative: 'Creative', funnel: 'Funnel', executive_summary: 'Executive Summary',
+};
+
+const STATUS_EXPORT_LABELS: Record<ReportStatus, string> = {
+  ready: 'Ready', generating: 'Generating', scheduled: 'Scheduled', failed: 'Error',
+};
+
 function generateReportCSV(report: Report): string {
-  const header = ['項目', '値'].map(escapeCSVValue).join(',');
+  const header = ['Item', 'Value'].map(escapeCSVValue).join(',');
   const rows = [
-    ['タイトル', report.title],
-    ['タイプ', REPORT_TYPE_LABELS[report.type]],
-    ['期間', report.dateRange],
-    ['ステータス', STATUS_CONFIG[report.status].label],
-    ['フォーマット', report.format],
-    ...report.insights.map((insight, idx) => [`インサイト${idx + 1}`, insight]),
+    ['Title', report.title],
+    ['Type', REPORT_TYPE_EXPORT_LABELS[report.type]],
+    ['Period', report.dateRange],
+    ['Status', STATUS_EXPORT_LABELS[report.status]],
+    ['Format', report.format],
+    ...report.insights.map((insight, idx) => [`Insight ${idx + 1}`, insight]),
   ].map((row) => row.map(escapeCSVValue).join(','));
   return '\uFEFF' + [header, ...rows].join('\n');
 }
@@ -351,7 +365,7 @@ function generateReportCSV(report: Report): string {
 function generateReportHTML(report: Report): string {
   const insightsHtml = report.insights.length > 0
     ? `<div style="margin-top:24px;">
-        <h2 style="font-size:16px;font-weight:600;margin-bottom:12px;">AIインサイト</h2>
+        <h2 style="font-size:16px;font-weight:600;margin-bottom:12px;">AI Insights</h2>
         <ol style="padding-left:20px;">
           ${report.insights.map((i) => `<li style="margin-bottom:8px;">${i}</li>`).join('')}
         </ol>
@@ -376,14 +390,14 @@ function generateReportHTML(report: Report): string {
 <body>
   <h1>${report.title}</h1>
   <div class="meta-grid">
-    <div class="meta-item"><div class="meta-label">レポートタイプ</div><div class="meta-value">${REPORT_TYPE_LABELS[report.type]}</div></div>
-    <div class="meta-item"><div class="meta-label">期間</div><div class="meta-value">${report.dateRange}</div></div>
-    <div class="meta-item"><div class="meta-label">ステータス</div><div class="meta-value">${STATUS_CONFIG[report.status].label}</div></div>
-    <div class="meta-item"><div class="meta-label">生成日</div><div class="meta-value">${new Intl.DateTimeFormat('ja-JP').format(new Date(report.createdAt))}</div></div>
+    <div class="meta-item"><div class="meta-label">Report Type</div><div class="meta-value">${REPORT_TYPE_EXPORT_LABELS[report.type]}</div></div>
+    <div class="meta-item"><div class="meta-label">Period</div><div class="meta-value">${report.dateRange}</div></div>
+    <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">${STATUS_EXPORT_LABELS[report.status]}</div></div>
+    <div class="meta-item"><div class="meta-label">Generated</div><div class="meta-value">${new Intl.DateTimeFormat('ja-JP').format(new Date(report.createdAt))}</div></div>
   </div>
   ${insightsHtml}
   <footer style="margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;">
-    OMNI-AD 自動レポート
+    OMNI-AD Auto Report
   </footer>
 </body>
 </html>`;
@@ -417,6 +431,7 @@ interface InlineReportPreviewProps {
 }
 
 function InlineReportPreview({ report, onClose }: InlineReportPreviewProps): React.ReactElement {
+  const { t } = useI18n();
   const html = generateReportHTML(report);
 
   return (
@@ -425,7 +440,7 @@ function InlineReportPreview({ report, onClose }: InlineReportPreviewProps): Rea
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">
             <Printer size={16} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">レポートプレビュー</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('reports.reportPreview')}</h2>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -434,9 +449,9 @@ function InlineReportPreview({ report, onClose }: InlineReportPreviewProps): Rea
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               <ExternalLink size={14} />
-              新しいタブで開く
+              {t('reports.openNewTab')}
             </button>
-            <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+            <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
               <X size={20} />
             </button>
           </div>
@@ -445,7 +460,7 @@ function InlineReportPreview({ report, onClose }: InlineReportPreviewProps): Rea
           <iframe
             srcDoc={html}
             className="h-full w-full border-0"
-            title={`${report.title}のプレビュー`}
+            title={`${report.title} - ${t('reports.preview')}`}
             sandbox="allow-same-origin"
           />
         </div>
@@ -457,6 +472,7 @@ function InlineReportPreview({ report, onClose }: InlineReportPreviewProps): Rea
 // -- Main Page --
 
 export default function ReportsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [generateOpen, setGenerateOpen] = useState(false);
   const [previewReport, setPreviewReport] = useState<Report | null>(null);
   const [inlinePreviewReport, setInlinePreviewReport] = useState<Report | null>(null);
@@ -475,18 +491,18 @@ export default function ReportsPage(): React.ReactElement {
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">自動レポート</h1>
-          <p className="mt-1 text-sm text-muted-foreground">AIによるレポート自動生成とスケジュール配信</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('reports.title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('reports.description')}</p>
         </div>
         <div className="flex items-center gap-3">
           <ExportButton
             data={reports}
             columns={[
-              { key: 'title' as const, label: 'タイトル' },
-              { key: 'type' as const, label: 'タイプ', format: (v: Report[keyof Report]) => REPORT_TYPE_LABELS[v as ReportType] ?? String(v) },
-              { key: 'dateRange' as const, label: '期間' },
-              { key: 'status' as const, label: 'ステータス', format: (v: Report[keyof Report]) => STATUS_CONFIG[v as ReportStatus]?.label ?? String(v) },
-              { key: 'format' as const, label: 'フォーマット' },
+              { key: 'title' as const, label: t('reports.table.title') },
+              { key: 'type' as const, label: t('reports.table.type'), format: (v: Report[keyof Report]) => t(REPORT_TYPE_LABEL_KEYS[v as ReportType] ?? '') || String(v) },
+              { key: 'dateRange' as const, label: t('reports.table.period') },
+              { key: 'status' as const, label: t('reports.table.status'), format: (v: Report[keyof Report]) => t(STATUS_CONFIG[v as ReportStatus]?.labelKey ?? '') || String(v) },
+              { key: 'format' as const, label: t('reports.format') },
             ]}
             filename="reports"
           />
@@ -496,7 +512,7 @@ export default function ReportsPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Plus size={16} />
-            レポート生成
+            {t('reports.generateReport')}
           </button>
         </div>
       </div>
@@ -507,12 +523,12 @@ export default function ReportsPage(): React.ReactElement {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">タイトル</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">タイプ</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">期間</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">ステータス</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">作成日</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">操作</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.title')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.type')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.period')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.status')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.createdAt')}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -529,7 +545,7 @@ export default function ReportsPage(): React.ReactElement {
                   <td colSpan={6} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <ScrollText size={48} className="text-muted-foreground/30" />
-                      <p className="text-muted-foreground">レポートがまだありません</p>
+                      <p className="text-muted-foreground">{t('reports.noReports')}</p>
                     </div>
                   </td>
                 </tr>
@@ -537,7 +553,7 @@ export default function ReportsPage(): React.ReactElement {
                 reports.map((report) => (
                   <tr key={report.id} className="border-b border-border transition-colors hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium text-foreground">{report.title}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{REPORT_TYPE_LABELS[report.type]}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{t(REPORT_TYPE_LABEL_KEYS[report.type])}</td>
                     <td className="px-4 py-3 text-muted-foreground">{report.dateRange}</td>
                     <td className="px-4 py-3"><StatusBadge status={report.status} /></td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(report.createdAt)}</td>
@@ -548,7 +564,7 @@ export default function ReportsPage(): React.ReactElement {
                           onClick={() => setPreviewReport(report)}
                           className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
                         >
-                          プレビュー
+                          {t('reports.preview')}
                         </button>
                         {report.status === 'ready' && (
                           <>
@@ -604,37 +620,37 @@ export default function ReportsPage(): React.ReactElement {
       <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-center gap-2">
           <Clock size={18} className="text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">スケジュール設定</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('reports.schedule.title')}</h2>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">定期的に自動生成されるレポートの設定</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('reports.schedule.description')}</p>
         <div className="mt-4 space-y-3">
           {MOCK_SCHEDULES.map((schedule) => (
             <div key={`${schedule.type}-${schedule.frequency}`} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
               <div className="flex items-center gap-3">
                 <Calendar size={16} className="text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">{REPORT_TYPE_LABELS[schedule.type]}</p>
+                  <p className="text-sm font-medium text-foreground">{t(REPORT_TYPE_LABEL_KEYS[schedule.type])}</p>
                   <p className="text-xs text-muted-foreground">
-                    {FREQUENCY_LABELS[schedule.frequency]} | {schedule.recipients.join(', ')}
+                    {t(FREQUENCY_LABEL_KEYS[schedule.frequency])} | {schedule.recipients.join(', ')}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => showToast('スケジュール編集は準備中です')}
+                onClick={() => showToast(t('reports.schedule.editPreparing'))}
                 className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
-                編集
+                {t('common.edit')}
               </button>
             </div>
           ))}
           <button
             type="button"
-            onClick={() => showToast('スケジュール追加は準備中です')}
+            onClick={() => showToast(t('reports.schedule.addPreparing'))}
             className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus size={14} />
-            スケジュールを追加
+            {t('reports.schedule.add')}
           </button>
         </div>
       </div>

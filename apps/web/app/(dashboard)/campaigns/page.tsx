@@ -62,12 +62,12 @@ interface Campaign {
 // Constants
 // ============================================================
 
-const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
-  draft: { label: '下書き', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-  active: { label: '配信中', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  paused: { label: '一時停止', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  completed: { label: '完了', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  archived: { label: 'アーカイブ', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+const STATUS_CONFIG: Record<CampaignStatus, { labelKey: string; className: string }> = {
+  draft: { labelKey: 'campaigns.status.draft', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  active: { labelKey: 'campaigns.status.active', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  paused: { labelKey: 'campaigns.status.paused', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  completed: { labelKey: 'campaigns.status.completed', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  archived: { labelKey: 'campaigns.status.archived', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'active', 'paused', 'completed', 'archived'];
@@ -84,57 +84,58 @@ const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
 
 const ALL_PLATFORMS: Platform[] = ['meta', 'google', 'x', 'tiktok', 'line_yahoo', 'amazon', 'microsoft'];
 
-const OBJECTIVE_OPTIONS: { value: Objective; label: string }[] = [
-  { value: 'awareness', label: '認知拡大' },
-  { value: 'traffic', label: 'トラフィック' },
-  { value: 'engagement', label: 'エンゲージメント' },
-  { value: 'leads', label: 'リード獲得' },
-  { value: 'conversion', label: 'コンバージョン' },
-  { value: 'retargeting', label: 'リターゲティング' },
+const OBJECTIVE_KEYS: { value: Objective; labelKey: string }[] = [
+  { value: 'awareness', labelKey: 'campaigns.objectiveAwareness' },
+  { value: 'traffic', labelKey: 'campaigns.objectiveTraffic' },
+  { value: 'engagement', labelKey: 'campaigns.objectiveEngagement' },
+  { value: 'leads', labelKey: 'campaigns.objectiveLeads' },
+  { value: 'conversion', labelKey: 'campaigns.objectiveConversion' },
+  { value: 'retargeting', labelKey: 'campaigns.objectiveRetargeting' },
 ];
 
-const OBJECTIVE_LABELS: Record<Objective, string> = {
-  awareness: '認知拡大',
-  traffic: 'トラフィック',
-  engagement: 'エンゲージメント',
-  leads: 'リード獲得',
-  conversion: 'コンバージョン',
-  retargeting: 'リターゲティング',
+const OBJECTIVE_LABEL_KEYS: Record<Objective, string> = {
+  awareness: 'campaigns.objectiveAwareness',
+  traffic: 'campaigns.objectiveTraffic',
+  engagement: 'campaigns.objectiveEngagement',
+  leads: 'campaigns.objectiveLeads',
+  conversion: 'campaigns.objectiveConversion',
+  retargeting: 'campaigns.objectiveRetargeting',
 };
 
-const TABLE_COLUMNS: { key: SortField | 'platforms' | 'actions'; label: string; sortable: boolean }[] = [
-  { key: 'name', label: '名前', sortable: true },
-  { key: 'status', label: 'ステータス', sortable: true },
-  { key: 'platforms', label: '配信先', sortable: false },
-  { key: 'budget', label: '予算', sortable: true },
-  { key: 'roas', label: 'ROAS', sortable: true },
-  { key: 'updatedAt', label: '更新日', sortable: true },
-  { key: 'actions', label: '操作', sortable: false },
+const TABLE_COLUMNS: { key: SortField | 'platforms' | 'actions'; labelKey: string; sortable: boolean }[] = [
+  { key: 'name', labelKey: 'common.name', sortable: true },
+  { key: 'status', labelKey: 'common.status', sortable: true },
+  { key: 'platforms', labelKey: 'campaigns.platforms', sortable: false },
+  { key: 'budget', labelKey: 'campaigns.budget', sortable: true },
+  { key: 'roas', labelKey: 'campaigns.roas', sortable: true },
+  { key: 'updatedAt', labelKey: 'campaigns.updatedAt', sortable: true },
+  { key: 'actions', labelKey: 'campaigns.actions', sortable: false },
 ];
 
-const EXPORT_COLUMNS = [
-  { key: 'name' as const, label: 'キャンペーン名' },
-  { key: 'status' as const, label: 'ステータス', format: (v: Campaign[keyof Campaign]) => STATUS_CONFIG[v as CampaignStatus]?.label ?? String(v) },
-  { key: 'platforms' as const, label: '配信先', format: (v: Campaign[keyof Campaign]) => (v as Platform[]).map((p) => PLATFORM_CONFIG[p]?.label ?? p).join(', ') },
-  { key: 'budget' as const, label: '予算', format: (v: Campaign[keyof Campaign]) => String((v as Campaign['budget']).total) },
-  { key: 'roas' as const, label: 'ROAS', format: (v: Campaign[keyof Campaign]) => `${Number(v).toFixed(1)}x` },
-  { key: 'objective' as const, label: '目的', format: (v: Campaign[keyof Campaign]) => OBJECTIVE_LABELS[v as Objective] ?? String(v) },
-  { key: 'updatedAt' as const, label: '更新日' },
+// Export columns are resolved at render time using t()
+const EXPORT_COLUMN_DEFS = [
+  { key: 'name' as const, labelKey: 'campaigns.name' },
+  { key: 'status' as const, labelKey: 'common.status', format: (v: Campaign[keyof Campaign]) => STATUS_CONFIG[v as CampaignStatus]?.labelKey ?? String(v) },
+  { key: 'platforms' as const, labelKey: 'campaigns.platforms', format: (v: Campaign[keyof Campaign]) => (v as Platform[]).map((p) => PLATFORM_CONFIG[p]?.label ?? p).join(', ') },
+  { key: 'budget' as const, labelKey: 'campaigns.budget', format: (v: Campaign[keyof Campaign]) => String((v as Campaign['budget']).total) },
+  { key: 'roas' as const, labelKey: 'campaigns.roas', format: (v: Campaign[keyof Campaign]) => `${Number(v).toFixed(1)}x` },
+  { key: 'objective' as const, labelKey: 'campaigns.objective', format: (v: Campaign[keyof Campaign]) => OBJECTIVE_LABEL_KEYS[v as Objective] ?? String(v) },
+  { key: 'updatedAt' as const, labelKey: 'campaigns.updatedAt' },
 ];
 
-const CAMPAIGN_TABS: { label: string; icon: React.ReactNode }[] = [
-  { label: '基本情報', icon: <Globe size={14} /> },
-  { label: 'コンバージョン設定', icon: <Target size={14} /> },
-  { label: 'ターゲティング', icon: <Users size={14} /> },
-  { label: 'クリエイティブ', icon: <Image size={14} /> },
-  { label: 'プラットフォーム', icon: <Sliders size={14} /> },
+const CAMPAIGN_TABS: { labelKey: string; icon: React.ReactNode }[] = [
+  { labelKey: 'campaigns.basicInfo', icon: <Globe size={14} /> },
+  { labelKey: 'campaigns.conversionSettings', icon: <Target size={14} /> },
+  { labelKey: 'campaigns.targeting', icon: <Users size={14} /> },
+  { labelKey: 'campaigns.creative', icon: <Image size={14} /> },
+  { labelKey: 'campaigns.platform', icon: <Sliders size={14} /> },
 ];
 
-const BID_STRATEGY_OPTIONS: { value: BidStrategy; label: string; description: string }[] = [
-  { value: 'auto_maximize_conversions', label: 'コンバージョン最大化', description: '自動で最大のコンバージョンを目指します' },
-  { value: 'auto_target_cpa', label: '目標CPA', description: '目標CPAに合わせて自動入札' },
-  { value: 'auto_target_roas', label: '目標ROAS', description: '目標ROASに合わせて自動入札' },
-  { value: 'manual_cpc', label: '手動CPC', description: 'クリック単価を手動で設定' },
+const BID_STRATEGY_OPTIONS: { value: BidStrategy; labelKey: string; descKey: string }[] = [
+  { value: 'auto_maximize_conversions', labelKey: 'campaigns.bidMaxConversions', descKey: 'campaigns.bidMaxConversionsDesc' },
+  { value: 'auto_target_cpa', labelKey: 'campaigns.bidTargetCpa', descKey: 'campaigns.bidTargetCpaDesc' },
+  { value: 'auto_target_roas', labelKey: 'campaigns.bidTargetRoas', descKey: 'campaigns.bidTargetRoasDesc' },
+  { value: 'manual_cpc', labelKey: 'campaigns.bidManualCpc', descKey: 'campaigns.bidManualCpcDesc' },
 ];
 
 const CONVERSION_POINTS = ['メインサイト購入', 'リード獲得フォーム', 'アプリインストール'] as const;
@@ -204,10 +205,11 @@ const MOCK_CAMPAIGNS: Campaign[] = [
 // ============================================================
 
 function StatusBadge({ status }: { status: CampaignStatus }): React.ReactElement {
+  const { t } = useI18n();
   const config = STATUS_CONFIG[status];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
@@ -275,12 +277,13 @@ interface CampaignDetailModalProps {
 }
 
 function CampaignDetailModal({ campaign, onClose }: CampaignDetailModalProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg rounded-lg border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">{campaign.name}</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
@@ -288,15 +291,15 @@ function CampaignDetailModal({ campaign, onClose }: CampaignDetailModalProps): R
           {/* Metrics */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-muted-foreground">ステータス</p>
+              <p className="text-xs text-muted-foreground">{t('common.status')}</p>
               <StatusBadge status={campaign.status} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">目的</p>
-              <p className="text-sm font-medium text-foreground">{OBJECTIVE_LABELS[campaign.objective]}</p>
+              <p className="text-xs text-muted-foreground">{t('campaigns.objective')}</p>
+              <p className="text-sm font-medium text-foreground">{t(OBJECTIVE_LABEL_KEYS[campaign.objective])}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">総予算</p>
+              <p className="text-xs text-muted-foreground">{t('campaigns.totalBudget')}</p>
               <p className="text-sm font-medium text-foreground">
                 {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(campaign.budget.total)}
               </p>
@@ -312,14 +315,14 @@ function CampaignDetailModal({ campaign, onClose }: CampaignDetailModalProps): R
             </div>
             {campaign.budget.dailyLimit && (
               <div>
-                <p className="text-xs text-muted-foreground">日次上限</p>
+                <p className="text-xs text-muted-foreground">{t('campaigns.dailyLimit')}</p>
                 <p className="text-sm text-foreground">
                   {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(campaign.budget.dailyLimit)}
                 </p>
               </div>
             )}
             <div>
-              <p className="text-xs text-muted-foreground">更新日</p>
+              <p className="text-xs text-muted-foreground">{t('campaigns.updatedAt')}</p>
               <p className="text-sm text-foreground">
                 {new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(campaign.updatedAt))}
               </p>
@@ -328,13 +331,13 @@ function CampaignDetailModal({ campaign, onClose }: CampaignDetailModalProps): R
 
           {/* Platforms */}
           <div>
-            <p className="mb-2 text-xs text-muted-foreground">配信プラットフォーム</p>
+            <p className="mb-2 text-xs text-muted-foreground">{t('campaigns.deliveryPlatforms')}</p>
             <PlatformBadges platforms={campaign.platforms} />
           </div>
 
           {/* Change history stub */}
           <div>
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">変更履歴</p>
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">{t('campaigns.changeHistory')}</p>
             <div className="space-y-2">
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                 2026/04/01 10:00 — 予算を ¥400,000 から ¥500,000 に変更
@@ -457,6 +460,7 @@ function TagInput({
 }
 
 function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React.ReactElement | null {
+  const { t } = useI18n();
   const [currentTab, setCurrentTab] = useState<CampaignTab>(0);
 
   // Tab 1: Basic Info
@@ -611,21 +615,21 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
       <div className="flex w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl" style={{ maxHeight: '90vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">新規キャンペーン作成</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <h2 className="text-lg font-semibold text-foreground">{t('campaigns.createTitle')}</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('common.close')}>
             <X size={20} />
           </button>
         </div>
 
         {/* Step indicator */}
-        <div className="flex border-b border-border" role="tablist" aria-label="キャンペーン作成ステップ">
+        <div className="flex border-b border-border" role="tablist" aria-label={t('campaigns.campaignSteps')}>
           {CAMPAIGN_TABS.map((tab, index) => {
             const tabIndex = index as CampaignTab;
             const isCurrent = currentTab === tabIndex;
             const isCompleted = currentTab > tabIndex;
             return (
               <button
-                key={tab.label}
+                key={tab.labelKey}
                 type="button"
                 role="tab"
                 aria-selected={isCurrent}
@@ -641,7 +645,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 )}
               >
                 {isCompleted ? <Check size={12} className="text-green-500" /> : tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="hidden sm:inline">{t(tab.labelKey)}</span>
               </button>
             );
           })}
@@ -653,7 +657,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
           {currentTab === 0 && (
             <div className="space-y-4" id="campaign-tab-panel-0" role="tabpanel">
               <div>
-                <label htmlFor="campaign-name" className={labelCls}>キャンペーン名</label>
+                <label htmlFor="campaign-name" className={labelCls}>{t('campaigns.name')}</label>
                 <input
                   id="campaign-name"
                   type="text"
@@ -663,13 +667,13 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                     updateUtmFromName(e.target.value);
                   }}
                   className={inputCls}
-                  placeholder="春のプロモーションキャンペーン"
+                  placeholder={t('campaigns.campaignNamePlaceholder')}
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="campaign-objective" className={labelCls}>目的</label>
+                <label htmlFor="campaign-objective" className={labelCls}>{t('campaigns.objective')}</label>
                 <div className="relative">
                   <select
                     id="campaign-objective"
@@ -677,8 +681,8 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setObjective(e.target.value as Objective)}
                     className={cn(inputCls, 'appearance-none pr-8')}
                   >
-                    {OBJECTIVE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    {OBJECTIVE_KEYS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                     ))}
                   </select>
                   <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -687,7 +691,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="campaign-budget" className={labelCls}>総予算 (JPY)</label>
+                  <label htmlFor="campaign-budget" className={labelCls}>{t('campaigns.totalBudgetJpy')}</label>
                   <input
                     id="campaign-budget"
                     type="number"
@@ -700,7 +704,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                   />
                 </div>
                 <div>
-                  <label htmlFor="campaign-daily-limit" className={labelCls}>日次上限 (任意)</label>
+                  <label htmlFor="campaign-daily-limit" className={labelCls}>{t('campaigns.dailyLimitOptional')}</label>
                   <input
                     id="campaign-daily-limit"
                     type="number"
@@ -715,7 +719,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="campaign-start" className={labelCls}>開始日</label>
+                  <label htmlFor="campaign-start" className={labelCls}>{t('campaigns.startDate')}</label>
                   <input
                     id="campaign-start"
                     type="date"
@@ -726,7 +730,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                   />
                 </div>
                 <div>
-                  <label htmlFor="campaign-end" className={labelCls}>終了日 (任意)</label>
+                  <label htmlFor="campaign-end" className={labelCls}>{t('campaigns.endDateOptional')}</label>
                   <input
                     id="campaign-end"
                     type="date"
@@ -741,7 +745,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 <label htmlFor="campaign-lp-url" className={labelCls}>
                   <span className="flex items-center gap-1.5">
                     <Link2 size={14} />
-                    ランディングページURL
+                    {t('campaigns.landingPageUrl')}
                   </span>
                 </label>
                 <input
@@ -753,12 +757,12 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                   placeholder="https://example.com/landing"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  有効なURL形式で入力してください（例: https://example.com）
+                  {t('campaigns.landingPageHint')}
                 </p>
               </div>
 
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">入札戦略</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.bidStrategy')}</span>
                 <div className="space-y-2">
                   {BID_STRATEGY_OPTIONS.map((option) => (
                     <label
@@ -779,15 +783,15 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                         className="mt-0.5 accent-primary"
                       />
                       <div>
-                        <p className="text-sm font-medium text-foreground">{option.label}</p>
-                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                        <p className="text-sm font-medium text-foreground">{t(option.labelKey)}</p>
+                        <p className="text-xs text-muted-foreground">{t(option.descKey)}</p>
                       </div>
                     </label>
                   ))}
                 </div>
                 {bidStrategy === 'auto_target_cpa' && (
                   <div className="mt-3">
-                    <label htmlFor="bid-target-cpa" className={labelCls}>目標CPA (JPY)</label>
+                    <label htmlFor="bid-target-cpa" className={labelCls}>{t('campaigns.targetCpaJpy')}</label>
                     <input
                       id="bid-target-cpa"
                       type="number"
@@ -801,7 +805,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 )}
                 {bidStrategy === 'auto_target_roas' && (
                   <div className="mt-3">
-                    <label htmlFor="bid-target-roas" className={labelCls}>目標ROAS (倍)</label>
+                    <label htmlFor="bid-target-roas" className={labelCls}>{t('campaigns.targetRoasMultiple')}</label>
                     <input
                       id="bid-target-roas"
                       type="number"
@@ -822,7 +826,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
           {currentTab === 1 && (
             <div className="space-y-5" id="campaign-tab-panel-1" role="tabpanel">
               <div>
-                <label htmlFor="conversion-point" className={labelCls}>コンバージョンポイント</label>
+                <label htmlFor="conversion-point" className={labelCls}>{t('campaigns.conversionPoint')}</label>
                 <div className="relative">
                   <select
                     id="conversion-point"
@@ -842,7 +846,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               {bidStrategy === 'auto_target_cpa' && (
                 <div>
-                  <label htmlFor="cv-target-cpa" className={labelCls}>目標CPA (JPY)</label>
+                  <label htmlFor="cv-target-cpa" className={labelCls}>{t('campaigns.targetCpaJpy')}</label>
                   <input
                     id="cv-target-cpa"
                     type="number"
@@ -857,7 +861,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               {bidStrategy === 'auto_target_roas' && (
                 <div>
-                  <label htmlFor="cv-target-roas" className={labelCls}>目標ROAS (倍)</label>
+                  <label htmlFor="cv-target-roas" className={labelCls}>{t('campaigns.targetRoasMultiple')}</label>
                   <input
                     id="cv-target-roas"
                     type="number"
@@ -872,11 +876,11 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
               )}
 
               <div className="rounded-lg border border-border p-4">
-                <h4 className="mb-3 text-sm font-semibold text-foreground">KPIアラート設定</h4>
+                <h4 className="mb-3 text-sm font-semibold text-foreground">{t('campaigns.kpiAlertSettings')}</h4>
                 <div className="space-y-3">
                   <div>
                     <label htmlFor="alert-cpa-limit" className={labelCls}>
-                      CPA上限 (JPY)
+                      {t('campaigns.cpaUpperLimit')}
                     </label>
                     <input
                       id="alert-cpa-limit"
@@ -887,10 +891,10 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                       placeholder="5000"
                       min="1"
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">この値を超えたら通知</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{t('campaigns.cpaAlertHint')}</p>
                   </div>
                   <div>
-                    <label htmlFor="alert-roas-min" className={labelCls}>ROAS下限 (倍)</label>
+                    <label htmlFor="alert-roas-min" className={labelCls}>{t('campaigns.roasLowerLimit')}</label>
                     <input
                       id="alert-roas-min"
                       type="number"
@@ -903,7 +907,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                     />
                   </div>
                   <div>
-                    <label htmlFor="alert-ctr-min" className={labelCls}>CTR下限 (%)</label>
+                    <label htmlFor="alert-ctr-min" className={labelCls}>{t('campaigns.ctrLowerLimit')}</label>
                     <input
                       id="alert-ctr-min"
                       type="number"
@@ -925,7 +929,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
             <div className="space-y-5" id="campaign-tab-panel-2" role="tabpanel">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="age-min" className={labelCls}>年齢（下限）</label>
+                  <label htmlFor="age-min" className={labelCls}>{t('campaigns.ageMin')}</label>
                   <div className="relative">
                     <select
                       id="age-min"
@@ -934,14 +938,14 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                       className={cn(inputCls, 'appearance-none pr-8')}
                     >
                       {AGE_OPTIONS.map((age) => (
-                        <option key={age} value={age}>{age}歳</option>
+                        <option key={age} value={age}>{age}{t('campaigns.ageSuffix')}</option>
                       ))}
                     </select>
                     <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="age-max" className={labelCls}>年齢（上限）</label>
+                  <label htmlFor="age-max" className={labelCls}>{t('campaigns.ageMax')}</label>
                   <div className="relative">
                     <select
                       id="age-max"
@@ -950,7 +954,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                       className={cn(inputCls, 'appearance-none pr-8')}
                     >
                       {AGE_OPTIONS.map((age) => (
-                        <option key={age} value={age}>{age}歳</option>
+                        <option key={age} value={age}>{age}{t('campaigns.ageSuffix')}</option>
                       ))}
                     </select>
                     <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -959,12 +963,12 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
               </div>
 
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">性別</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.gender')}</span>
                 <div className="flex gap-2">
                   {([
-                    { value: 'male' as Gender, label: '男性' },
-                    { value: 'female' as Gender, label: '女性' },
-                    { value: 'unspecified' as Gender, label: '指定なし' },
+                    { value: 'male' as Gender, labelKey: 'campaigns.genderMale' },
+                    { value: 'female' as Gender, labelKey: 'campaigns.genderFemale' },
+                    { value: 'unspecified' as Gender, labelKey: 'campaigns.genderUnspecified' },
                   ]).map((option) => (
                     <button
                       key={option.value}
@@ -977,7 +981,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                           : 'border-border text-muted-foreground hover:border-primary/50',
                       )}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -985,32 +989,32 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               <TagInput
                 id="targeting-regions"
-                label="地域"
+                label={t('campaigns.region')}
                 tags={regions}
                 onAdd={(tag) => setRegions((prev) => [...prev, tag])}
                 onRemove={(tag) => setRegions((prev) => prev.filter((t) => t !== tag))}
                 suggestions={REGION_SUGGESTIONS}
-                placeholder="地域を入力してEnter..."
+                placeholder={t('campaigns.regionPlaceholder')}
               />
 
               <TagInput
                 id="targeting-interests"
-                label="興味関心"
+                label={t('campaigns.interests')}
                 tags={interests}
                 onAdd={(tag) => setInterests((prev) => [...prev, tag])}
                 onRemove={(tag) => setInterests((prev) => prev.filter((t) => t !== tag))}
                 suggestions={INTEREST_SUGGESTIONS}
-                placeholder="興味関心を入力してEnter..."
+                placeholder={t('campaigns.interestsPlaceholder')}
               />
 
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">デバイス</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.device')}</span>
                 <div className="flex flex-wrap gap-2">
                   {([
-                    { value: 'all' as Device, label: 'すべて', icon: <Globe size={14} /> },
-                    { value: 'mobile' as Device, label: 'モバイル', icon: <Smartphone size={14} /> },
-                    { value: 'desktop' as Device, label: 'デスクトップ', icon: <Monitor size={14} /> },
-                    { value: 'tablet' as Device, label: 'タブレット', icon: <Tablet size={14} /> },
+                    { value: 'all' as Device, labelKey: 'campaigns.deviceAll', icon: <Globe size={14} /> },
+                    { value: 'mobile' as Device, labelKey: 'campaigns.deviceMobile', icon: <Smartphone size={14} /> },
+                    { value: 'desktop' as Device, labelKey: 'campaigns.deviceDesktop', icon: <Monitor size={14} /> },
+                    { value: 'tablet' as Device, labelKey: 'campaigns.deviceTablet', icon: <Tablet size={14} /> },
                   ]).map((option) => (
                     <button
                       key={option.value}
@@ -1024,14 +1028,14 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                       )}
                     >
                       {option.icon}
-                      {option.label}
+                      {t(option.labelKey)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">除外オーディエンス</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.exclusionAudiences')}</span>
                 <div className="flex flex-wrap gap-2">
                   {EXCLUSION_AUDIENCES.map((audience) => (
                     <button
@@ -1057,7 +1061,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
           {currentTab === 3 && (
             <div className="space-y-5" id="campaign-tab-panel-3" role="tabpanel">
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">既存クリエイティブから選択</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.selectFromCreatives')}</span>
                 <div className="grid grid-cols-3 gap-3">
                   {MOCK_EXISTING_CREATIVES.map((creative) => {
                     const isSelected = selectedCreativeIds.includes(creative.id);
@@ -1094,7 +1098,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-primary" />
-                    <span className="text-sm font-semibold text-foreground">AIで自動生成</span>
+                    <span className="text-sm font-semibold text-foreground">{t('campaigns.aiAutoGenerate')}</span>
                   </div>
                   <button
                     type="button"
@@ -1105,7 +1109,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                     )}
                     role="switch"
                     aria-checked={aiAutoGenerate}
-                    aria-label="AI自動生成を有効にする"
+                    aria-label={t('campaigns.enableAiAutoGenerate')}
                   >
                     <span className={cn(
                       'absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
@@ -1114,12 +1118,12 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                   </button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  AIが最適なクリエイティブを自動生成します
+                  {t('campaigns.aiAutoGenerateDesc')}
                 </p>
               </div>
 
               <div className="rounded-lg border border-border p-4">
-                <h4 className="mb-3 text-sm font-semibold text-foreground">UTMパラメータ</h4>
+                <h4 className="mb-3 text-sm font-semibold text-foreground">{t('campaigns.utmParameters')}</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="utm-source" className={labelCls}>utm_source</label>
@@ -1174,7 +1178,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
           {currentTab === 4 && (
             <div className="space-y-5" id="campaign-tab-panel-4" role="tabpanel">
               <div>
-                <span className="mb-2 block text-sm font-medium text-foreground">配信プラットフォーム</span>
+                <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.deliveryPlatforms')}</span>
                 <div className="flex flex-wrap gap-2">
                   {(Object.entries(PLATFORM_CONFIG) as [Platform, { label: string; color: string }][]).map(
                     ([key, config]) => (
@@ -1198,7 +1202,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               {selectedPlatforms.length > 0 && (
                 <div className="rounded-lg border border-border p-4">
-                  <h4 className="mb-3 text-sm font-semibold text-foreground">予算配分 (%)</h4>
+                  <h4 className="mb-3 text-sm font-semibold text-foreground">{t('campaigns.budgetAllocationPercent')}</h4>
                   <div className="space-y-3">
                     {selectedPlatforms.map((platform) => (
                       <div key={platform} className="flex items-center gap-3">
@@ -1230,7 +1234,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                           'flex items-center justify-between border-t border-border pt-2 text-sm font-semibold',
                           total === 100 ? 'text-green-600' : 'text-yellow-600',
                         )}>
-                          <span>合計</span>
+                          <span>{t('campaigns.total')}</span>
                           <span>{total}%</span>
                         </div>
                       );
@@ -1241,7 +1245,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
 
               {selectedPlatforms.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-foreground">プラットフォーム固有設定</h4>
+                  <h4 className="mb-2 text-sm font-semibold text-foreground">{t('campaigns.platformSpecificSettings')}</h4>
                   <div className="space-y-2">
                     {selectedPlatforms.map((platform) => (
                       <details
@@ -1255,11 +1259,11 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                           )}>
                             {PLATFORM_CONFIG[platform].label}
                           </span>
-                          固有設定
+                          {t('campaigns.platformSpecificSettingsLabel')}
                         </summary>
                         <div className="border-t border-border px-4 py-3">
                           <p className="text-xs text-muted-foreground">
-                            {PLATFORM_CONFIG[platform].label}固有の設定は、キャンペーン作成後に詳細画面から設定できます。
+                            {t('campaigns.platformSpecificSettingsHint', { platform: PLATFORM_CONFIG[platform].label })}
                           </p>
                         </div>
                       </details>
@@ -1280,7 +1284,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
             className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-30"
           >
             <ChevronLeft size={14} />
-            戻る
+            {t('common.back')}
           </button>
 
           <div className="flex items-center gap-3">
@@ -1289,7 +1293,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              キャンセル
+              {t('common.cancel')}
             </button>
             {currentTab < 4 ? (
               <button
@@ -1298,7 +1302,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 disabled={!canAdvanceTab(currentTab)}
                 className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                次へ
+                {t('common.next')}
                 <ChevronRight size={14} />
               </button>
             ) : (
@@ -1309,7 +1313,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                作成
+                {t('common.create')}
               </button>
             )}
           </div>
@@ -1352,6 +1356,7 @@ function FilterBar({
   hasActiveFilters,
   onClearFilters,
 }: FilterBarProps): React.ReactElement {
+  const { t } = useI18n();
   const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
 
   return (
@@ -1364,8 +1369,8 @@ function FilterBar({
           value={searchQuery}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
           className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="キャンペーン名で検索..."
-          aria-label="キャンペーン検索"
+          placeholder={t('campaigns.searchPlaceholder')}
+          aria-label={t('campaigns.searchLabel')}
         />
       </div>
 
@@ -1375,11 +1380,11 @@ function FilterBar({
           value={statusFilter}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onStatusChange(e.target.value as CampaignStatus | 'all')}
           className="appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="ステータスフィルター"
+          aria-label={t('campaigns.statusFilterLabel')}
         >
-          <option value="all">全ステータス</option>
+          <option value="all">{t('campaigns.allStatuses')}</option>
           {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+            <option key={s} value={s}>{t(STATUS_CONFIG[s].labelKey)}</option>
           ))}
         </select>
         <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -1391,13 +1396,13 @@ function FilterBar({
           type="button"
           onClick={() => setPlatformDropdownOpen((prev) => !prev)}
           className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-          aria-label="プラットフォームフィルター"
+          aria-label={t('campaigns.platformFilterLabel')}
           aria-expanded={platformDropdownOpen}
         >
           <span>
             {platformFilter.size === 0
-              ? '全プラットフォーム'
-              : `${platformFilter.size}件選択`}
+              ? t('campaigns.allPlatforms')
+              : t('campaigns.selectedCount', { count: platformFilter.size })}
           </span>
           <ChevronDown size={14} className={cn('transition-transform', platformDropdownOpen && 'rotate-180')} />
         </button>
@@ -1429,11 +1434,11 @@ function FilterBar({
           value={objectiveFilter}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onObjectiveChange(e.target.value as Objective | 'all')}
           className="appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="目的フィルター"
+          aria-label={t('campaigns.objectiveFilterLabel')}
         >
-          <option value="all">全目的</option>
-          {OBJECTIVE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option value="all">{t('campaigns.allObjectives')}</option>
+          {OBJECTIVE_KEYS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
           ))}
         </select>
         <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -1447,7 +1452,7 @@ function FilterBar({
           className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
         >
           <X size={14} />
-          フィルターをクリア
+          {t('campaigns.clearFilters')}
         </button>
       )}
     </div>
@@ -1471,11 +1476,12 @@ function BulkActionBar({
   onDelete,
   onDeselect,
 }: BulkActionBarProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center">
       <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-3 shadow-xl">
         <span className="text-sm font-semibold text-foreground">
-          {selectedCount}件選択中
+          {t('campaigns.selectedBulkCount', { count: selectedCount })}
         </span>
         <div className="h-5 w-px bg-border" />
         <button
@@ -1484,7 +1490,7 @@ function BulkActionBar({
           className="inline-flex items-center gap-1.5 rounded-md bg-yellow-100 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
         >
           <Pause size={12} />
-          一時停止
+          {t('campaigns.bulkPause')}
         </button>
         <button
           type="button"
@@ -1492,7 +1498,7 @@ function BulkActionBar({
           className="inline-flex items-center gap-1.5 rounded-md bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
         >
           <Play size={12} />
-          再開
+          {t('campaigns.bulkResume')}
         </button>
         <button
           type="button"
@@ -1500,7 +1506,7 @@ function BulkActionBar({
           className="inline-flex items-center gap-1.5 rounded-md bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
         >
           <Trash2 size={12} />
-          削除
+          {t('campaigns.bulkDelete')}
         </button>
         <div className="h-5 w-px bg-border" />
         <button
@@ -1508,7 +1514,7 @@ function BulkActionBar({
           onClick={onDeselect}
           className="text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          選択解除
+          {t('campaigns.deselect')}
         </button>
       </div>
     </div>
@@ -1646,7 +1652,10 @@ export default function CampaignsPage(): React.ReactElement {
         <div className="flex items-center gap-3">
           <ExportButton
             data={sortedCampaigns}
-            columns={EXPORT_COLUMNS}
+            columns={EXPORT_COLUMN_DEFS.map((col) => ({
+              ...col,
+              label: t(col.labelKey),
+            }))}
             filename="campaigns"
           />
           <button
@@ -1687,21 +1696,21 @@ export default function CampaignsPage(): React.ReactElement {
                     checked={allVisibleSelected}
                     onChange={toggleSelectAll}
                     className="h-4 w-4 rounded border-input text-primary accent-primary"
-                    aria-label="全て選択"
+                    aria-label={t('campaigns.selectAll')}
                   />
                 </th>
                 {TABLE_COLUMNS.map((column) => (
                   <th key={column.key} className="px-4 py-3 text-left font-medium text-muted-foreground">
                     {column.sortable ? (
                       <SortHeader
-                        label={column.label}
+                        label={t(column.labelKey)}
                         field={column.key as SortField}
                         currentField={sortField}
                         direction={sortDirection}
                         onSort={handleSort}
                       />
                     ) : (
-                      column.label
+                      t(column.labelKey)
                     )}
                   </th>
                 ))}
