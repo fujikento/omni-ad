@@ -26,3 +26,7 @@ export * as reportGeneratorService from './report-generator.service.js';
 export * as accountAnalyzerService from './account-analyzer.service.js';
 export * as creativeMassProductionService from './creative-mass-production.service.js';
 export * as abTestEngineService from './ab-test-engine.service.js';
+export * as creativeOptimizationService from './creative-optimization.service.js';
+export * as videoProjectService from './video-project.service.js';
+export * as groupBuyService from './group-buy.service.js';
+export * as identityGraphService from './identity-graph.service.js';

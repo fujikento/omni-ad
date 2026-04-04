@@ -13,6 +13,7 @@ import { processAiAutopilot } from './processors/ai-autopilot.js';
 import { processCompetitorMonitor } from './processors/competitor-monitor.js';
 import { processCreativeMassProduction } from './processors/creative-mass-production.js';
 import { processAbTestEvaluation } from './processors/ab-test-evaluation.js';
+import { processCreativeOptimization } from './processors/creative-optimization.js';
 import { registerSchedulers } from './schedulers/index.js';
 
 const workers: Worker[] = [];
@@ -113,6 +114,11 @@ async function startWorkers(): Promise<void> {
       QUEUE_NAMES.AB_TEST_EVALUATION,
       processAbTestEvaluation,
       QUEUE_CONFIGS[QUEUE_NAMES.AB_TEST_EVALUATION].concurrency
+    ),
+    createWorker(
+      QUEUE_NAMES.CREATIVE_OPTIMIZATION,
+      processCreativeOptimization,
+      QUEUE_CONFIGS[QUEUE_NAMES.CREATIVE_OPTIMIZATION].concurrency
     )
   );
 

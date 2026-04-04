@@ -119,3 +119,10 @@ export const abTestEventTypeEnum = pgEnum('ab_test_event_type', [
   'click',
   'conversion',
 ]);
+
+export const creativeOptimizationStatusEnum = pgEnum('creative_optimization_status', [
+  'pending',
+  'running',
+  'completed',
+  'failed',
+]);

@@ -1,0 +1,462 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Database,
+  FileUp,
+  Fingerprint,
+  Globe,
+  Link2,
+  Plus,
+  Search,
+  Shield,
+  Upload,
+  Users,
+} from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
+
+// ============================================================
+// Types
+// ============================================================
+
+interface PlatformIdentity {
+  platform: string;
+  matched: number;
+  unmatched: number;
+  color: string;
+}
+
+interface JourneyTouchpoint {
+  id: string;
+  platform: string;
+  action: string;
+  timestamp: string;
+  icon: React.ReactNode;
+}
+
+interface SegmentCriteria {
+  platform: string;
+  action: string;
+}
+
+interface UnifiedSegment {
+  id: string;
+  name: string;
+  criteria: SegmentCriteria[];
+  size: number;
+}
+
+// ============================================================
+// Constants
+// ============================================================
+
+const MOCK_PLATFORMS: PlatformIdentity[] = [
+  { platform: 'Meta', matched: 12000, unmatched: 8000, color: '#1877F2' },
+  { platform: 'Google', matched: 15000, unmatched: 5000, color: '#4285F4' },
+  { platform: 'TikTok', matched: 8500, unmatched: 6500, color: '#FF0050' },
+  { platform: 'LINE', matched: 9800, unmatched: 4200, color: '#06C755' },
+  { platform: 'X', matched: 5200, unmatched: 7800, color: '#1DA1F2' },
+];
+
+const MOCK_JOURNEY: JourneyTouchpoint[] = [
+  { id: 'j1', platform: 'Meta', action: 'identityGraph.journeyViewAd', timestamp: '3/28 14:30', icon: <Globe size={16} /> },
+  { id: 'j2', platform: 'Google', action: 'identityGraph.journeySearchClick', timestamp: '3/29 10:15', icon: <Search size={16} /> },
+  { id: 'j3', platform: 'TikTok', action: 'identityGraph.journeyConversion', timestamp: '3/30 19:45', icon: <Check size={16} /> },
+  { id: 'j4', platform: 'LINE', action: 'identityGraph.journeySubscriber', timestamp: '3/31 08:00', icon: <Users size={16} /> },
+];
+
+const PLATFORM_BADGE_COLORS: Record<string, string> = {
+  Meta: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  Google: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  TikTok: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+  LINE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  X: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+};
+
+const MOCK_SEGMENTS: UnifiedSegment[] = [
+  {
+    id: 'us1',
+    name: 'Meta広告を見てかつTikTokで購入したユーザー',
+    criteria: [
+      { platform: 'Meta', action: '広告閲覧' },
+      { platform: 'TikTok', action: '購入' },
+    ],
+    size: 3200,
+  },
+  {
+    id: 'us2',
+    name: 'Google検索経由でLINE登録したユーザー',
+    criteria: [
+      { platform: 'Google', action: '検索クリック' },
+      { platform: 'LINE', action: '友だち追加' },
+    ],
+    size: 1800,
+  },
+];
+
+// ============================================================
+// Subcomponents
+// ============================================================
+
+function KpiCard({
+  labelKey,
+  value,
+  subValue,
+  icon,
+  color,
+}: {
+  labelKey: string;
+  value: string;
+  subValue?: string;
+  icon: React.ReactNode;
+  color: string;
+}): React.ReactElement {
+  const { t } = useI18n();
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center gap-2">
+        <span className={color}>{icon}</span>
+        <span className="text-xs font-medium text-muted-foreground">{t(labelKey)}</span>
+      </div>
+      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
+      {subValue && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{subValue}</p>
+      )}
+    </div>
+  );
+}
+
+function PlatformCoverageMap({ platforms }: { platforms: PlatformIdentity[] }): React.ReactElement {
+  const { t } = useI18n();
+
+  const chartData = platforms.map((p) => ({
+    platform: p.platform,
+    matched: p.matched,
+    unmatched: p.unmatched,
+  }));
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h2 className="mb-3 text-base font-semibold text-foreground">
+        {t('identityGraph.platformCoverage')}
+      </h2>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical">
+            <XAxis type="number" tick={{ fontSize: 11 }} />
+            <YAxis type="category" dataKey="platform" tick={{ fontSize: 11 }} width={60} />
+            <Tooltip
+              formatter={(value: number, name: string) => [
+                value.toLocaleString(),
+                name === 'matched' ? t('identityGraph.matched') : t('identityGraph.unmatched'),
+              ]}
+            />
+            <Bar dataKey="matched" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} name="matched" />
+            <Bar dataKey="unmatched" stackId="a" fill="hsl(var(--muted))" radius={[0, 4, 4, 0]} name="unmatched" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 flex items-center justify-center gap-6">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-sm bg-primary" />
+          <span className="text-xs text-muted-foreground">{t('identityGraph.matched')}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-sm bg-muted" />
+          <span className="text-xs text-muted-foreground">{t('identityGraph.unmatched')}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CrossPlatformJourney({ touchpoints }: { touchpoints: JourneyTouchpoint[] }): React.ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h2 className="mb-1 text-base font-semibold text-foreground">
+        {t('identityGraph.journeyTitle')}
+      </h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        {t('identityGraph.journeyDesc')}
+      </p>
+
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        {touchpoints.map((tp, i) => (
+          <div key={tp.id} className="flex items-center gap-2">
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-border p-3 min-w-[140px]">
+              <div
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-full',
+                  PLATFORM_BADGE_COLORS[tp.platform] ?? 'bg-muted text-muted-foreground',
+                )}
+              >
+                {tp.icon}
+              </div>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  PLATFORM_BADGE_COLORS[tp.platform] ?? 'bg-muted text-muted-foreground',
+                )}
+              >
+                {tp.platform}
+              </span>
+              <span className="text-xs font-medium text-foreground text-center">
+                {t(tp.action)}
+              </span>
+              <span className="text-[10px] text-muted-foreground">{tp.timestamp}</span>
+            </div>
+            {i < touchpoints.length - 1 && (
+              <ArrowRight size={16} className="flex-shrink-0 text-muted-foreground" />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ImportPanel(): React.ReactElement {
+  const { t } = useI18n();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(): void {
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+    setIsDragging(false);
+    setUploaded(true);
+  }
+
+  function handleFileSelect(): void {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    if (e.target.files && e.target.files.length > 0) {
+      setUploaded(true);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h2 className="mb-1 text-base font-semibold text-foreground">
+        {t('identityGraph.importTitle')}
+      </h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        {t('identityGraph.importDesc')}
+      </p>
+
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          'flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors',
+          isDragging ? 'border-primary bg-primary/5' : 'border-border',
+          uploaded ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : '',
+        )}
+      >
+        {uploaded ? (
+          <>
+            <Check size={24} className="text-green-500" />
+            <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+              {t('identityGraph.importComplete')}
+            </p>
+          </>
+        ) : (
+          <>
+            <Upload size={24} className="text-muted-foreground" />
+            <p className="mt-2 text-sm text-foreground">{t('identityGraph.importButton')}</p>
+            <p className="mt-1 text-xs text-muted-foreground">CSV (email/phone)</p>
+            <button
+              type="button"
+              onClick={handleFileSelect}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+            >
+              <FileUp size={14} />
+              {t('identityGraph.selectFile')}
+            </button>
+          </>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={handleFileChange}
+          aria-label={t('identityGraph.selectFile')}
+        />
+      </div>
+
+      <div className="mt-3 flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-2">
+        <Shield size={14} className="flex-shrink-0 text-green-500" />
+        <p className="text-xs text-muted-foreground">
+          {t('identityGraph.hashNotice')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SegmentBuilder({ segments }: { segments: UnifiedSegment[] }): React.ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">
+            {t('identityGraph.segmentBuilder')}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t('identityGraph.segmentBuilderDesc')}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+        >
+          <Plus size={14} />
+          {t('identityGraph.createSegment')}
+        </button>
+      </div>
+
+      {segments.length === 0 ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          {t('identityGraph.noSegments')}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {segments.map((segment) => (
+            <div
+              key={segment.id}
+              className="rounded-lg border border-border p-3 transition-all hover:border-primary/30"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{segment.name}</p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    {segment.criteria.map((criterion, i) => (
+                      <div key={`${segment.id}-${criterion.platform}-${criterion.action}`} className="flex items-center gap-1">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                            PLATFORM_BADGE_COLORS[criterion.platform] ?? 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {criterion.platform}: {criterion.action}
+                        </span>
+                        {i < segment.criteria.length - 1 && (
+                          <span className="text-[10px] text-muted-foreground">+</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <span className="flex-shrink-0 rounded bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                  {segment.size.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Main Page
+// ============================================================
+
+export default function IdentityGraphPage(): React.ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/audiences"
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label={t('common.back')}
+        >
+          <ArrowLeft size={20} />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {t('identityGraph.title')}
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {t('identityGraph.description')}
+          </p>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          labelKey="identityGraph.kpiUnifiedProfiles"
+          value="24,500"
+          icon={<Fingerprint size={16} />}
+          color="text-primary"
+        />
+        <KpiCard
+          labelKey="identityGraph.kpiMatchRate"
+          value="47.3%"
+          icon={<Link2 size={16} />}
+          color="text-blue-500"
+        />
+        <KpiCard
+          labelKey="identityGraph.kpiPlatformCoverage"
+          value="4.2 / 7"
+          icon={<Globe size={16} />}
+          color="text-green-500"
+        />
+        <KpiCard
+          labelKey="identityGraph.kpiDuplicates"
+          value="8,200"
+          subValue="(33.5%)"
+          icon={<Database size={16} />}
+          color="text-yellow-500"
+        />
+      </div>
+
+      {/* Platform coverage */}
+      <PlatformCoverageMap platforms={MOCK_PLATFORMS} />
+
+      {/* Cross-platform journey */}
+      <CrossPlatformJourney touchpoints={MOCK_JOURNEY} />
+
+      {/* Import + Segment builder side by side on large screens */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ImportPanel />
+        <SegmentBuilder segments={MOCK_SEGMENTS} />
+      </div>
+    </div>
+  );
+}

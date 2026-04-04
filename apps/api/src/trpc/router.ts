@@ -21,6 +21,9 @@ import { accountAnalysisRouter } from "./procedures/account-analysis.js";
 import { competitiveIntelRouter } from "./procedures/competitive-intel.js";
 import { creativeMassRouter } from "./procedures/creative-mass.js";
 import { abTestEngineRouter } from "./procedures/ab-test-engine.js";
+import { videoProjectsRouter } from "./procedures/video-projects.js";
+import { groupBuyRouter } from "./procedures/group-buy.js";
+import { identityGraphRouter } from "./procedures/identity-graph.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -45,6 +48,9 @@ export const appRouter = router({
   ltvTracking: ltvTrackingRouter,
   creativeMass: creativeMassRouter,
   abTestEngine: abTestEngineRouter,
+  videoProjects: videoProjectsRouter,
+  groupBuy: groupBuyRouter,
+  identityGraph: identityGraphRouter,
 });
 
 export type AppRouter = typeof appRouter;

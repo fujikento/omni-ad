@@ -46,6 +46,8 @@ export {
   type CompetitorMonitorJob,
   massProductionChunkJobSchema,
   abTestEvaluationJobSchema,
+  creativeOptimizationJobSchema,
   type MassProductionChunkJob,
   type ABTestEvaluationJob,
+  type CreativeOptimizationJob,
 } from './jobs.js';

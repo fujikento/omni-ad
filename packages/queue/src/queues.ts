@@ -14,6 +14,7 @@ export const QUEUE_NAMES = {
   COMPETITOR_MONITOR: 'competitor-monitor',
   CREATIVE_MASS_PRODUCTION: 'creative-mass-production',
   AB_TEST_EVALUATION: 'ab-test-evaluation',
+  CREATIVE_OPTIMIZATION: 'creative-optimization',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -175,6 +176,17 @@ export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
       backoff: { type: 'exponential', delay: 15_000 },
       removeOnComplete: { count: 500 },
       removeOnFail: { count: 1000 },
+    },
+  },
+  [QUEUE_NAMES.CREATIVE_OPTIMIZATION]: {
+    name: QUEUE_NAMES.CREATIVE_OPTIMIZATION,
+    options: {},
+    concurrency: 1,
+    defaultJobOptions: {
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 60_000 },
+      removeOnComplete: { count: 200 },
+      removeOnFail: { count: 500 },
     },
   },
 };

@@ -4,6 +4,11 @@ export { generateAdImage, type ImageGenerationRequest, type GeneratedImage } fro
 export { generateAdVideo, type VideoGenerationRequest, type GeneratedVideo } from './creative/video-generator.js';
 export { adaptForPlatform, type PlatformAdaptationRequest, type AdaptedCreative } from './creative/platform-adapter.js';
 
+// Script-to-Video Pipeline
+export { generateVideoScript, type VideoScript, type VideoScene, type ScriptGenerationInput, ScriptValidationError } from './creative/script-generator.js';
+export { composeScenes, type SceneAsset, type CompositionResult, SceneGenerationError } from './creative/scene-compositor.js';
+export { generateVoiceover, type VoiceoverRequest, type VoiceoverResult, VoiceoverValidationError, VoiceoverGenerationError } from './creative/voiceover-generator.js';
+
 // Budget Optimization
 export { initializeArms, updateArm, computeAllocation, resetArm, type BanditArm, type BanditConfig, type AllocationResult } from './optimization/bandit.js';
 export { forecastRoas, simulateBudgetChange, type ForecastInput, type ForecastResult, type SimulationInput, type SimulationResult } from './optimization/forecaster.js';

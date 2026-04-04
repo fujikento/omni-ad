@@ -9,8 +9,10 @@ import {
   ChevronDown,
   ChevronRight,
   FileVideo,
+  Film,
   Image,
   Loader2,
+  RefreshCw,
   Rocket,
   Sparkles,
   Star,
@@ -845,7 +847,21 @@ export default function CreativesPage(): React.ReactElement {
             {t('creatives.description')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/creatives/video-studio"
+            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <Film size={16} />
+            {t('creatives.videoStudio')}
+          </Link>
+          <Link
+            href="/creatives/optimization"
+            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <RefreshCw size={16} />
+            {t('creatives.optimization')}
+          </Link>
           <Link
             href="/creatives/mass-production"
             className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"

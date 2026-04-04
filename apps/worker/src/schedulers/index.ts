@@ -41,5 +41,13 @@ export async function registerSchedulers(): Promise<void> {
     { name: 'scheduled-competitor', data: {} },
   );
 
-  console.log('Registered 4 job schedulers');
+  // Creative optimization: every 6 hours
+  const creativeOptQueue = new Queue(QUEUE_NAMES.CREATIVE_OPTIMIZATION, { connection });
+  await creativeOptQueue.upsertJobScheduler(
+    'creative-optimization-scheduler',
+    { every: 6 * 60 * 60 * 1000 },
+    { name: 'scheduled-creative-optimization', data: {} },
+  );
+
+  console.log('Registered 5 job schedulers');
 }

@@ -205,6 +205,11 @@ export const abTestEvaluationJobSchema = z.object({
   testId: z.string().uuid().optional(),
 });
 
+// Creative Optimization Jobs
+export const creativeOptimizationJobSchema = z.object({
+  organizationId: z.string().uuid(),
+});
+
 // Job type union
 export type SyncCampaignJob = z.infer<typeof syncCampaignJobSchema>;
 export type SyncAdGroupJob = z.infer<typeof syncAdGroupJobSchema>;
@@ -227,3 +232,4 @@ export type AutopilotCycleJob = z.infer<typeof autopilotCycleJobSchema>;
 export type CompetitorMonitorJob = z.infer<typeof competitorMonitorJobSchema>;
 export type MassProductionChunkJob = z.infer<typeof massProductionChunkJobSchema>;
 export type ABTestEvaluationJob = z.infer<typeof abTestEvaluationJobSchema>;
+export type CreativeOptimizationJob = z.infer<typeof creativeOptimizationJobSchema>;
