@@ -80,7 +80,7 @@ export function LanguageSwitcher(): React.ReactElement {
                   !isSelected && 'text-foreground',
                 )}
               >
-                <span className="text-base">{config.flag}</span>
+                <span className="inline-flex h-5 w-7 items-center justify-center rounded-sm bg-muted text-[10px] font-bold text-muted-foreground">{config.code}</span>
                 <span>{config.label}</span>
               </button>
             );
