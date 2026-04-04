@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { I18nProvider, useI18n } from '@/lib/i18n';
 
 interface LoginErrorResponse {
   message?: string;
@@ -18,6 +19,15 @@ interface TRPCSuccessResponse {
 }
 
 export default function LoginPage(): React.ReactElement {
+  return (
+    <I18nProvider>
+      <LoginForm />
+    </I18nProvider>
+  );
+}
+
+function LoginForm(): React.ReactElement {
+  const { t } = useI18n();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +49,7 @@ export default function LoginPage(): React.ReactElement {
       if (!response.ok) {
         const body: unknown = await response.json().catch(() => null);
         const parsed = body as { error?: { json?: LoginErrorResponse } } | null;
-        const message =
-          parsed?.error?.json?.message ?? 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+        const message = parsed?.error?.json?.message ?? t('auth.loginError');
         setError(message);
         return;
       }
@@ -59,13 +68,13 @@ export default function LoginPage(): React.ReactElement {
       }
 
       if (!accessToken) {
-        setError('認証トークンの取得に失敗しました。もう一度お試しください。');
+        setError(t('auth.tokenError'));
         return;
       }
 
       window.location.href = '/home';
     } catch {
-      setError('サーバーに接続できませんでした。しばらくしてからもう一度お試しください。');
+      setError(t('auth.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +88,7 @@ export default function LoginPage(): React.ReactElement {
             OMNI-AD
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            統合マーケティング自動化プラットフォーム
+            {t('auth.subtitle')}
           </p>
         </div>
 
@@ -93,7 +102,7 @@ export default function LoginPage(): React.ReactElement {
                 htmlFor="email"
                 className="block text-sm font-medium text-foreground"
               >
-                メールアドレス
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -115,7 +124,7 @@ export default function LoginPage(): React.ReactElement {
                 htmlFor="password"
                 className="block text-sm font-medium text-foreground"
               >
-                パスワード
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -144,17 +153,17 @@ export default function LoginPage(): React.ReactElement {
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50"
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}
-              ログイン
+              {t('auth.login')}
             </button>
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            アカウントをお持ちでないですか？{' '}
+            {t('auth.noAccount')}{' '}
             <a
               href="/register"
               className="font-medium text-primary hover:underline"
             >
-              新規登録
+              {t('auth.register')}
             </a>
           </p>
         </form>

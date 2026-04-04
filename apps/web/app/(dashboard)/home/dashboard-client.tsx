@@ -26,6 +26,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -513,6 +514,7 @@ const INSIGHT_TYPE_HREF: Record<InsightType, string> = {
 };
 
 function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactElement {
+  const { t } = useI18n();
   const typeConfig: Record<InsightType, { icon: React.ReactNode; className: string }> = {
     opportunity: { icon: <Lightbulb size={16} />, className: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400' },
     warning: { icon: <AlertTriangle size={16} />, className: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400' },
@@ -523,7 +525,7 @@ function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactEl
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-center gap-2">
         <BrainCircuit size={18} className="text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">AIインサイト</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('dashboard.aiInsights')}</h3>
       </div>
       <div className="mt-3 space-y-3">
         {insights.map((insight) => {
@@ -616,6 +618,7 @@ function AbTestCard({ test }: { test: AbTest }): React.ReactElement {
 }
 
 function ActivityFeed({ activities }: { activities: ActivityItem[] }): React.ReactElement {
+  const { t } = useI18n();
   const typeConfig: Record<ActivityItem['type'], { icon: React.ReactNode; className: string }> = {
     user: { icon: <Clock size={14} />, className: 'text-muted-foreground' },
     ai: { icon: <BrainCircuit size={14} />, className: 'text-primary' },
@@ -625,7 +628,7 @@ function ActivityFeed({ activities }: { activities: ActivityItem[] }): React.Rea
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-5 py-4">
-        <h3 className="text-sm font-semibold text-foreground">最近のアクティビティ</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('dashboard.recentActivity')}</h3>
       </div>
       <div className="divide-y divide-border">
         {activities.map((item) => {
@@ -663,6 +666,7 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function DashboardClient(): React.ReactElement {
+  const { t } = useI18n();
   const [alertDetail, setAlertDetail] = useState<Alert | null>(null);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [stoppedAlerts, setStoppedAlerts] = useState<Set<string>>(new Set());
@@ -715,11 +719,8 @@ export function DashboardClient(): React.ReactElement {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            おはようございます
+            {t('dashboard.title')}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            本日のマーケティング状況をお知らせします
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {lastUpdatedLabel && (
@@ -761,7 +762,7 @@ export function DashboardClient(): React.ReactElement {
         <div className="xl:col-span-2 space-y-6">
           {/* Campaign Health Grid */}
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-foreground">キャンペーンヘルス</h2>
+            <h2 className="mb-3 text-lg font-semibold text-foreground">{t('dashboard.campaignHealth')}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {campaignHealth.map((campaign) => (
                 <CampaignHealthCard key={campaign.id} campaign={campaign} />

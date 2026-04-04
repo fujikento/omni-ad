@@ -30,6 +30,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -710,6 +711,7 @@ function PerformanceImpactSection({
 // ============================================================
 
 export default function AiPilotPage(): React.ReactElement {
+  const { t } = useI18n();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [localDecisionOverrides, setLocalDecisionOverrides] = useState<
@@ -812,7 +814,7 @@ export default function AiPilotPage(): React.ReactElement {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              AI オートパイロット
+              {t('aiPilot.title')}
             </h1>
             <span
               className={cn(
@@ -828,12 +830,9 @@ export default function AiPilotPage(): React.ReactElement {
                   isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500',
                 )}
               />
-              {isActive ? '稼働中' : '停止中'}
+              {isActive ? t('aiPilot.running') : t('aiPilot.stopped')}
             </span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            AIによる広告運用の自動最適化状況を確認できます
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -847,14 +846,14 @@ export default function AiPilotPage(): React.ReactElement {
             ) : (
               <Zap size={14} />
             )}
-            手動実行
+            {t('aiPilot.manualRun')}
           </button>
           <a
             href="/settings/ai"
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <Settings size={14} />
-            AI設定
+            {t('aiPilot.settings')}
           </a>
         </div>
       </div>

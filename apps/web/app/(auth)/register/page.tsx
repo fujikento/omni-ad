@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { I18nProvider, useI18n } from '@/lib/i18n';
 
 interface RegisterErrorResponse {
   message?: string;
@@ -18,6 +19,15 @@ interface TRPCSuccessResponse {
 }
 
 export default function RegisterPage(): React.ReactElement {
+  return (
+    <I18nProvider>
+      <RegisterForm />
+    </I18nProvider>
+  );
+}
+
+function RegisterForm(): React.ReactElement {
+  const { t } = useI18n();
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -26,30 +36,18 @@ export default function RegisterPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  function validate(): string | null {
-    if (!name.trim()) return '名前を入力してください。';
-    if (!email.trim()) return 'メールアドレスを入力してください。';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '有効なメールアドレスを入力してください。';
-    if (password.length < 8) return 'パスワードは8文字以上で入力してください。';
-    if (password !== confirmPassword) return 'パスワードが一致しません。';
-    if (!organizationName.trim()) return '組織名を入力してください。';
-    return null;
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     setError(null);
 
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+    if (!name.trim() || !email.trim() || password.length < 8 || password !== confirmPassword || !organizationName.trim()) {
+      setError(t('auth.registerError'));
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Register
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/trpc';
       const registerResponse = await fetch(`${apiUrl}/auth.register`, {
         method: 'POST',
@@ -62,8 +60,7 @@ export default function RegisterPage(): React.ReactElement {
       if (!registerResponse.ok) {
         const body: unknown = await registerResponse.json().catch(() => null);
         const parsed = body as { error?: { json?: RegisterErrorResponse } } | null;
-        const message =
-          parsed?.error?.json?.message ?? '登録に失敗しました。入力内容を確認してください。';
+        const message = parsed?.error?.json?.message ?? t('auth.registerError');
         setError(message);
         return;
       }
@@ -92,7 +89,7 @@ export default function RegisterPage(): React.ReactElement {
 
       window.location.href = '/onboarding';
     } catch {
-      setError('サーバーに接続できませんでした。しばらくしてからもう一度お試しください。');
+      setError(t('auth.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +106,7 @@ export default function RegisterPage(): React.ReactElement {
             OMNI-AD
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            新規アカウント登録
+            {t('auth.registerSubtitle')}
           </p>
         </div>
 
@@ -123,7 +120,7 @@ export default function RegisterPage(): React.ReactElement {
                 htmlFor="register-name"
                 className="block text-sm font-medium text-foreground"
               >
-                名前
+                {t('auth.name')}
               </label>
               <input
                 id="register-name"
@@ -136,7 +133,7 @@ export default function RegisterPage(): React.ReactElement {
                   setName(e.target.value)
                 }
                 className={inputCls}
-                placeholder="田中 太郎"
+                placeholder="John Doe"
               />
             </div>
 
@@ -145,7 +142,7 @@ export default function RegisterPage(): React.ReactElement {
                 htmlFor="register-email"
                 className="block text-sm font-medium text-foreground"
               >
-                メールアドレス
+                {t('auth.email')}
               </label>
               <input
                 id="register-email"
@@ -167,7 +164,7 @@ export default function RegisterPage(): React.ReactElement {
                 htmlFor="register-password"
                 className="block text-sm font-medium text-foreground"
               >
-                パスワード
+                {t('auth.password')}
               </label>
               <input
                 id="register-password"
@@ -181,10 +178,10 @@ export default function RegisterPage(): React.ReactElement {
                   setPassword(e.target.value)
                 }
                 className={inputCls}
-                placeholder="8文字以上"
+                placeholder={t('auth.passwordPlaceholder')}
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                8文字以上で入力してください
+                {t('auth.passwordMinLength')}
               </p>
             </div>
 
@@ -193,7 +190,7 @@ export default function RegisterPage(): React.ReactElement {
                 htmlFor="register-confirm-password"
                 className="block text-sm font-medium text-foreground"
               >
-                パスワード（確認）
+                {t('auth.confirmPassword')}
               </label>
               <input
                 id="register-confirm-password"
@@ -207,7 +204,7 @@ export default function RegisterPage(): React.ReactElement {
                   setConfirmPassword(e.target.value)
                 }
                 className={inputCls}
-                placeholder="パスワードを再入力"
+                placeholder={t('auth.reenterPassword')}
               />
             </div>
 
@@ -216,7 +213,7 @@ export default function RegisterPage(): React.ReactElement {
                 htmlFor="register-org"
                 className="block text-sm font-medium text-foreground"
               >
-                組織名
+                {t('auth.orgName')}
               </label>
               <input
                 id="register-org"
@@ -229,7 +226,7 @@ export default function RegisterPage(): React.ReactElement {
                   setOrganizationName(e.target.value)
                 }
                 className={inputCls}
-                placeholder="株式会社サンプル"
+                placeholder="Acme Inc."
               />
             </div>
 
@@ -245,17 +242,17 @@ export default function RegisterPage(): React.ReactElement {
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50"
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}
-              アカウント作成
+              {t('auth.createAccount')}
             </button>
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            既にアカウントをお持ちですか？{' '}
+            {t('auth.hasAccount')}{' '}
             <a
               href="/login"
               className="font-medium text-primary hover:underline"
             >
-              ログイン
+              {t('auth.login')}
             </a>
           </p>
         </form>

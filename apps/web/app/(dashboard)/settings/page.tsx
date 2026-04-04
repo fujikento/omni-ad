@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { useI18n } from '@/lib/i18n';
 
 // -- Types --
 
@@ -50,12 +51,12 @@ interface TeamMember {
 
 // -- Constants --
 
-const TABS: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'platforms', label: 'プラットフォーム接続', icon: <Link2 size={16} /> },
-  { key: 'team', label: 'チーム管理', icon: <Users size={16} /> },
-  { key: 'billing', label: '請求', icon: <Crown size={16} /> },
-  { key: 'api', label: 'API', icon: <Key size={16} /> },
-  { key: 'ai', label: 'AI設定', icon: <Sparkles size={16} /> },
+const TABS: { key: SettingsTab; labelKey: string; icon: React.ReactNode }[] = [
+  { key: 'platforms', labelKey: 'settings.platforms', icon: <Link2 size={16} /> },
+  { key: 'team', labelKey: 'settings.team', icon: <Users size={16} /> },
+  { key: 'billing', labelKey: 'settings.billing', icon: <Crown size={16} /> },
+  { key: 'api', labelKey: 'settings.api', icon: <Key size={16} /> },
+  { key: 'ai', labelKey: 'settings.ai', icon: <Sparkles size={16} /> },
 ];
 
 const STATUS_CONFIG: Record<ConnectionStatus, { label: string; className: string }> = {
@@ -515,6 +516,7 @@ function AiTab(): React.ReactElement {
 // -- Main Page --
 
 export default function SettingsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<SettingsTab>('platforms');
 
   const TAB_CONTENT: Record<SettingsTab, React.ReactElement> = {
@@ -529,10 +531,7 @@ export default function SettingsPage(): React.ReactElement {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">設定</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          アカウント設定、API連携、通知設定の管理
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('settings.title')}</h1>
       </div>
 
       {/* Tabs */}
@@ -551,7 +550,7 @@ export default function SettingsPage(): React.ReactElement {
               )}
             >
               {tab.icon}
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           ))}
         </nav>

@@ -30,6 +30,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -904,6 +905,7 @@ function BulkActionsBar({
 // ============================================================
 
 export default function ABTestsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [tests, setTests] = useState<ABTest[]>(ALL_MOCK_TESTS);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailTest, setDetailTest] = useState<ABTest | null>(null);
@@ -1021,19 +1023,19 @@ export default function ABTestsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            A/Bテスト管理
+            {t('abTests.title')}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
             <span className="text-muted-foreground">
-              稼働中: <span className="font-semibold text-green-600">{runningCount}件</span>
+              {t('abTests.running')}: <span className="font-semibold text-green-600">{runningCount}{t('abTests.totalRunning')}</span>
             </span>
             <span className="text-muted-foreground/30">|</span>
             <span className="text-muted-foreground">
-              完了: <span className="font-semibold text-blue-600">{completedCount}件</span>
+              {t('abTests.completed')}: <span className="font-semibold text-blue-600">{completedCount}{t('abTests.totalCompleted')}</span>
             </span>
             <span className="text-muted-foreground/30">|</span>
             <span className="text-muted-foreground">
-              勝者確定率: <span className="font-semibold text-foreground">78%</span>
+              {t('abTests.winRate')}: <span className="font-semibold text-foreground">78%</span>
             </span>
           </div>
         </div>
@@ -1043,7 +1045,7 @@ export default function ABTestsPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             <Zap size={16} />
-            一括生成 (バッチから)
+            {t('abTests.batchCreate')}
           </a>
           <button
             type="button"
@@ -1051,7 +1053,7 @@ export default function ABTestsPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Plus size={16} />
-            新規テスト作成
+            {t('abTests.create')}
           </button>
         </div>
       </div>

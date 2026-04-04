@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================================
 // Types
@@ -1519,6 +1520,7 @@ function BulkActionBar({
 // ============================================================
 
 export default function CampaignsPage(): React.ReactElement {
+  const { t } = useI18n();
   const [modalOpen, setModalOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -1638,11 +1640,8 @@ export default function CampaignsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            キャンペーン管理
+            {t('campaigns.title')}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            全チャネルのキャンペーンを一元管理
-          </p>
         </div>
         <div className="flex items-center gap-3">
           <ExportButton
@@ -1656,7 +1655,7 @@ export default function CampaignsPage(): React.ReactElement {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <Plus size={16} />
-            新規キャンペーン作成
+            {t('campaigns.create')}
           </button>
         </div>
       </div>
@@ -1721,11 +1720,11 @@ export default function CampaignsPage(): React.ReactElement {
                     <div className="flex flex-col items-center gap-3">
                       <FolderKanban size={48} className="text-muted-foreground/30" />
                       <p className="text-muted-foreground">
-                        {hasActiveFilters ? '一致するキャンペーンがありません' : 'キャンペーンがまだありません'}
+                        {t('campaigns.empty')}
                       </p>
                       {!hasActiveFilters && (
                         <p className="text-sm text-muted-foreground/70">
-                          「新規キャンペーン作成」ボタンから最初のキャンペーンを作成しましょう
+                          {t('campaigns.create')}
                         </p>
                       )}
                     </div>

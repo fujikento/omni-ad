@@ -31,13 +31,15 @@ import {
 import { cn } from '@/lib/utils';
 import { TRPCProvider } from '@/lib/trpc-provider';
 import { CommandPalette, CommandPaletteTrigger } from '@/app/components/command-palette';
+import { I18nProvider, useI18n } from '@/lib/i18n';
+import { LanguageSwitcher } from '@/app/components/language-switcher';
 
 // ============================================================
 // Types
 // ============================================================
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   href: string;
   icon: React.ReactNode;
   badge?: number;
@@ -45,7 +47,7 @@ interface NavItem {
 }
 
 interface NavGroup {
-  title: string;
+  titleKey: string;
   items: NavItem[];
 }
 
@@ -66,45 +68,45 @@ interface Notification {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: '',
+    titleKey: '',
     items: [
-      { label: 'ダッシュボード', href: '/home', icon: <Home size={20} /> },
+      { labelKey: 'nav.dashboard', href: '/home', icon: <Home size={20} /> },
     ],
   },
   {
-    title: 'AI運用',
+    titleKey: 'nav.aiOps',
     items: [
-      { label: 'AIオートパイロット', href: '/ai-pilot', icon: <Sparkles size={20} />, activeIndicator: true },
-      { label: '競合インテリジェンス', href: '/competitors', icon: <Swords size={20} />, badge: 3 },
-      { label: '自動ルール', href: '/auto-rules', icon: <Workflow size={20} /> },
+      { labelKey: 'nav.aiAutopilot', href: '/ai-pilot', icon: <Sparkles size={20} />, activeIndicator: true },
+      { labelKey: 'nav.competitors', href: '/competitors', icon: <Swords size={20} />, badge: 3 },
+      { labelKey: 'nav.autoRules', href: '/auto-rules', icon: <Workflow size={20} /> },
     ],
   },
   {
-    title: '広告管理',
+    titleKey: 'nav.adManagement',
     items: [
-      { label: 'キャンペーン', href: '/campaigns', icon: <LayoutDashboard size={20} /> },
-      { label: 'クリエイティブ', href: '/creatives', icon: <BrainCircuit size={20} /> },
-      { label: 'オーディエンス', href: '/audiences', icon: <Users size={20} /> },
-      { label: 'ファネル', href: '/funnels', icon: <GitFork size={20} /> },
+      { labelKey: 'nav.campaigns', href: '/campaigns', icon: <LayoutDashboard size={20} /> },
+      { labelKey: 'nav.creatives', href: '/creatives', icon: <BrainCircuit size={20} /> },
+      { labelKey: 'nav.audiences', href: '/audiences', icon: <Users size={20} /> },
+      { labelKey: 'nav.funnels', href: '/funnels', icon: <GitFork size={20} /> },
     ],
   },
   {
-    title: '分析・最適化',
+    titleKey: 'nav.analysisOptimization',
     items: [
-      { label: '分析', href: '/analytics', icon: <BarChart3 size={20} /> },
-      { label: '予算最適化', href: '/budgets', icon: <Gauge size={20} /> },
-      { label: 'A/Bテスト', href: '/ab-tests', icon: <FlaskConical size={20} />, badge: 847 },
-      { label: 'LTV分析', href: '/ltv', icon: <TrendingUp size={20} /> },
-      { label: 'レポート', href: '/reports', icon: <ScrollText size={20} /> },
+      { labelKey: 'nav.analytics', href: '/analytics', icon: <BarChart3 size={20} /> },
+      { labelKey: 'nav.budgets', href: '/budgets', icon: <Gauge size={20} /> },
+      { labelKey: 'nav.abTests', href: '/ab-tests', icon: <FlaskConical size={20} />, badge: 847 },
+      { labelKey: 'nav.ltv', href: '/ltv', icon: <TrendingUp size={20} /> },
+      { labelKey: 'nav.reports', href: '/reports', icon: <ScrollText size={20} /> },
     ],
   },
   {
-    title: '管理',
+    titleKey: 'nav.management',
     items: [
-      { label: 'アカウント分析', href: '/account-analysis', icon: <ScanSearch size={20} /> },
-      { label: 'クライアント管理', href: '/clients', icon: <Building2 size={20} /> },
-      { label: '承認管理', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
-      { label: '設定', href: '/settings', icon: <Settings size={20} /> },
+      { labelKey: 'nav.accountAnalysis', href: '/account-analysis', icon: <ScanSearch size={20} /> },
+      { labelKey: 'nav.clients', href: '/clients', icon: <Building2 size={20} /> },
+      { labelKey: 'nav.approvals', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
+      { labelKey: 'nav.settings', href: '/settings', icon: <Settings size={20} /> },
     ],
   },
 ];
@@ -141,6 +143,7 @@ function NotificationPanel({
   onMarkAllRead: () => void;
 }): React.ReactElement | null {
   const panelRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -169,22 +172,22 @@ function NotificationPanel({
       ref={panelRef}
       className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-lg sm:w-96"
       role="dialog"
-      aria-label="通知パネル"
+      aria-label={t('header.notificationPanel')}
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h3 className="text-sm font-semibold text-foreground">通知</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('header.notifications')}</h3>
         <button
           type="button"
           onClick={onMarkAllRead}
           className="text-xs font-medium text-primary hover:text-primary/80"
         >
-          すべて既読にする
+          {t('header.markAllRead')}
         </button>
       </div>
       <div className="max-h-80 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            通知はありません
+            {t('header.noNotifications')}
           </div>
         ) : (
           notifications.map((notification) => (
@@ -219,6 +222,7 @@ function UserDropdown({
   onClose: () => void;
 }): React.ReactElement | null {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -242,9 +246,9 @@ function UserDropdown({
   if (!open) return null;
 
   const menuItems = [
-    { label: 'プロフィール', icon: <User size={14} />, href: '/settings' },
-    { label: '設定', icon: <Settings size={14} />, href: '/settings' },
-    { label: 'プラン', icon: <Zap size={14} />, href: '/settings' },
+    { labelKey: 'header.profile', icon: <User size={14} />, href: '/settings' },
+    { labelKey: 'nav.settings', icon: <Settings size={14} />, href: '/settings' },
+    { labelKey: 'header.plan', icon: <Zap size={14} />, href: '/settings' },
   ];
 
   return (
@@ -252,21 +256,21 @@ function UserDropdown({
       ref={dropdownRef}
       className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
       role="menu"
-      aria-label="ユーザーメニュー"
+      aria-label={t('header.userMenu')}
     >
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-medium text-foreground">ユーザー名</p>
+        <p className="text-sm font-medium text-foreground">{t('common.username')}</p>
         <p className="text-xs text-muted-foreground">user@example.com</p>
       </div>
       {menuItems.map((item) => (
         <a
-          key={item.label}
+          key={item.labelKey}
           href={item.href}
           className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
           role="menuitem"
         >
           <span className="text-muted-foreground">{item.icon}</span>
-          {item.label}
+          {t(item.labelKey)}
         </a>
       ))}
       <div className="border-t border-border">
@@ -281,7 +285,7 @@ function UserDropdown({
           role="menuitem"
         >
           <LogOut size={14} />
-          ログアウト
+          {t('header.logout')}
         </button>
       </div>
     </div>
@@ -289,6 +293,7 @@ function UserDropdown({
 }
 
 function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactElement {
+  const { t } = useI18n();
   const used = 28;
   const total = 100;
   const percentage = Math.round((used / total) * 100);
@@ -298,7 +303,7 @@ function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactEleme
       {sidebarOpen ? (
         <>
           <div className="flex items-center justify-between text-xs text-sidebar-foreground/60">
-            <span>クリエイティブ生成</span>
+            <span>{t('common.creativeGeneration')}</span>
             <span>{used}/{total}</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-sidebar-accent">
@@ -309,7 +314,7 @@ function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactEleme
           </div>
         </>
       ) : (
-        <div className="flex justify-center" title={`クリエイティブ生成: ${used}/${total}`}>
+        <div className="flex justify-center" title={`${t('common.creativeGeneration')}: ${used}/${total}`}>
           <div className="h-6 w-6 rounded-full border-2 border-primary/30 p-0.5">
             <div className="h-full w-full rounded-full bg-primary" style={{ clipPath: `inset(${100 - percentage}% 0 0 0)` }} />
           </div>
@@ -402,6 +407,19 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }): React.ReactElement {
+  return (
+    <I18nProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </I18nProvider>
+  );
+}
+
+function DashboardLayoutInner({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.ReactElement {
+  const { t } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -495,7 +513,7 @@ export default function DashboardLayout({
           }}
           role="button"
           tabIndex={0}
-          aria-label="メニューを閉じる"
+          aria-label={t('header.closeMenu')}
         />
       )}
 
@@ -516,7 +534,7 @@ export default function DashboardLayout({
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="hidden rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:block"
-            aria-label={sidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
+            aria-label={sidebarOpen ? t('header.closeSidebar') : t('header.openSidebar')}
           >
             <ChevronLeft
               size={18}
@@ -529,17 +547,17 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3" aria-label="メインナビゲーション">
+        <nav className="flex-1 overflow-y-auto p-3" aria-label={t('header.mainNav')}>
           {NAV_GROUPS.map((group) => (
-            <div key={group.title || '_top'} className={cn(group.title && 'mt-4 first:mt-0')}>
-              {group.title && sidebarOpen && (
+            <div key={group.titleKey || '_top'} className={cn(group.titleKey && 'mt-4 first:mt-0')}>
+              {group.titleKey && sidebarOpen && (
                 <div className="mb-1.5 px-3 pt-2">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-                    {group.title}
+                    {t(group.titleKey)}
                   </span>
                 </div>
               )}
-              {group.title && !sidebarOpen && (
+              {group.titleKey && !sidebarOpen && (
                 <div className="my-2 mx-2 border-t border-sidebar-accent" />
               )}
               <div className="space-y-0.5">
@@ -570,7 +588,7 @@ export default function DashboardLayout({
                     </span>
                     {sidebarOpen && (
                       <span className="flex flex-1 items-center justify-between">
-                        <span>{item.label}</span>
+                        <span>{t(item.labelKey)}</span>
                         {item.badge !== undefined && item.badge > 0 && (
                           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                             {item.badge}
@@ -601,16 +619,16 @@ export default function DashboardLayout({
             <div className="rounded-md bg-sidebar-accent/50 px-3 py-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-sidebar-foreground/60">プラン</p>
+                  <p className="text-xs text-sidebar-foreground/60">{t('common.plan')}</p>
                   <p className="text-sm font-medium text-sidebar-foreground">
-                    プロフェッショナル
+                    {t('common.professional')}
                   </p>
                 </div>
                 <a
                   href="/settings"
                   className="rounded-md bg-primary/20 px-2 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/30"
                 >
-                  アップグレード
+                  {t('common.upgrade')}
                 </a>
               </div>
             </div>
@@ -619,8 +637,8 @@ export default function DashboardLayout({
               <a
                 href="/settings"
                 className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent"
-                title="アップグレード"
-                aria-label="プランをアップグレード"
+                title={t('common.upgrade')}
+                aria-label={t('common.upgrade')}
               >
                 <Zap size={18} />
               </a>
@@ -638,7 +656,7 @@ export default function DashboardLayout({
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:hidden"
-              aria-label="メニューを開く"
+              aria-label={t('header.openMenu')}
             >
               <Menu size={20} />
             </button>
@@ -659,11 +677,14 @@ export default function DashboardLayout({
                   : 'bg-red-600 text-white hover:bg-red-700',
               )}
               disabled={emergencyStopped}
-              aria-label="緊急停止"
+              aria-label={t('header.emergencyStop')}
             >
               <ShieldAlert size={16} />
-              <span className="hidden sm:inline">緊急停止</span>
+              <span className="hidden sm:inline">{t('header.emergencyStop')}</span>
             </button>
+
+            {/* Language switcher */}
+            <LanguageSwitcher />
 
             {/* Notification bell */}
             <div className="relative">
@@ -674,7 +695,7 @@ export default function DashboardLayout({
                   setUserDropdownOpen(false);
                 }}
                 className="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                aria-label="通知を表示"
+                aria-label={t('header.showNotifications')}
                 aria-expanded={notificationsOpen}
               >
                 <Bell size={20} />
@@ -702,7 +723,7 @@ export default function DashboardLayout({
                   setNotificationsOpen(false);
                 }}
                 className="flex items-center gap-2 rounded-md p-1.5 transition-colors hover:bg-accent"
-                aria-label="ユーザーメニュー"
+                aria-label={t('header.userMenu')}
                 aria-expanded={userDropdownOpen}
                 aria-haspopup="true"
               >
@@ -711,9 +732,9 @@ export default function DashboardLayout({
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-medium text-foreground">
-                    ユーザー名
+                    {t('common.username')}
                   </p>
-                  <p className="text-xs text-muted-foreground">管理者</p>
+                  <p className="text-xs text-muted-foreground">{t('common.admin')}</p>
                 </div>
                 <ChevronDown size={14} className="hidden text-muted-foreground sm:block" />
               </button>
@@ -732,7 +753,7 @@ export default function DashboardLayout({
             <div className="flex items-center gap-2">
               <ShieldAlert size={16} />
               <span className="text-sm font-semibold">
-                緊急停止中 &mdash; 全キャンペーンが停止されています
+                {t('header.emergencyStopped')}
               </span>
             </div>
             <button
@@ -740,7 +761,7 @@ export default function DashboardLayout({
               onClick={handleEmergencyResume}
               className="rounded-md bg-white/20 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-white/30"
             >
-              再開
+              {t('header.resume')}
             </button>
           </div>
         )}
@@ -765,13 +786,13 @@ export default function DashboardLayout({
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                 <ShieldAlert size={20} className="text-red-600 dark:text-red-400" />
               </div>
-              <h2 className="text-lg font-semibold text-foreground">緊急停止の確認</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t('common.confirmEmergencyStop')}</h2>
             </div>
             <p className="text-sm text-foreground">
-              全キャンペーンを即時停止しますか？
+              {t('common.emergencyStopBody')}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              この操作は全プラットフォームの全アクティブキャンペーンを停止します。
+              {t('common.emergencyStopDetail')}
             </p>
             {emergencyError && (
               <div className="mt-3 rounded-md bg-destructive/10 px-3 py-2">
@@ -785,7 +806,7 @@ export default function DashboardLayout({
                 disabled={emergencyStopping}
                 className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
               >
-                キャンセル
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -796,7 +817,7 @@ export default function DashboardLayout({
                 {emergencyStopping && (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 )}
-                全キャンペーンを停止
+                {t('common.allStop')}
               </button>
             </div>
           </div>
