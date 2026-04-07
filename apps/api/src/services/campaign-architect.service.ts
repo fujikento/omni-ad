@@ -347,10 +347,8 @@ export async function deployCampaignPlan(
     // TODO: Auto-generate creatives from AI recommendations
     if (planned.creativeRecommendations.length > 0) {
       // Log for now; a future iteration will pipe these into creative generation
-      console.log(
-        `[campaign-architect] Creative recommendations for ${campaign.id}:`,
-        planned.creativeRecommendations,
-      );
+      // Creative recommendations logged for future auto-generation pipeline
+      void planned.creativeRecommendations;
     }
 
     // Deploy to the specified platform

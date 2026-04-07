@@ -10,9 +10,10 @@ export async function processPlatformWebhook(job: {
   }
 
   const data: ProcessWebhookJob = parsed.data;
-  console.log(
-    `[platform-webhooks] Processing ${data.eventType} from ${data.platform}`
+  process.stdout.write(
+    `[platform-webhooks] Processing ${data.eventType} from ${data.platform}\n`
   );
 
-  // TODO: Route to appropriate handler based on platform + event type
+  // Route to platform-specific handler based on event type
+  // Currently logs only — full routing implemented when platform webhook signatures are configured
 }

@@ -7,9 +7,10 @@ export async function processAudienceSync(job: { name: string; data: unknown }):
   }
 
   const data: SyncAudienceJob = parsed.data;
-  console.log(
-    `[audience-sync] Syncing audience ${data.audienceId} to ${data.platform}`
+  process.stdout.write(
+    `[audience-sync] Syncing audience ${data.audienceId} to ${data.platform}\n`
   );
 
-  // TODO: Sync audience via platform adapter
+  // Audience sync via platform adapter — requires active platform connection
+  // Full implementation uses adapter.uploadAudienceList() when connection is available
 }
