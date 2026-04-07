@@ -72,7 +72,8 @@ interface CompetitorAlert {
   id: string;
   type: AlertType;
   competitorName: string;
-  message: string;
+  messageKey: string;
+  messageParams: Record<string, string | number>;
   timestamp: string;
   acknowledged: boolean;
 }
@@ -286,64 +287,72 @@ const MOCK_ALERTS: CompetitorAlert[] = [
     id: 'a1',
     type: 'new_creative',
     competitorName: 'CompetitorA',
-    message: 'CompetitorAが新クリエイティブ5本を追加',
-    timestamp: '2時間前',
+    messageKey: 'competitors.alertNewCreatives',
+    messageParams: { name: 'CompetitorA', count: 5 },
+    timestamp: '2h',
     acknowledged: false,
   },
   {
     id: 'a2',
     type: 'budget_increase',
     competitorName: 'CompetitorC',
-    message: 'CompetitorCの推定予算が30%増加',
-    timestamp: '4時間前',
+    messageKey: 'competitors.alertBudgetIncrease',
+    messageParams: { name: 'CompetitorC', percent: 30 },
+    timestamp: '4h',
     acknowledged: false,
   },
   {
     id: 'a3',
     type: 'position_change',
     competitorName: 'CompetitorE',
-    message: 'CompetitorEが主要キーワードで1位を獲得',
-    timestamp: '5時間前',
+    messageKey: 'competitors.alertPositionGain',
+    messageParams: { name: 'CompetitorE' },
+    timestamp: '5h',
     acknowledged: false,
   },
   {
     id: 'a4',
     type: 'new_keyword',
     competitorName: 'CompetitorA',
-    message: 'CompetitorAが新キーワード12個で出稿開始',
-    timestamp: '6時間前',
+    messageKey: 'competitors.alertNewKeywords',
+    messageParams: { name: 'CompetitorA', count: 12 },
+    timestamp: '6h',
     acknowledged: true,
   },
   {
     id: 'a5',
     type: 'new_campaign',
     competitorName: 'CompetitorB',
-    message: 'CompetitorBが新キャンペーンを開始',
-    timestamp: '8時間前',
+    messageKey: 'competitors.alertNewCampaign',
+    messageParams: { name: 'CompetitorB' },
+    timestamp: '8h',
     acknowledged: true,
   },
   {
     id: 'a6',
     type: 'budget_increase',
     competitorName: 'CompetitorD',
-    message: 'CompetitorDのTikTok予算が倍増',
-    timestamp: '12時間前',
+    messageKey: 'competitors.alertBudgetDouble',
+    messageParams: { name: 'CompetitorD', platform: 'TikTok' },
+    timestamp: '12h',
     acknowledged: true,
   },
   {
     id: 'a7',
     type: 'position_change',
     competitorName: 'CompetitorC',
-    message: 'CompetitorCの平均掲載順位が0.5改善',
-    timestamp: '1日前',
+    messageKey: 'competitors.alertPositionImproved',
+    messageParams: { name: 'CompetitorC', delta: '0.5' },
+    timestamp: '1d',
     acknowledged: true,
   },
   {
     id: 'a8',
     type: 'new_creative',
     competitorName: 'CompetitorE',
-    message: 'CompetitorEが動画広告3本を新規投入',
-    timestamp: '1日前',
+    messageKey: 'competitors.alertNewVideoAds',
+    messageParams: { name: 'CompetitorE', count: 3 },
+    timestamp: '1d',
     acknowledged: true,
   },
 ];
@@ -774,10 +783,10 @@ function AlertBanner({
             <div className="flex items-center gap-2">
               <span>{ALERT_TYPE_ICONS[alert.type]}</span>
               <span className="text-sm text-yellow-900 dark:text-yellow-200">
-                {alert.message}
+                {t(alert.messageKey, alert.messageParams)}
               </span>
               <span className="text-xs text-yellow-600 dark:text-yellow-500">
-                {alert.timestamp}
+                {t(`competitors.time.${alert.timestamp}`)}
               </span>
             </div>
             <button

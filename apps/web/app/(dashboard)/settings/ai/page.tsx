@@ -294,14 +294,14 @@ function ApiKeySection({
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
               {showKey ? <EyeOff size={12} /> : <Eye size={12} />}
-              {showKey ? '隠す' : '表示'}
+              {showKey ? t('settings.ai.hide') : t('settings.ai.show')}
             </button>
             <button
               type="button"
               onClick={() => setEditingKey(true)}
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              キーを変更
+              {t('settings.ai.changeKey')}
             </button>
             <button
               type="button"
@@ -319,13 +319,13 @@ function ApiKeySection({
             {testResult === 'success' && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
                 <Check size={12} />
-                接続成功
+                {t('settings.ai.connectionSuccess')}
               </span>
             )}
             {testResult === 'failure' && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
                 <AlertTriangle size={12} />
-                接続失敗
+                {t('settings.ai.connectionFailure')}
               </span>
             )}
           </div>
@@ -344,7 +344,7 @@ function ApiKeySection({
               type="button"
               onClick={() => setShowKey(!showKey)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label={showKey ? 'キーを隠す' : 'キーを表示'}
+              aria-label={showKey ? t('settings.ai.hideKey') : t('settings.ai.showKey')}
             >
               {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
@@ -356,7 +356,7 @@ function ApiKeySection({
               disabled={!newKey.trim()}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              保存
+              {t('common.save')}
             </button>
             {editingKey && (
               <button
@@ -367,7 +367,7 @@ function ApiKeySection({
                 }}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
-                キャンセル
+                {t('common.cancel')}
               </button>
             )}
           </div>
@@ -384,7 +384,7 @@ function ApiKeySection({
           Anthropic Console
           <ExternalLink size={10} />
         </a>
-        {' '}からAPIキーを取得してください
+        {' '}{t('settings.ai.getKeyHelp')}
       </p>
     </section>
   );
@@ -421,7 +421,7 @@ function AutopilotModeSection({
                 onSettingsChange({ autopilotEnabled: e.target.checked })
               }
               className="peer sr-only"
-              aria-label="AIオートパイロットを有効化"
+              aria-label={t('settings.ai.enableAutopilot')}
             />
             <div className="h-7 w-12 rounded-full bg-muted transition-colors peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring" />
             <div className="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
@@ -493,7 +493,7 @@ function OptimizationSettingsSection({
     <section className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center gap-2 mb-6">
         <Shield size={20} className="text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">最適化設定</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('settings.ai.optimizationSettings')}</h2>
       </div>
 
       <div
@@ -532,7 +532,7 @@ function OptimizationSettingsSection({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">{t('aiSettings.budgetAutoAdjust')}</p>
-                  <p className="text-xs text-muted-foreground">AIが自動的に予算を調整します</p>
+                  <p className="text-xs text-muted-foreground">{t('settings.ai.budgetAutoAdjustDesc')}</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
@@ -543,7 +543,7 @@ function OptimizationSettingsSection({
                     }
                     className="peer sr-only"
                     disabled={disabled}
-                    aria-label="予算自動調整を有効化"
+                    aria-label={t('settings.ai.enableBudgetAutoAdjust')}
                   />
                   <div className="h-6 w-10 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
                   <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
@@ -566,7 +566,7 @@ function OptimizationSettingsSection({
                     }
                     disabled={disabled}
                     className="w-full accent-primary"
-                    aria-label="最大変更率"
+                    aria-label={t('aiSettings.maxChangeRate')}
                   />
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>5%</span>
@@ -580,7 +580,7 @@ function OptimizationSettingsSection({
             <div className="flex items-center justify-between rounded-lg border border-border p-4">
               <div>
                 <p className="text-sm font-medium text-foreground">{t('aiSettings.creativeAutoRotation')}</p>
-                <p className="text-xs text-muted-foreground">パフォーマンスに基づきクリエイティブを自動切替</p>
+                <p className="text-xs text-muted-foreground">{t('settings.ai.creativeAutoRotationDesc')}</p>
               </div>
               <label className="relative inline-flex cursor-pointer items-center">
                 <input
@@ -591,7 +591,7 @@ function OptimizationSettingsSection({
                   }
                   className="peer sr-only"
                   disabled={disabled}
-                  aria-label="クリエイティブ自動ローテーションを有効化"
+                  aria-label={t('settings.ai.enableCreativeRotation')}
                 />
                 <div className="h-6 w-10 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
                 <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
@@ -603,7 +603,7 @@ function OptimizationSettingsSection({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">{t('aiSettings.campaignAutoCreation')}</p>
-                  <p className="text-xs text-muted-foreground">AIが自動的に新しいキャンペーンを作成します</p>
+                  <p className="text-xs text-muted-foreground">{t('settings.ai.campaignAutoCreationDesc')}</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
@@ -614,7 +614,7 @@ function OptimizationSettingsSection({
                     }
                     className="peer sr-only"
                     disabled={disabled}
-                    aria-label="キャンペーン自動作成を有効化"
+                    aria-label={t('settings.ai.enableCampaignAutoCreation')}
                   />
                   <div className="h-6 w-10 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
                   <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
@@ -624,7 +624,7 @@ function OptimizationSettingsSection({
                 <div className="mt-3 flex items-start gap-2 rounded-md bg-yellow-50 p-3 dark:bg-yellow-950/30">
                   <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
                   <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                    AIが自動的に新しいキャンペーンを作成します。予算上限を設定することを強く推奨します。
+                    {t('settings.ai.campaignAutoCreationWarning')}
                   </p>
                 </div>
               )}
@@ -681,11 +681,11 @@ function OptimizationSettingsSection({
                 })
               }
               disabled={disabled}
-              placeholder="例: 3.0"
+              placeholder={t('settings.ai.roasPlaceholder')}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              未設定の場合、AIが自動的に目標を設定します
+              {t('settings.ai.roasHint')}
             </p>
           </div>
 
@@ -709,12 +709,12 @@ function OptimizationSettingsSection({
                   })
                 }
                 disabled={disabled}
-                placeholder="例: 5,000,000"
+                placeholder={t('settings.ai.budgetPlaceholder')}
                 className="w-full rounded-md border border-input bg-background py-2 pl-7 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               />
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              未設定の場合、予算上限なし
+              {t('settings.ai.budgetHint')}
             </p>
           </div>
         </div>
@@ -758,7 +758,7 @@ function CompetitiveIntelligenceSettingsSection({
               {t('aiSettings.monitoring')}
             </p>
             <p className="text-xs text-muted-foreground">
-              競合の広告活動をリアルタイムで監視します
+              {t('settings.ai.monitoringDesc')}
             </p>
           </div>
           <label className="relative inline-flex cursor-pointer items-center">
@@ -774,7 +774,7 @@ function CompetitiveIntelligenceSettingsSection({
                 })
               }
               className="peer sr-only"
-              aria-label="競合監視を有効化"
+              aria-label={t('settings.ai.enableMonitoring')}
             />
             <div className="h-6 w-10 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
             <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
@@ -793,7 +793,7 @@ function CompetitiveIntelligenceSettingsSection({
               {t('aiSettings.autoCounter')}
             </p>
             <p className="text-xs text-muted-foreground">
-              AIが自動的に競合への対抗アクションを実行します
+              {t('settings.ai.autoCounterDesc')}
             </p>
           </div>
           <label className="relative inline-flex cursor-pointer items-center">
@@ -807,7 +807,7 @@ function CompetitiveIntelligenceSettingsSection({
               }
               disabled={!ci.monitoringEnabled}
               className="peer sr-only"
-              aria-label="自動対抗を有効化"
+              aria-label={t('settings.ai.enableAutoCounter')}
             />
             <div className="h-6 w-10 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
             <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
@@ -961,14 +961,14 @@ export default function AiSettingsPage(): React.ReactElement {
       <div>
         <div className="flex items-center gap-2">
           <a href="/settings" className="text-sm text-muted-foreground hover:text-foreground">
-            設定
+            {t('nav.settings')}
           </a>
           <span className="text-sm text-muted-foreground">/</span>
           <span className="text-sm font-medium text-foreground">{t('aiSettings.title')}</span>
         </div>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{t('aiSettings.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Claude APIキーの設定とAIオートパイロットの動作を管理します
+          {t('settings.ai.pageDescription')}
         </p>
       </div>
 
@@ -984,13 +984,13 @@ export default function AiSettingsPage(): React.ReactElement {
           {hasChanges && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
               <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
-              未保存の変更があります
+              {t('settings.ai.unsavedChanges')}
             </span>
           )}
           {saved && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
               <Check size={12} />
-              保存しました
+              {t('settings.ai.saved')}
             </span>
           )}
         </div>

@@ -525,12 +525,14 @@ function DashboardLayoutInner({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar -- hidden on mobile by default, shown via mobileMenuOpen overlay */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 lg:relative lg:z-auto',
+          'fixed inset-y-0 left-0 z-50 flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 lg:relative lg:z-auto',
           sidebarOpen ? 'w-60' : 'w-16',
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          mobileMenuOpen
+            ? 'flex translate-x-0'
+            : 'hidden lg:flex lg:translate-x-0',
         )}
       >
         {/* Sidebar header */}
@@ -670,7 +672,7 @@ function DashboardLayoutInner({
             </button>
 
             {/* Global search trigger */}
-            <CommandPaletteTrigger onClick={() => setCommandPaletteOpen(true)} />
+            <CommandPaletteTrigger onClick={() => setCommandPaletteOpen(true)} label={t('header.search')} />
           </div>
 
           <div className="flex items-center gap-2">

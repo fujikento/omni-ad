@@ -295,16 +295,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps): Rea
 
 // -- Trigger Button --
 
-export function CommandPaletteTrigger({ onClick }: { onClick: () => void }): React.ReactElement {
+interface CommandPaletteTriggerProps {
+  onClick: () => void;
+  label?: string;
+}
+
+export function CommandPaletteTrigger({ onClick, label }: CommandPaletteTriggerProps): React.ReactElement {
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-      aria-label="コマンドパレットを開く"
+      aria-label={label ?? 'Open command palette'}
     >
       <Search size={14} />
-      <span className="hidden sm:inline">検索...</span>
+      <span className="hidden sm:inline">{label ?? 'Search...'}</span>
       <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium sm:inline-block">
         <Command size={10} className="mr-0.5 inline" />K
       </kbd>

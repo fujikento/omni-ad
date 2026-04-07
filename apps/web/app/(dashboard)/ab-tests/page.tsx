@@ -189,8 +189,8 @@ function generateMockTests(): ABTest[] {
           ? 500 + Math.random() * 2000
           : 0.01 + Math.random() * 0.08;
       return {
-        name: vi === 0 ? 'コントロール' : `バリアント ${String.fromCharCode(65 + vi)}`,
-        description: vi === 0 ? 'オリジナル' : `テストパターン ${vi}`,
+        name: vi === 0 ? '__control__' : `__variant_${String.fromCharCode(65 + vi)}__`,
+        description: vi === 0 ? '__original__' : `__test_pattern_${vi}__`,
         impressions: Math.floor(currentSamples / variantCount),
         clicks: Math.floor(currentSamples / variantCount * 0.04),
         conversions: Math.floor(currentSamples / variantCount * 0.01),
@@ -201,7 +201,7 @@ function generateMockTests(): ABTest[] {
       };
     });
 
-    const bestVariantName = variants.find((v) => v.isWinner)?.name ?? 'コントロール';
+    const bestVariantName = variants.find((v) => v.isWinner)?.name ?? '__control__';
 
     return {
       id: `t${i + 1}`,
@@ -227,6 +227,27 @@ function generateMockTests(): ABTest[] {
 }
 
 const ALL_MOCK_TESTS = generateMockTests();
+
+// ============================================================
+// Helpers
+// ============================================================
+
+function translateVariantName(
+  name: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  if (name === '__control__') return t('abTests.control');
+  if (name === '__original__') return t('abTests.original');
+  const variantMatch = /^__variant_([A-Z])__$/.exec(name);
+  if (variantMatch) {
+    return `${t('abTests.variants')} ${variantMatch[1]}`;
+  }
+  const patternMatch = /^__test_pattern_(\d+)__$/.exec(name);
+  if (patternMatch) {
+    return `${t('abTests.testPattern')} ${patternMatch[1]}`;
+  }
+  return name;
+}
 
 // ============================================================
 // Subcomponents
@@ -379,7 +400,7 @@ function TestDetailModal({ test, onClose, onDeclareWinner }: TestDetailModalProp
                       <td className="py-2.5">
                         <div className="flex items-center gap-2">
                           {variant.isWinner && <Trophy size={12} className="text-green-600 dark:text-green-400" />}
-                          <span className="font-medium text-foreground">{variant.name}</span>
+                          <span className="font-medium text-foreground">{translateVariantName(variant.name, t)}</span>
                         </div>
                       </td>
                       <td className="py-2.5 text-right text-foreground">{variant.impressions.toLocaleString()}</td>
@@ -1248,7 +1269,7 @@ export default function ABTestsPage(): React.ReactElement {
                       checked={selectedIds.has(test.id)}
                       onChange={() => toggleSelect(test.id)}
                       className="h-4 w-4 rounded border-input accent-primary"
-                      aria-label={`${test.name}を選択`}
+                      aria-label={t('abTests.selectTest', { name: test.name })}
                     />
                   </td>
                   <td className="px-3 py-2.5">
@@ -1279,7 +1300,7 @@ export default function ABTestsPage(): React.ReactElement {
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5">
                       {test.lift > 0 && <Trophy size={12} className="text-green-600 dark:text-green-400" />}
-                      <span className="text-sm text-foreground">{test.bestVariant}</span>
+                      <span className="text-sm text-foreground">{translateVariantName(test.bestVariant, t)}</span>
                       <span className={cn(
                         'text-xs font-semibold',
                         test.lift > 0 ? 'text-green-600' : test.lift < 0 ? 'text-red-600' : 'text-muted-foreground',
