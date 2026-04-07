@@ -184,10 +184,28 @@ async function handlePull(data: SyncCampaignJob): Promise<void> {
   const adapter = adapterRegistry.get(P2E[data.platform] ?? PlatformEnum.META);
   const accessToken = await ensureValidToken(connection, adapter);
 
-  // Find all deployments with external IDs for this platform
-  const deployments = await db.query.campaignPlatformDeployments.findMany({
-    where: eq(campaignPlatformDeployments.platform, data.platform),
-  });
+  // Find all deployments with external IDs for this platform, scoped to this org
+  const deployments = await db
+    .select({
+      id: campaignPlatformDeployments.id,
+      campaignId: campaignPlatformDeployments.campaignId,
+      platform: campaignPlatformDeployments.platform,
+      externalCampaignId: campaignPlatformDeployments.externalCampaignId,
+      platformStatus: campaignPlatformDeployments.platformStatus,
+      platformBudget: campaignPlatformDeployments.platformBudget,
+      lastSyncAt: campaignPlatformDeployments.lastSyncAt,
+      platformSpecificConfig: campaignPlatformDeployments.platformSpecificConfig,
+      createdAt: campaignPlatformDeployments.createdAt,
+      updatedAt: campaignPlatformDeployments.updatedAt,
+    })
+    .from(campaignPlatformDeployments)
+    .innerJoin(campaigns, eq(campaignPlatformDeployments.campaignId, campaigns.id))
+    .where(
+      and(
+        eq(campaigns.organizationId, data.organizationId),
+        eq(campaignPlatformDeployments.platform, data.platform),
+      ),
+    );
 
   const deployed = deployments.filter((d) => d.externalCampaignId !== null);
 

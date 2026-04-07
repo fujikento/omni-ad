@@ -10,6 +10,7 @@ import {
   auditLog,
   campaigns,
   campaignPlatformDeployments,
+  platformConnections,
 } from '@omni-ad/db/schema';
 import { getQueue, QUEUE_NAMES } from '@omni-ad/queue';
 import type { SyncCampaignJob } from '@omni-ad/queue';
@@ -81,15 +82,29 @@ export async function emergencyStopAll(
     }
   });
 
-  // 4. Enqueue platform sync jobs for each campaign
+  // 4. Enqueue platform sync jobs for each campaign (look up actual platformConnection)
   const adSyncQueue = getQueue(QUEUE_NAMES.AD_SYNC);
   const syncPromises: Promise<unknown>[] = [];
 
   for (const campaign of activeCampaigns) {
     for (const deployment of campaign.platformDeployments) {
+      const connection = await db.query.platformConnections.findFirst({
+        where: and(
+          eq(platformConnections.organizationId, organizationId),
+          eq(platformConnections.platform, deployment.platform),
+        ),
+      });
+
+      if (!connection) {
+        console.warn(
+          `[emergency.service] No platform connection for org=${organizationId} platform=${deployment.platform}, skipping sync`,
+        );
+        continue;
+      }
+
       const jobData: SyncCampaignJob = {
         organizationId,
-        platformConnectionId: campaign.id,
+        platformConnectionId: connection.id,
         platform: deployment.platform,
         direction: 'push',
       };
@@ -194,12 +209,26 @@ export async function emergencyStopCampaign(
     throw new EmergencyStopError(`Failed to pause campaign: ${campaignId}`);
   }
 
-  // Enqueue sync jobs
+  // Enqueue sync jobs (look up actual platformConnection)
   const adSyncQueue = getQueue(QUEUE_NAMES.AD_SYNC);
   for (const deployment of campaign.platformDeployments) {
+    const connection = await db.query.platformConnections.findFirst({
+      where: and(
+        eq(platformConnections.organizationId, organizationId),
+        eq(platformConnections.platform, deployment.platform),
+      ),
+    });
+
+    if (!connection) {
+      console.warn(
+        `[emergency.service] No platform connection for org=${organizationId} platform=${deployment.platform}, skipping sync`,
+      );
+      continue;
+    }
+
     const jobData: SyncCampaignJob = {
       organizationId,
-      platformConnectionId: campaignId,
+      platformConnectionId: connection.id,
       platform: deployment.platform,
       direction: 'push',
     };
@@ -254,26 +283,33 @@ export async function emergencyResume(
     limit: 1,
   });
 
-  // Get campaign IDs from the latest emergency stop
-  let campaignIdsToResume: string[] = [];
-
-  if (emergencyStopLogs.length > 0) {
-    const latestStop = emergencyStopLogs[0]!;
-    const newValue = latestStop.newValue as Record<string, unknown> | null;
-    if (newValue && Array.isArray(newValue['campaignIds'])) {
-      campaignIdsToResume = newValue['campaignIds'] as string[];
-    }
+  // If no emergency stop was active, do nothing to avoid resuming manually-paused campaigns
+  if (emergencyStopLogs.length === 0) {
+    return { pausedCount: 0, campaignIds: [], timestamp: now };
   }
 
-  // If no emergency stop log found, resume all paused campaigns
-  if (campaignIdsToResume.length === 0) {
-    const pausedCampaigns = await db.query.campaigns.findMany({
-      where: and(
-        eq(campaigns.organizationId, organizationId),
-        eq(campaigns.status, 'paused'),
-      ),
-    });
-    campaignIdsToResume = pausedCampaigns.map((c) => c.id);
+  // Get campaign IDs from the latest emergency stop
+  let campaignIdsToResume: string[] = [];
+  const latestStop = emergencyStopLogs[0]!;
+  const newValue = latestStop.newValue as Record<string, unknown> | null;
+  if (newValue && Array.isArray(newValue['campaignIds'])) {
+    campaignIdsToResume = newValue['campaignIds'] as string[];
+  }
+
+  // Check if this emergency stop was already resumed
+  const latestResume = await db.query.auditLog.findFirst({
+    where: and(
+      eq(auditLog.organizationId, organizationId),
+      eq(auditLog.action, 'emergency_resume'),
+    ),
+    orderBy: (log, { desc: d }) => [d(log.timestamp)],
+  });
+
+  if (
+    latestResume &&
+    latestStop.timestamp <= latestResume.timestamp
+  ) {
+    return { pausedCount: 0, campaignIds: [], timestamp: now };
   }
 
   if (campaignIdsToResume.length === 0) {
@@ -301,7 +337,7 @@ export async function emergencyResume(
     }
   });
 
-  // Enqueue sync jobs to push resume to platforms
+  // Enqueue sync jobs to push resume to platforms (look up actual platformConnection)
   const adSyncQueue = getQueue(QUEUE_NAMES.AD_SYNC);
   for (const campaignId of campaignIdsToResume) {
     const deployments = await db.query.campaignPlatformDeployments.findMany({
@@ -309,9 +345,23 @@ export async function emergencyResume(
     });
 
     for (const deployment of deployments) {
+      const connection = await db.query.platformConnections.findFirst({
+        where: and(
+          eq(platformConnections.organizationId, organizationId),
+          eq(platformConnections.platform, deployment.platform),
+        ),
+      });
+
+      if (!connection) {
+        console.warn(
+          `[emergency.service] No platform connection for org=${organizationId} platform=${deployment.platform}, skipping sync`,
+        );
+        continue;
+      }
+
       const jobData: SyncCampaignJob = {
         organizationId,
-        platformConnectionId: campaignId,
+        platformConnectionId: connection.id,
         platform: deployment.platform,
         direction: 'push',
       };

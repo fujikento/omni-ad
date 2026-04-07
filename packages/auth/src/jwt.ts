@@ -136,6 +136,11 @@ export function verifyToken(token: string): JwtPayload {
 
   const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
 
+  // Validate header matches expected algorithm before checking signature
+  if (headerPart !== ENCODED_HEADER) {
+    throw new InvalidTokenError('unexpected token header');
+  }
+
   // Verify signature using timing-safe comparison
   const signingInput = `${headerPart}.${payloadPart}`;
   const expectedSig = sign(signingInput, secret);
@@ -221,6 +226,11 @@ export function verifyRefreshToken(token: string): { sub: string; exp: number } 
   }
 
   const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
+
+  // Validate header matches expected algorithm before checking signature
+  if (headerPart !== ENCODED_HEADER) {
+    throw new InvalidTokenError('unexpected token header');
+  }
 
   // Verify signature
   const signingInput = `${headerPart}.${payloadPart}`;

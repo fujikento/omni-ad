@@ -2,6 +2,7 @@ import { db } from '@omni-ad/db';
 import {
   campaigns,
   campaignPlatformDeployments,
+  platformConnections,
 } from '@omni-ad/db/schema';
 import type {
   CampaignTargetingConfig,
@@ -212,13 +213,27 @@ export async function deployCampaign(
     return inserted;
   });
 
-  // Enqueue ad-sync jobs for each platform
+  // Enqueue ad-sync jobs for each platform (look up actual platformConnection)
   const adSyncQueue = getQueue(QUEUE_NAMES.AD_SYNC);
   await Promise.all(
-    platforms.map((platform) => {
+    platforms.map(async (platform) => {
+      const connection = await db.query.platformConnections.findFirst({
+        where: and(
+          eq(platformConnections.organizationId, organizationId),
+          eq(platformConnections.platform, platform),
+        ),
+      });
+
+      if (!connection) {
+        console.warn(
+          `[campaign.service] No platform connection for org=${organizationId} platform=${platform}, skipping sync`,
+        );
+        return;
+      }
+
       const jobData: SyncCampaignJob = {
         organizationId,
-        platformConnectionId: id, // Will be resolved by the worker
+        platformConnectionId: connection.id,
         platform,
         direction: 'push',
       };

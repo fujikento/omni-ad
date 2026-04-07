@@ -90,12 +90,13 @@ function buildServer(): ReturnType<typeof Fastify> {
   void server.register(rateLimit, {
     global: true,
     max: (request) => {
-      // Exempt health and pixel tracking routes
-      if (
-        request.url === "/health" ||
-        request.url.startsWith("/track/")
-      ) {
+      // Health check is exempt
+      if (request.url === "/health") {
         return 0; // 0 = unlimited (exempt)
+      }
+      // Tracking pixel: generous but finite limit to prevent DoS
+      if (request.url.startsWith("/track/")) {
+        return 1000;
       }
       // Authenticated requests get higher limit
       const hasAuth = Boolean(request.headers.authorization);
@@ -224,8 +225,31 @@ function buildServer(): ReturnType<typeof Fastify> {
   return server;
 }
 
+function checkWebhookSecrets(logger: ReturnType<typeof Fastify>["log"]): void {
+  const expectedSecrets = [
+    "META_WEBHOOK_SECRET",
+    "GOOGLE_WEBHOOK_SECRET",
+    "TIKTOK_WEBHOOK_SECRET",
+    "LINE_WEBHOOK_SECRET",
+    "X_WEBHOOK_SECRET",
+    "YAHOO_JAPAN_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRET",
+  ] as const;
+
+  for (const envKey of expectedSecrets) {
+    if (!process.env[envKey]) {
+      logger.warn(
+        `Missing webhook secret: ${envKey} — webhooks for this platform will always fail signature verification`,
+      );
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const server = buildServer();
+
+  // --- Webhook Secret Validation ---
+  checkWebhookSecrets(server.log);
 
   // --- Graceful Shutdown ---
 

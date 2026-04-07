@@ -91,6 +91,7 @@ export interface CounterActionResult {
   cpc?: number;
   roas?: number;
   spend?: number;
+  dailyBudget?: number;
   conversions?: number;
   snapshotDate?: string;
 }

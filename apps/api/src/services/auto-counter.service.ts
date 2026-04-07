@@ -654,76 +654,80 @@ export async function rollbackCounterAction(
   organizationId: string,
   reason: string,
 ): Promise<CounterActionSelect> {
-  const action = await db.query.counterActions.findFirst({
-    where: and(
-      eq(counterActions.id, actionId),
-      eq(counterActions.organizationId, organizationId),
-    ),
-  });
-
-  if (!action) {
-    throw new CounterActionNotFoundError(actionId);
-  }
-
-  if (action.status !== 'executed') {
-    throw new AutoCounterError(
-      `Cannot rollback action with status: ${action.status}`,
-    );
-  }
-
-  // Restore previous state if we have result_before data
-  if (action.resultBefore && action.campaignId) {
-    const beforeData = action.resultBefore as CounterActionResult;
-    if (beforeData.spend !== undefined) {
-      // Attempt to restore original budget
-      const campaign = await db.query.campaigns.findFirst({
-        where: eq(campaigns.id, action.campaignId),
-      });
-
-      if (campaign) {
-        // Use spend as proxy for daily budget in result_before
-        const originalBudget = beforeData.spend ?? Number(campaign.dailyBudget);
-        await db
-          .update(campaigns)
-          .set({
-            dailyBudget: originalBudget.toFixed(2),
-            updatedAt: sql`now()`,
-          })
-          .where(eq(campaigns.id, action.campaignId));
-      }
-    }
-  }
-
-  // Capture current metrics as result_after
-  const resultAfter = action.campaignId
-    ? await captureCurrentMetrics(action.campaignId)
-    : undefined;
-
-  const [updated] = await db
+  // Atomically claim the rollback by updating status from 'executed' to 'rolled_back'.
+  // If another concurrent process already changed the status, the WHERE clause
+  // won't match and RETURNING will be empty, preventing a double rollback.
+  const [claimed] = await db
     .update(counterActions)
     .set({
       status: 'rolled_back',
       rolledBackAt: sql`now()`,
       rollbackReason: reason,
-      resultAfter: resultAfter ?? null,
     })
-    .where(eq(counterActions.id, actionId))
+    .where(
+      and(
+        eq(counterActions.id, actionId),
+        eq(counterActions.organizationId, organizationId),
+        eq(counterActions.status, 'executed'),
+      ),
+    )
     .returning();
 
-  if (!updated) {
-    throw new CounterActionNotFoundError(actionId);
+  if (!claimed) {
+    // Either not found, or already rolled back / not in 'executed' status
+    const existing = await db.query.counterActions.findFirst({
+      where: and(
+        eq(counterActions.id, actionId),
+        eq(counterActions.organizationId, organizationId),
+      ),
+    });
+
+    if (!existing) {
+      throw new CounterActionNotFoundError(actionId);
+    }
+
+    throw new AutoCounterError(
+      `Cannot rollback action with status: ${existing.status}`,
+    );
+  }
+
+  // Restore previous state if we have result_before data
+  if (claimed.resultBefore && claimed.campaignId) {
+    const beforeData = claimed.resultBefore as CounterActionResult;
+    if (beforeData.dailyBudget !== undefined) {
+      await db
+        .update(campaigns)
+        .set({
+          dailyBudget: beforeData.dailyBudget.toFixed(2),
+          updatedAt: sql`now()`,
+        })
+        .where(eq(campaigns.id, claimed.campaignId));
+    }
+  }
+
+  // Capture current metrics as result_after
+  const resultAfter = claimed.campaignId
+    ? await captureCurrentMetrics(claimed.campaignId)
+    : undefined;
+
+  // Update the result_after on the already-claimed record
+  if (resultAfter) {
+    await db
+      .update(counterActions)
+      .set({ resultAfter })
+      .where(eq(counterActions.id, actionId));
   }
 
   await createNotification({
     organizationId,
     type: 'warning',
     title: '競合対抗アクションをロールバック',
-    message: `アクション「${formatActionType(action.actionType)}」をロールバックしました: ${reason}`,
+    message: `アクション「${formatActionType(claimed.actionType)}」をロールバックしました: ${reason}`,
     source: 'auto_counter',
     metadata: { counterActionId: actionId, reason },
   });
 
-  return updated;
+  return { ...claimed, resultAfter: resultAfter ?? claimed.resultAfter };
 }
 
 // ---------------------------------------------------------------------------
@@ -858,12 +862,17 @@ async function checkCooldown(
 async function captureCurrentMetrics(
   campaignId: string,
 ): Promise<CounterActionResult | undefined> {
-  const recentMetric = await db
-    .select()
-    .from(metricsDaily)
-    .where(eq(metricsDaily.campaignId, campaignId))
-    .orderBy(desc(metricsDaily.date))
-    .limit(1);
+  const [recentMetric, campaign] = await Promise.all([
+    db
+      .select()
+      .from(metricsDaily)
+      .where(eq(metricsDaily.campaignId, campaignId))
+      .orderBy(desc(metricsDaily.date))
+      .limit(1),
+    db.query.campaigns.findFirst({
+      where: eq(campaigns.id, campaignId),
+    }),
+  ]);
 
   const metric = recentMetric[0];
   if (!metric) return undefined;
@@ -873,6 +882,7 @@ async function captureCurrentMetrics(
     cpc: metric.clicks > 0 ? Number(metric.spend) / metric.clicks : 0,
     roas: metric.roas,
     spend: Number(metric.spend),
+    dailyBudget: campaign ? Number(campaign.dailyBudget) : undefined,
     conversions: metric.conversions,
     snapshotDate: metric.date,
   };

@@ -687,8 +687,17 @@ function mapActionToDecisionType(
   return mapping[actionType];
 }
 
-/** Minimum confidence required for full_auto execution */
-const FULL_AUTO_CONFIDENCE_THRESHOLD = 0.3;
+/** Confidence threshold for financial/campaign-state actions (budget, pause, resume) */
+const FULL_AUTO_HIGH_RISK_THRESHOLD = 0.7;
+/** Confidence threshold for low-risk actions (strategy insights, creative rotation) */
+const FULL_AUTO_LOW_RISK_THRESHOLD = 0.3;
+
+/** Action types that directly affect budget or campaign state require higher confidence */
+const HIGH_RISK_ACTION_TYPES: ReadonlySet<OptimizationAction['type']> = new Set([
+  'budget_adjust',
+  'campaign_pause',
+  'campaign_resume',
+]);
 
 function resolveActionStatus(
   mode: AiSettingsSelect['autopilotMode'],
@@ -698,10 +707,14 @@ function resolveActionStatus(
   if (action.type === 'strategy_insight') return 'executed';
 
   switch (mode) {
-    case 'full_auto':
-      // Skip low-confidence actions — log as 'skipped' instead of executing
-      if (action.confidence < FULL_AUTO_CONFIDENCE_THRESHOLD) return 'skipped';
+    case 'full_auto': {
+      const threshold = HIGH_RISK_ACTION_TYPES.has(action.type)
+        ? FULL_AUTO_HIGH_RISK_THRESHOLD
+        : FULL_AUTO_LOW_RISK_THRESHOLD;
+      // Skip low-confidence actions -- log as 'skipped' instead of executing
+      if (action.confidence < threshold) return 'skipped';
       return 'executed';
+    }
     case 'suggest_only':
       return 'pending_approval';
     case 'approve_required':
