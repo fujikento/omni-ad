@@ -64,32 +64,34 @@ const FORMAT_LABEL_KEYS: Record<CreativeFormat, string> = {
   responsive: 'creatives.format.responsive',
 };
 
-const MOCK_CREATIVES: Creative[] = [
+function getMockCreatives(t: (key: string, params?: Record<string, string | number>) => string): Creative[] {
+  return [
   {
-    id: '1', headline: '春の新作コレクション', description: '最新トレンドをチェック', format: 'image',
+    id: '1', headline: t('creatives.h017432'), description: t('creatives.h566725'), format: 'image',
     platforms: ['google', 'meta'], thumbnail: '', score: 92, impressions: 45000, clicks: 2100, ctr: 4.7,
   },
   {
-    id: '2', headline: '期間限定30%OFF', description: '今だけの特別価格', format: 'carousel',
+    id: '2', headline: t('creatives.hf90c9c'), description: t('creatives.h7cea7d'), format: 'carousel',
     platforms: ['meta', 'tiktok'], thumbnail: '', score: 87, impressions: 38000, clicks: 1800, ctr: 4.3,
   },
   {
-    id: '3', headline: '新生活応援キャンペーン', description: '新しい暮らしに必要なものを', format: 'video',
+    id: '3', headline: t('creatives.h1c0e47'), description: t('creatives.h579e92'), format: 'video',
     platforms: ['tiktok', 'line_yahoo'], thumbnail: '', score: 78, impressions: 32000, clicks: 1200, ctr: 3.8,
   },
   {
-    id: '4', headline: '会員限定セール', description: '会員だけの特別プライス', format: 'text',
+    id: '4', headline: t('creatives.h824c21'), description: t('creatives.haab543'), format: 'text',
     platforms: ['google', 'line_yahoo'], thumbnail: '', score: 71, impressions: 25000, clicks: 900, ctr: 3.6,
   },
   {
-    id: '5', headline: '無料配送キャンペーン', description: '全品送料無料', format: 'image',
+    id: '5', headline: t('creatives.ha20bff'), description: t('creatives.he27284'), format: 'image',
     platforms: ['meta', 'line_yahoo', 'x'], thumbnail: '', score: 85, impressions: 42000, clicks: 1950, ctr: 4.6,
   },
   {
-    id: '6', headline: 'レビュー投稿でポイント付与', description: 'レビューを書いてポイントGET', format: 'responsive',
+    id: '6', headline: t('creatives.h96e1ed'), description: t('creatives.h1369bd'), format: 'responsive',
     platforms: ['google', 'meta', 'line_yahoo'], thumbnail: '', score: 65, impressions: 18000, clicks: 600, ctr: 3.3,
   },
 ];
+}
 
 // -- Batch Types & Mock --
 
@@ -119,11 +121,13 @@ const BATCH_STATUS_CONFIG: Record<BatchStatus, { labelKey: string; className: st
   },
 };
 
-const MOCK_BATCHES: CreativeBatch[] = [
-  { id: 'b1', name: '春プロモーション大量生成', status: 'completed', total: 200, completed: 200, createdAt: '2026-04-01' },
-  { id: 'b2', name: 'GWキャンペーン素材', status: 'processing', total: 350, completed: 128, createdAt: '2026-04-02' },
-  { id: 'b3', name: 'TikTok向けクリエイティブ', status: 'completed', total: 150, completed: 150, createdAt: '2026-03-28' },
+function getMockBatches(t: (key: string, params?: Record<string, string | number>) => string): CreativeBatch[] {
+  return [
+  { id: 'b1', name: t('creatives.h5d3b9f'), status: 'completed', total: 200, completed: 200, createdAt: '2026-04-01' },
+  { id: 'b2', name: t('creatives.h938cac'), status: 'processing', total: 350, completed: 128, createdAt: '2026-04-02' },
+  { id: 'b3', name: t('creatives.h7fdac3'), status: 'completed', total: 150, completed: 150, createdAt: '2026-03-28' },
 ];
+}
 
 function BatchRow({ batch }: { batch: CreativeBatch }): React.ReactElement {
   const { t } = useI18n();
@@ -385,7 +389,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                   value={productName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProductName(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="OMNI-AD マーケティングプラットフォーム"
+                  placeholder={t('creatives.he3f3f7')}
                 />
               </div>
               <div>
@@ -396,7 +400,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setProductDescription(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   rows={3}
-                  placeholder="AI搭載のクロスチャネルマーケティング自動化プラットフォーム"
+                  placeholder={t('creatives.h952b98')}
                 />
               </div>
               <div>
@@ -407,7 +411,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                   value={usp}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsp(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="6チャネル統合管理、AI予算最適化"
+                  placeholder={t('creatives.ha84309')}
                 />
               </div>
               <div>
@@ -418,7 +422,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                   value={targetAudience}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTargetAudience(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="マーケティング担当者、広告代理店"
+                  placeholder={t('creatives.h7f3e06')}
                 />
               </div>
             </div>
@@ -461,7 +465,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                     className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     {[1, 2, 3, 5, 10].map((n) => (
-                      <option key={n} value={n}>{n}個</option>
+                      <option key={n} value={n}>{t('creatives.unitItems', { n: String(n) })}</option>
                     ))}
                   </select>
                   <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -476,7 +480,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLanguage(e.target.value)}
                     className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="ja">日本語</option>
+                    <option value="ja">{t('creatives.langJapanese')}</option>
                     <option value="en">English</option>
                   </select>
                   <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -526,10 +530,10 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                         <ScoreBadge score={85 - i * 5} />
                       </div>
                       <p className="mt-2 text-sm font-semibold text-foreground">
-                        {productName || '商品名'} - バリアント {i + 1}
+                        {t('creatives.variantLabel', { name: productName || t('creatives.wizard.productName'), i: String(i + 1) })}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {productDescription || '説明文'} | {selectedPlatforms.map((p) => PLATFORM_LABELS[p]).join(', ')}
+                        {productDescription || t('creatives.h172841')} | {selectedPlatforms.map((p) => PLATFORM_LABELS[p]).join(', ')}
                       </p>
                     </div>
                   ))}
@@ -618,10 +622,10 @@ function FileUploadSection({
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
-      return `${file.name}: 対応していないファイル形式です（jpg, png, gif, mp4, mov のみ）`;
+      return t('creatives.unsupportedFormatMsg', { name: file.name });
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      return `${file.name}: ファイルサイズが${MAX_FILE_SIZE_MB}MBを超えています`;
+      return t('creatives.fileTooLargeMsg', { name: file.name, size: String(MAX_FILE_SIZE_MB) });
     }
     return null;
   }, []);
@@ -807,7 +811,7 @@ function FileUploadSection({
                 type="button"
                 onClick={() => removeFile(file.id)}
                 className="flex-shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
-                aria-label={`${file.name}を削除`}
+                aria-label={t('creatives.ariaDeleteFile', { name: file.name })}
               >
                 <X size={16} />
               </button>
@@ -830,7 +834,7 @@ export default function CreativesPage(): React.ReactElement {
   const creativesQuery = trpc.creatives.list.useQuery(undefined, { retry: false });
 
   // Use mock data when API is not available
-  const creatives = creativesQuery.error ? MOCK_CREATIVES : (creativesQuery.data as Creative[] | undefined) ?? MOCK_CREATIVES;
+  const creatives = creativesQuery.error ? getMockCreatives(t) : (creativesQuery.data as Creative[] | undefined) ?? getMockCreatives(t);
   const isLoading = creativesQuery.isLoading && !creativesQuery.error;
 
   const selectedCreative = creatives.find((c) => c.id === selectedId) ?? null;
@@ -903,7 +907,7 @@ export default function CreativesPage(): React.ReactElement {
           </Link>
         </div>
         <div className="mt-3 space-y-2">
-          {MOCK_BATCHES.map((batch) => (
+          {getMockBatches(t).map((batch) => (
             <BatchRow key={batch.id} batch={batch} />
           ))}
         </div>

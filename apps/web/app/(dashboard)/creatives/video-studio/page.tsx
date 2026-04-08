@@ -115,14 +115,15 @@ const TRANSITION_ICONS: Record<string, string> = {
   zoom: 'Zoom',
 };
 
-const MOCK_SCRIPT: VideoScript = {
+function getMockScript(t: (key: string, params?: Record<string, string | number>) => string): VideoScript {
+  return {
   scenes: [
     {
       id: 's1',
       order: 1,
       duration: 3,
-      description: '商品のクローズアップショット。背景にソフトライトを使用し、高級感を演出。',
-      textOverlay: 'その悩み、もう終わりに。',
+      description: t('creatives.videostudio.h107067'),
+      textOverlay: t('creatives.videostudio.h4bcced'),
       transition: 'fade',
       visualStyle: 'cinematic',
     },
@@ -130,8 +131,8 @@ const MOCK_SCRIPT: VideoScript = {
       id: 's2',
       order: 2,
       duration: 4,
-      description: 'ユーザーが商品を使用している日常シーン。ナチュラルな光とトーンで撮影。',
-      textOverlay: '毎日のケアが変わる',
+      description: t('creatives.videostudio.ha8e970'),
+      textOverlay: t('creatives.videostudio.h0c1ff8'),
       transition: 'slide',
       visualStyle: 'lifestyle',
     },
@@ -139,8 +140,8 @@ const MOCK_SCRIPT: VideoScript = {
       id: 's3',
       order: 3,
       duration: 4,
-      description: 'ビフォーアフターの比較。左右分割画面で効果を視覚的に表現。',
-      textOverlay: '実感の違いを、あなたも。',
+      description: t('creatives.videostudio.h54759f'),
+      textOverlay: t('creatives.videostudio.h71fadb'),
       transition: 'zoom',
       visualStyle: 'comparison',
     },
@@ -148,17 +149,18 @@ const MOCK_SCRIPT: VideoScript = {
       id: 's4',
       order: 4,
       duration: 4,
-      description: 'ブランドロゴとCTAのエンドカード。アクションを促す明確なメッセージ。',
-      textOverlay: '今すぐ試す',
+      description: t('creatives.videostudio.h475190'),
+      textOverlay: t('creatives.videostudio.h294692'),
       transition: 'cut',
       visualStyle: 'brand',
     },
   ],
-  voiceover: 'あなたの肌悩み、もう終わりにしませんか？新しいスキンケアルーティンで、毎日が変わります。多くの方が実感している効果を、あなたも体験してください。今すぐお試しください。',
+  voiceover: t('creatives.videostudio.h9b3706'),
   musicMood: 'uplifting',
   ctaTiming: 12,
   totalDuration: 15,
 };
+}
 
 // ============================================================
 // Subcomponents
@@ -922,7 +924,7 @@ export default function VideoStudioPage(): React.ReactElement {
     language: 'ja',
     keigoLevel: 'polite',
   });
-  const [script, setScript] = useState<VideoScript>(MOCK_SCRIPT);
+  const [script, setScript] = useState<VideoScript>(getMockScript(t));
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
   const [assetProgress, setAssetProgress] = useState<SceneGenerationProgress>({
     sceneIndex: 0,
@@ -933,13 +935,13 @@ export default function VideoStudioPage(): React.ReactElement {
 
   function handleGenerateScript(): void {
     // Simulate script generation
-    setScript(MOCK_SCRIPT);
+    setScript(getMockScript(t));
     setCurrentStep(2);
   }
 
   function handleRegenerate(): void {
     // In production this would call the AI again
-    setScript({ ...MOCK_SCRIPT });
+    setScript({ ...getMockScript(t) });
   }
 
   function handleEditScene(sceneId: string): void {

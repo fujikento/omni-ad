@@ -86,26 +86,28 @@ const PLATFORM_BADGE_COLORS: Record<string, string> = {
   X: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 };
 
-const MOCK_SEGMENTS: UnifiedSegment[] = [
+function getMockSegments(t: (key: string, params?: Record<string, string | number>) => string): UnifiedSegment[] {
+  return [
   {
     id: 'us1',
-    name: 'Meta広告を見てかつTikTokで購入したユーザー',
+    name: t('audiences.identitygraph.hc819b5'),
     criteria: [
-      { platform: 'Meta', action: '広告閲覧' },
-      { platform: 'TikTok', action: '購入' },
+      { platform: 'Meta', action: t('audiences.identitygraph.h05087c') },
+      { platform: 'TikTok', action: t('audiences.identitygraph.h41db74') },
     ],
     size: 3200,
   },
   {
     id: 'us2',
-    name: 'Google検索経由でLINE登録したユーザー',
+    name: t('audiences.identitygraph.hbf31ff'),
     criteria: [
-      { platform: 'Google', action: '検索クリック' },
-      { platform: 'LINE', action: '友だち追加' },
+      { platform: 'Google', action: t('audiences.identitygraph.hc5e661') },
+      { platform: 'LINE', action: t('audiences.identitygraph.hd52f71') },
     ],
     size: 1800,
   },
 ];
+}
 
 // ============================================================
 // Subcomponents
@@ -455,7 +457,7 @@ export default function IdentityGraphPage(): React.ReactElement {
       {/* Import + Segment builder side by side on large screens */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ImportPanel />
-        <SegmentBuilder segments={MOCK_SEGMENTS} />
+        <SegmentBuilder segments={getMockSegments(t)} />
       </div>
     </div>
   );

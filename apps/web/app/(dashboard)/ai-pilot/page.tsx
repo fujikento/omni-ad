@@ -147,8 +147,9 @@ const STATUS_CONFIG: Record<
 // Mock Data
 // ============================================================
 
-const MOCK_STRATEGY_SUMMARY =
-  '現在の分析に基づき、TikTok広告の予算を増額し、Google広告のクリエイティブを刷新することを推奨します。春の新生活シーズンに合わせ、ターゲティングを25-35歳女性に最適化中です。Meta広告のリターゲティングは好調を維持しており、LINEリマーケティングはフリークエンシー上限に近づいているため配信ペースを調整しています。全体として、ROAS目標3.0xに対し現在3.24xと順調に推移しています。';
+function getMockStrategySummary(t: (key: string, params?: Record<string, string | number>) => string): string {
+  return t('aipilot.hac9d00');
+}
 
 interface MockStatusCardDef {
   labelKey: string;
@@ -157,117 +158,120 @@ interface MockStatusCardDef {
   subLabelLiteral?: string;
 }
 
-const MOCK_STATUS_CARD_DEFS: MockStatusCardDef[] = [
+function getMockStatusCardDefs(t: (key: string, params?: Record<string, string | number>) => string): MockStatusCardDef[] {
+  return [
   { labelKey: 'aiPilot.status', value: 'ON', subLabelKey: 'aiPilot.approvalMode' },
-  { labelKey: 'aiPilot.lastRun', value: '2時間前', subLabelLiteral: '2026-04-02 12:00 JST' },
-  { labelKey: 'aiPilot.nextRun', value: '1時間後', subLabelLiteral: '14:00 JST' },
-  { labelKey: 'aiPilot.todayDecisions', value: '7件', subLabelLiteral: '5実行, 2提案中' },
+  { labelKey: 'aiPilot.lastRun', value: t('aipilot.h2012e9'), subLabelLiteral: '2026-04-02 12:00 JST' },
+  { labelKey: 'aiPilot.nextRun', value: t('aipilot.he5a0b1'), subLabelLiteral: '14:00 JST' },
+  { labelKey: 'aiPilot.todayDecisions', value: t('aipilot.hcc1d8b'), subLabelLiteral: t('aipilot.hc39f70') },
 ];
+}
 
-const MOCK_DECISIONS: AiDecision[] = [
+function getMockDecisions(t: (key: string, params?: Record<string, string | number>) => string): AiDecision[] {
+  return [
   {
     id: 'd1',
     type: 'budget_adjustment',
     status: 'executed',
-    campaignName: 'TikTok新規獲得',
+    campaignName: t('aipilot.hb2cb88'),
     reasoning:
-      'TikTok広告「新規獲得」のCVRが直近48時間で35%上昇しています。ROASも2.8から3.5に改善しており、予算増額による更なるスケール拡大が期待できます。',
+      t('aipilot.h45b75a'),
     confidence: 92,
-    actionSummary: '日次予算: ¥28,000 → ¥33,600 (+20%)',
+    actionSummary: t('aipilot.h2f14dd'),
     result: 'ROAS: 2.8 → 3.5 (+25%)',
     timestamp: '2026-04-02T12:00:00Z',
-    timeAgo: '2時間前',
+    timeAgo: t('aipilot.h2012e9'),
   },
   {
     id: 'd2',
     type: 'budget_adjustment',
     status: 'executed',
-    campaignName: 'Google 春のプロモーション',
+    campaignName: t('aipilot.h3f3a1a'),
     reasoning:
-      'Google広告「春のプロモーション」のROASが過去3日間で4.5から3.8に低下。主要キーワードのCPCが12%上昇しており、競合の参入が確認されています。予算効率を維持するため一時的に予算を削減します。',
+      t('aipilot.hc62dbe'),
     confidence: 87,
-    actionSummary: '日次予算: ¥42,000 → ¥35,700 (-15%)',
+    actionSummary: t('aipilot.h492de4'),
     result: 'CPC: ¥320 → ¥285 (-11%)',
     timestamp: '2026-04-02T10:00:00Z',
-    timeAgo: '4時間前',
+    timeAgo: t('aipilot.hcf7356'),
   },
   {
     id: 'd3',
     type: 'budget_adjustment',
     status: 'pending_approval',
-    campaignName: 'Meta ストーリーズ',
+    campaignName: t('aipilot.haaff51'),
     reasoning:
-      'Meta広告ストーリーズフォーマットのエンゲージメント率が急上昇。CPMが低下傾向にあり、今が予算拡大の好機です。テスト段階から本格運用への移行を推奨します。',
+      t('aipilot.h8bc06b'),
     confidence: 78,
-    actionSummary: '日次予算: ¥2,000 → ¥8,000 (+300%)',
+    actionSummary: t('aipilot.he2b3a3'),
     result: null,
     timestamp: '2026-04-02T13:00:00Z',
-    timeAgo: '1時間前',
+    timeAgo: t('aipilot.h6ff847'),
   },
   {
     id: 'd4',
     type: 'campaign_pause',
     status: 'executed',
-    campaignName: 'Yahoo!ディスプレイ',
+    campaignName: t('aipilot.h645cb3'),
     reasoning:
-      'Yahoo!ディスプレイ広告のROASが0.8と目標を大幅に下回っています。過去7日間で改善の兆候がなく、予算消化率も40%と低迷。クリエイティブと入札戦略の見直し後に再開を推奨します。',
+      t('aipilot.h0a5d03'),
     confidence: 95,
-    actionSummary: 'キャンペーンを一時停止',
-    result: '日次コスト削減: ¥5,500',
+    actionSummary: t('aipilot.he0df9c'),
+    result: t('aipilot.h9a12bf'),
     timestamp: '2026-04-02T09:00:00Z',
-    timeAgo: '5時間前',
+    timeAgo: t('aipilot.h00bb20'),
   },
   {
     id: 'd5',
     type: 'campaign_pause',
     status: 'executed',
-    campaignName: 'X ブランドプロモーション',
+    campaignName: t('aipilot.h2c49b9'),
     reasoning:
-      'X広告のアカウント認証が期限切れの状態です。正常な配信ができないため、再認証完了まで一時停止します。',
+      t('aipilot.h2d5da4'),
     confidence: 99,
-    actionSummary: 'キャンペーンを一時停止（認証期限切れ）',
-    result: '異常支出を防止',
+    actionSummary: t('aipilot.heb52db'),
+    result: t('aipilot.h6aefeb'),
     timestamp: '2026-04-02T08:00:00Z',
-    timeAgo: '6時間前',
+    timeAgo: t('aipilot.ha45695'),
   },
   {
     id: 'd6',
     type: 'campaign_resume',
     status: 'executed',
-    campaignName: 'Meta リターゲティング',
+    campaignName: t('aipilot.h890fdc'),
     reasoning:
-      'フリークエンシーキャップの調整とオーディエンスリストの更新が完了しました。新規のリマーケティングリストでのテスト配信を再開します。',
+      t('aipilot.h051bda'),
     confidence: 85,
-    actionSummary: 'キャンペーンを再開（オーディエンス更新済み）',
+    actionSummary: t('aipilot.h3dea2b'),
     result: 'CTR: 2.1% → 3.4% (+62%)',
     timestamp: '2026-04-02T07:00:00Z',
-    timeAgo: '7時間前',
+    timeAgo: t('aipilot.hc00d00'),
   },
   {
     id: 'd7',
     type: 'creative_rotation',
     status: 'executed',
-    campaignName: 'TikTok 若年層向けプロモ',
+    campaignName: t('aipilot.hbf5fb2'),
     reasoning:
-      'TikTok広告「若年層向けプロモ」のCTRが直近3日で20%低下しています。クリエイティブ疲労の兆候が明確です。パフォーマンス上位の素材を優先表示し、低パフォーマンス素材を停止します。',
+      t('aipilot.hf445f3'),
     confidence: 91,
-    actionSummary: '3素材を停止、2素材を優先配信に変更',
+    actionSummary: t('aipilot.h3a55ac'),
     result: 'CTR: 1.8% → 2.5% (+39%)',
     timestamp: '2026-04-02T11:00:00Z',
-    timeAgo: '3時間前',
+    timeAgo: t('aipilot.h5bf96a'),
   },
   {
     id: 'd8',
     type: 'creative_rotation',
     status: 'pending_approval',
-    campaignName: 'Google 春のプロモーション',
+    campaignName: t('aipilot.h3f3a1a'),
     reasoning:
-      'Google広告のレスポンシブ検索広告において、見出しパターンの偏りが確認されました。新しい見出しバリエーションの追加により、品質スコアの改善が期待できます。',
+      t('aipilot.hbdfe36'),
     confidence: 73,
-    actionSummary: '新規見出し5パターンを追加、低パフォーマンス見出し3つを削除',
+    actionSummary: t('aipilot.h9cd77a'),
     result: null,
     timestamp: '2026-04-02T13:30:00Z',
-    timeAgo: '30分前',
+    timeAgo: t('aipilot.h98a92c'),
   },
   {
     id: 'd9',
@@ -275,13 +279,13 @@ const MOCK_DECISIONS: AiDecision[] = [
     status: 'pending_approval',
     campaignName: null,
     reasoning:
-      'Google検索広告の分析により、「新生活 家具」「引越し 必需品」等の季節キーワードで高いコンバージョンポテンシャルを検出。新規キャンペーンの作成を提案します。推定ROAS: 4.2x、推定日次予算: ¥15,000。',
+      t('aipilot.h8d3201'),
     confidence: 81,
     actionSummary:
-      '新規キャンペーン「春の新生活 - 検索広告」を作成\n対象: Google検索\n日次予算: ¥15,000\nターゲット: 25-35歳、引越し関連キーワード',
+      t('aipilot.h0041c3'),
     result: null,
     timestamp: '2026-04-02T12:30:00Z',
-    timeAgo: '1時間半前',
+    timeAgo: t('aipilot.h3a2bc0'),
   },
   {
     id: 'd10',
@@ -289,12 +293,12 @@ const MOCK_DECISIONS: AiDecision[] = [
     status: 'executed',
     campaignName: null,
     reasoning:
-      '全プラットフォームの横断分析の結果、火曜日〜木曜日の12:00-14:00にコンバージョン率が最も高いことが判明。この時間帯に予算を集中配分することで、全体のROASを15-20%改善できる可能性があります。',
+      t('aipilot.h2fecae'),
     confidence: 88,
-    actionSummary: '時間帯別予算配分の最適化を提案',
-    result: '実装済み: 平日昼の予算配分を30%増加',
+    actionSummary: t('aipilot.h5d6a00'),
+    result: t('aipilot.hbd6191'),
     timestamp: '2026-04-02T06:00:00Z',
-    timeAgo: '8時間前',
+    timeAgo: t('aipilot.hc8d38c'),
   },
   {
     id: 'd11',
@@ -302,12 +306,12 @@ const MOCK_DECISIONS: AiDecision[] = [
     status: 'executed',
     campaignName: null,
     reasoning:
-      'クロスプラットフォーム分析により、Google検索→LINE→Metaの順でタッチポイントを最適化することで、アトリビューション効率が向上することを確認。ファネル全体でのCVRが18%向上する見込みです。',
+      t('aipilot.h0a65a9'),
     confidence: 84,
-    actionSummary: 'マルチタッチアトリビューション戦略の更新',
+    actionSummary: t('aipilot.hace6d1'),
     result: 'CVR: 2.4% → 2.8% (+17%)',
     timestamp: '2026-04-01T18:00:00Z',
-    timeAgo: '20時間前',
+    timeAgo: t('aipilot.h930405'),
   },
   {
     id: 'd12',
@@ -315,14 +319,15 @@ const MOCK_DECISIONS: AiDecision[] = [
     status: 'executed',
     campaignName: null,
     reasoning:
-      '競合分析の結果、主要競合3社がTikTok広告への投資を拡大中。市場シェアを維持するため、TikTokの予算比率を現在の15%から25%に段階的に引き上げることを推奨します。',
+      t('aipilot.h18fbd8'),
     confidence: 76,
-    actionSummary: 'TikTok予算比率の段階的引き上げ計画を策定',
-    result: 'インプレッションシェア: 12% → 18%',
+    actionSummary: t('aipilot.h143936'),
+    result: t('aipilot.h71cf6d'),
     timestamp: '2026-04-01T14:00:00Z',
-    timeAgo: '昨日',
+    timeAgo: t('aipilot.h23c9bc'),
   },
 ];
+}
 
 const MOCK_PERFORMANCE_METRICS: PerformanceMetric[] = [
   { label: 'ROAS', before: 2.3, after: 3.24, format: 'roas' },
@@ -746,8 +751,8 @@ export default function AiPilotPage(): React.ReactElement {
 
   // Resolve data with fallback
   const rawDecisions: AiDecision[] = decisionsQuery.error
-    ? MOCK_DECISIONS
-    : (decisionsQuery.data as unknown as AiDecision[] | undefined) ?? MOCK_DECISIONS;
+    ? getMockDecisions(t)
+    : (decisionsQuery.data as unknown as AiDecision[] | undefined) ?? getMockDecisions(t);
 
   // Apply local optimistic overrides
   const decisions = rawDecisions.map((d) => {
@@ -890,7 +895,7 @@ export default function AiPilotPage(): React.ReactElement {
 
       {/* Status panel */}
       <StatusPanel
-        cards={MOCK_STATUS_CARD_DEFS.map((def) => ({
+        cards={getMockStatusCardDefs(t).map((def) => ({
           label: t(def.labelKey),
           value: def.value,
           subLabel: def.subLabelKey ? t(def.subLabelKey) : def.subLabelLiteral,
@@ -900,7 +905,7 @@ export default function AiPilotPage(): React.ReactElement {
       />
 
       {/* Strategy summary */}
-      <StrategySummaryCard summary={MOCK_STRATEGY_SUMMARY} updatedAt="2時間前" />
+      <StrategySummaryCard summary={getMockStrategySummary(t)} updatedAt={t('aipilot.h2012e9')} />
 
       {/* Filter bar */}
       <div>

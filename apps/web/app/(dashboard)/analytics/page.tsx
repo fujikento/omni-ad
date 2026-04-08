@@ -101,18 +101,20 @@ const MOCK_ROAS_TREND: DailyRoas[] = Array.from({ length: 30 }, (_, i) => {
   };
 });
 
-const MOCK_TOP_CAMPAIGNS: TopCampaign[] = [
-  { id: '1', name: '春のプロモーション2026', platform: 'Google', impressions: 250000, clicks: 10000, conversions: 320, roas: 4.5 },
-  { id: '2', name: 'Meta リターゲティング', platform: 'Meta', impressions: 180000, clicks: 7200, conversions: 250, roas: 4.2 },
-  { id: '3', name: 'LINE公式配信', platform: 'LINE', impressions: 80000, clicks: 3200, conversions: 65, roas: 3.8 },
-  { id: '4', name: 'ブランド認知 - Google', platform: 'Google', impressions: 200000, clicks: 8000, conversions: 200, roas: 3.5 },
-  { id: '5', name: 'TikTok若年層', platform: 'TikTok', impressions: 150000, clicks: 6000, conversions: 120, roas: 3.2 },
-  { id: '6', name: 'Yahoo! ディスプレイ', platform: 'Yahoo!', impressions: 19567, clicks: 878, conversions: 24, roas: 2.8 },
-  { id: '7', name: 'X トレンド広告', platform: 'X', impressions: 45000, clicks: 1800, conversions: 35, roas: 2.5 },
-  { id: '8', name: 'Meta ストーリーズ', platform: 'Meta', impressions: 120000, clicks: 4800, conversions: 130, roas: 2.3 },
-  { id: '9', name: 'Google ショッピング', platform: 'Google', impressions: 95000, clicks: 3800, conversions: 85, roas: 2.1 },
-  { id: '10', name: 'TikTok チャレンジ', platform: 'TikTok', impressions: 70000, clicks: 2500, conversions: 60, roas: 1.9 },
+function getMockTopCampaigns(t: (key: string, params?: Record<string, string | number>) => string): TopCampaign[] {
+  return [
+  { id: '1', name: t('analytics.hc6f094'), platform: 'Google', impressions: 250000, clicks: 10000, conversions: 320, roas: 4.5 },
+  { id: '2', name: t('analytics.h890fdc'), platform: 'Meta', impressions: 180000, clicks: 7200, conversions: 250, roas: 4.2 },
+  { id: '3', name: t('analytics.h34e78e'), platform: 'LINE', impressions: 80000, clicks: 3200, conversions: 65, roas: 3.8 },
+  { id: '4', name: t('analytics.h03d928'), platform: 'Google', impressions: 200000, clicks: 8000, conversions: 200, roas: 3.5 },
+  { id: '5', name: t('analytics.h3a1cca'), platform: 'TikTok', impressions: 150000, clicks: 6000, conversions: 120, roas: 3.2 },
+  { id: '6', name: t('analytics.hb217be'), platform: 'Yahoo!', impressions: 19567, clicks: 878, conversions: 24, roas: 2.8 },
+  { id: '7', name: t('analytics.h1729c5'), platform: 'X', impressions: 45000, clicks: 1800, conversions: 35, roas: 2.5 },
+  { id: '8', name: t('analytics.haaff51'), platform: 'Meta', impressions: 120000, clicks: 4800, conversions: 130, roas: 2.3 },
+  { id: '9', name: t('analytics.ha36b4e'), platform: 'Google', impressions: 95000, clicks: 3800, conversions: 85, roas: 2.1 },
+  { id: '10', name: t('analytics.h334526'), platform: 'TikTok', impressions: 70000, clicks: 2500, conversions: 60, roas: 1.9 },
 ];
+}
 
 // -- Subcomponents --
 
@@ -226,7 +228,7 @@ export default function AnalyticsPage(): React.ReactElement {
     ? MOCK_PLATFORM_DATA
     : (platformQuery.data as PlatformMetric[] | undefined) ?? MOCK_PLATFORM_DATA;
   const roasTrend = MOCK_ROAS_TREND;
-  const topCampaigns = MOCK_TOP_CAMPAIGNS;
+  const topCampaigns = getMockTopCampaigns(t);
 
   return (
     <div className="space-y-6">

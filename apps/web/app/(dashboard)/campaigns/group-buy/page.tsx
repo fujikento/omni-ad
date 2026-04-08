@@ -98,20 +98,22 @@ const SHARE_PLATFORMS: { id: SharePlatform; label: string }[] = [
   { id: 'tiktok', label: 'TikTok' },
 ];
 
-const MOCK_GROUPS: GroupBuyGroup[] = [
-  { id: 'GB-001', initiator: '田中太郎', currentParticipants: 7, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 18, createdAt: '2026-04-01 14:30' },
-  { id: 'GB-002', initiator: '佐藤花子', currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-04-01 10:00' },
-  { id: 'GB-003', initiator: '鈴木一郎', currentParticipants: 4, targetParticipants: 10, currentTier: 1, status: 'active', remainingHours: 36, createdAt: '2026-04-01 18:00' },
-  { id: 'GB-004', initiator: '高橋美咲', currentParticipants: 5, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 12, createdAt: '2026-04-01 16:00' },
-  { id: 'GB-005', initiator: '山田健太', currentParticipants: 2, targetParticipants: 10, currentTier: 0, status: 'expired', remainingHours: 0, createdAt: '2026-03-30 09:00' },
-  { id: 'GB-006', initiator: '伊藤あかり', currentParticipants: 8, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 6, createdAt: '2026-04-02 08:00' },
-  { id: 'GB-007', initiator: '渡辺翔太', currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-04-01 11:30' },
-  { id: 'GB-008', initiator: '中村優子', currentParticipants: 6, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 24, createdAt: '2026-04-02 06:00' },
-  { id: 'GB-009', initiator: '小林大樹', currentParticipants: 3, targetParticipants: 10, currentTier: 1, status: 'active', remainingHours: 42, createdAt: '2026-04-02 09:00' },
-  { id: 'GB-010', initiator: '加藤裕美', currentParticipants: 9, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 4, createdAt: '2026-04-02 07:00' },
-  { id: 'GB-011', initiator: '吉田誠', currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-03-31 15:00' },
-  { id: 'GB-012', initiator: '松本理恵', currentParticipants: 5, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 20, createdAt: '2026-04-02 10:00' },
+function getMockGroups(t: (key: string, params?: Record<string, string | number>) => string): GroupBuyGroup[] {
+  return [
+  { id: 'GB-001', initiator: t('campaigns.groupbuy.ha2aa03'), currentParticipants: 7, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 18, createdAt: '2026-04-01 14:30' },
+  { id: 'GB-002', initiator: t('campaigns.groupbuy.ha378db'), currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-04-01 10:00' },
+  { id: 'GB-003', initiator: t('campaigns.groupbuy.h1b5221'), currentParticipants: 4, targetParticipants: 10, currentTier: 1, status: 'active', remainingHours: 36, createdAt: '2026-04-01 18:00' },
+  { id: 'GB-004', initiator: t('campaigns.groupbuy.h614a7a'), currentParticipants: 5, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 12, createdAt: '2026-04-01 16:00' },
+  { id: 'GB-005', initiator: t('campaigns.groupbuy.ha163dd'), currentParticipants: 2, targetParticipants: 10, currentTier: 0, status: 'expired', remainingHours: 0, createdAt: '2026-03-30 09:00' },
+  { id: 'GB-006', initiator: t('campaigns.groupbuy.h06ed61'), currentParticipants: 8, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 6, createdAt: '2026-04-02 08:00' },
+  { id: 'GB-007', initiator: t('campaigns.groupbuy.h841e64'), currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-04-01 11:30' },
+  { id: 'GB-008', initiator: t('campaigns.groupbuy.h73d821'), currentParticipants: 6, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 24, createdAt: '2026-04-02 06:00' },
+  { id: 'GB-009', initiator: t('campaigns.groupbuy.hf30e74'), currentParticipants: 3, targetParticipants: 10, currentTier: 1, status: 'active', remainingHours: 42, createdAt: '2026-04-02 09:00' },
+  { id: 'GB-010', initiator: t('campaigns.groupbuy.h5a79f9'), currentParticipants: 9, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 4, createdAt: '2026-04-02 07:00' },
+  { id: 'GB-011', initiator: t('campaigns.groupbuy.he77f4c'), currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-03-31 15:00' },
+  { id: 'GB-012', initiator: t('campaigns.groupbuy.h846175'), currentParticipants: 5, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 20, createdAt: '2026-04-02 10:00' },
 ];
+}
 
 const MOCK_SHARE_DATA: ShareData[] = [
   { platform: 'LINE', count: 420, color: '#06C755' },
@@ -644,11 +646,11 @@ export default function GroupBuyPage(): React.ReactElement {
   const { t } = useI18n();
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const activeGroups = MOCK_GROUPS.filter((g) => g.status === 'active');
-  const totalParticipants = MOCK_GROUPS.reduce((sum, g) => sum + g.currentParticipants, 0);
+  const activeGroups = getMockGroups(t).filter((g) => g.status === 'active');
+  const totalParticipants = getMockGroups(t).reduce((sum, g) => sum + g.currentParticipants, 0);
   const viralCoefficient = 2.3;
   const tierAchievementRate = Math.round(
-    (MOCK_GROUPS.filter((g) => g.status === 'completed').length / MOCK_GROUPS.length) * 100,
+    (getMockGroups(t).filter((g) => g.status === 'completed').length / getMockGroups(t).length) * 100,
   );
 
   return (
@@ -711,7 +713,7 @@ export default function GroupBuyPage(): React.ReactElement {
       </div>
 
       {/* Groups table */}
-      <GroupsTable groups={MOCK_GROUPS} />
+      <GroupsTable groups={getMockGroups(t)} />
 
       {/* Viral growth chart */}
       <ViralSpreadChart data={MOCK_GROWTH_DATA} />

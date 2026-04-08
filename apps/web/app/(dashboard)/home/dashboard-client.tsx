@@ -98,93 +98,107 @@ interface ActivityItem {
 // Mock Data
 // ============================================================
 
-const MOCK_ALERTS: Alert[] = [
-  {
-    id: 'a1',
-    severity: 'critical',
-    title: '支出急増検出',
-    description: 'Google広告「春のプロモーション」で過去1時間の支出が通常の3倍になっています。入札単価の異常上昇が原因の可能性があります。',
-    action: '入札戦略を確認し、必要に応じて日次上限を調整してください。',
-  },
-  {
-    id: 'a2',
-    severity: 'critical',
-    title: 'コンバージョン追跡異常',
-    description: 'Meta広告のコンバージョンピクセルが過去2時間データを送信していません。追跡コードの設置状況を確認してください。',
-    action: 'Meta Events Managerでピクセルの状態を確認してください。',
-  },
-  {
-    id: 'a3',
-    severity: 'warning',
-    title: 'クリエイティブ疲労検出',
-    description: 'TikTok広告「若年層向けプロモ」のCTRが直近3日で20%低下しています。',
-    action: '新しいクリエイティブバリエーションの作成を推奨します。',
-  },
-  {
-    id: 'a4',
-    severity: 'warning',
-    title: 'オーディエンス飽和',
-    description: 'LINE配信「リマーケティング」のフリークエンシーが7.2回に達しています。',
-    action: 'オーディエンスの拡張または除外リストの更新を検討してください。',
-  },
-  {
-    id: 'a5',
-    severity: 'warning',
-    title: '予算消化不足',
-    description: 'Yahoo!広告の予算消化率が40%と低い水準にあります。',
-    action: '入札単価の引き上げまたはターゲティングの拡張を検討してください。',
-  },
-];
+function getMockAlerts(t: (key: string) => string): Alert[] {
+  return [
+    {
+      id: 'a1',
+      severity: 'critical',
+      title: t('mock.alertSpendSpike'),
+      description: t('mock.alertSpendSpikeDesc'),
+      action: t('mock.alertSpendSpikeAction'),
+    },
+    {
+      id: 'a2',
+      severity: 'critical',
+      title: t('mock.alertConversionTracking'),
+      description: t('mock.alertConversionTrackingDesc'),
+      action: t('mock.alertConversionTrackingAction'),
+    },
+    {
+      id: 'a3',
+      severity: 'warning',
+      title: t('mock.alertCreativeFatigue'),
+      description: t('mock.alertCreativeFatigueDesc'),
+      action: t('mock.alertCreativeFatigueAction'),
+    },
+    {
+      id: 'a4',
+      severity: 'warning',
+      title: t('mock.alertAudienceSaturation'),
+      description: t('mock.alertAudienceSaturationDesc'),
+      action: t('mock.alertAudienceSaturationAction'),
+    },
+    {
+      id: 'a5',
+      severity: 'warning',
+      title: t('mock.alertBudgetUnderSpend'),
+      description: t('mock.alertBudgetUnderSpendDesc'),
+      action: t('mock.alertBudgetUnderSpendAction'),
+    },
+  ];
+}
 
-const MOCK_KPI: KpiCardData[] = [
-  { label: '総広告費（今日）', value: '¥127,500', icon: <BadgeJapaneseYen size={20} className="text-blue-500" /> },
-  { label: '総収益（今日）', value: '¥412,800', icon: <TrendingUp size={20} className="text-green-500" /> },
-  { label: '総ROAS', value: '3.24x', icon: <Activity size={20} className="text-purple-500" /> },
-  { label: 'アクティブキャンペーン', value: '8', subLabel: '/ 12 キャンペーン', icon: <Zap size={20} className="text-orange-500" /> },
-];
+function getMockKpi(t: (key: string) => string): KpiCardData[] {
+  return [
+    { label: t('dashboard.todaySpend'), value: '¥127,500', icon: <BadgeJapaneseYen size={20} className="text-blue-500" /> },
+    { label: t('dashboard.todayRevenue'), value: '¥412,800', icon: <TrendingUp size={20} className="text-green-500" /> },
+    { label: t('dashboard.totalRoas'), value: '3.24x', icon: <Activity size={20} className="text-purple-500" /> },
+    { label: t('dashboard.activeCampaigns'), value: '8', subLabel: t('mock.of12Campaigns'), icon: <Zap size={20} className="text-orange-500" /> },
+  ];
+}
 
-const MOCK_CAMPAIGN_HEALTH: CampaignHealth[] = [
-  { id: '1', name: '春のプロモーション2026', healthScore: 92, platforms: ['google', 'meta'], dailySpend: 42000, roas: 4.5, status: 'active' },
-  { id: '2', name: 'TikTok新規獲得', healthScore: 78, platforms: ['tiktok'], dailySpend: 28000, roas: 2.8, status: 'active' },
-  { id: '3', name: 'LINEリマーケティング', healthScore: 45, platforms: ['line_yahoo'], dailySpend: 15000, roas: 1.9, status: 'active' },
-  { id: '4', name: 'ブランド認知拡大', healthScore: 85, platforms: ['google', 'x'], dailySpend: 35000, roas: 3.2, status: 'active' },
-  { id: '5', name: 'Yahoo!ディスプレイ', healthScore: 32, platforms: ['line_yahoo'], dailySpend: 5500, roas: 0.8, status: 'error' },
-  { id: '6', name: 'Meta ストーリーズ', healthScore: 60, platforms: ['meta'], dailySpend: 2000, roas: 2.1, status: 'paused' },
-];
+function getMockCampaignHealth(t: (key: string) => string): CampaignHealth[] {
+  return [
+    { id: '1', name: t('mock.campaignSpringPromo'), healthScore: 92, platforms: ['google', 'meta'], dailySpend: 42000, roas: 4.5, status: 'active' },
+    { id: '2', name: t('mock.campaignTikTokAcquisition'), healthScore: 78, platforms: ['tiktok'], dailySpend: 28000, roas: 2.8, status: 'active' },
+    { id: '3', name: t('mock.campaignLineRemarketing'), healthScore: 45, platforms: ['line_yahoo'], dailySpend: 15000, roas: 1.9, status: 'active' },
+    { id: '4', name: t('mock.campaignBrandAwareness'), healthScore: 85, platforms: ['google', 'x'], dailySpend: 35000, roas: 3.2, status: 'active' },
+    { id: '5', name: t('mock.campaignYahooDisplay'), healthScore: 32, platforms: ['line_yahoo'], dailySpend: 5500, roas: 0.8, status: 'error' },
+    { id: '6', name: t('mock.campaignMetaStories'), healthScore: 60, platforms: ['meta'], dailySpend: 2000, roas: 2.1, status: 'paused' },
+  ];
+}
 
-const MOCK_BUDGET_PACING: BudgetPacing = {
-  spent: 127500,
-  total: 200000,
-  time: '15:00',
-  status: 'on-pace',
-  statusLabel: '正常',
-};
+function getMockBudgetPacing(t: (key: string) => string): BudgetPacing {
+  return {
+    spent: 127500,
+    total: 200000,
+    time: '15:00',
+    status: 'on-pace',
+    statusLabel: t('dashboard.paceNormal'),
+  };
+}
 
-const MOCK_AI_INSIGHTS: AiInsight[] = [
-  { id: 'i1', type: 'opportunity', title: 'TikTok予算増額推奨', description: 'TikTok広告のCVRが直近48時間で35%上昇。予算を20%増やすことでROI最大化が見込めます。' },
-  { id: 'i2', type: 'warning', title: 'Google検索広告のCPC上昇', description: '主要キーワードのCPCが先週比12%上昇。競合の参入が確認されています。' },
-  { id: 'i3', type: 'achievement', title: 'Meta広告で新記録達成', description: 'リターゲティングキャンペーンのROASが過去最高の5.2xを記録しました。' },
-  { id: 'i4', type: 'opportunity', title: 'クロスプラットフォーム最適化', description: 'Google→LINE→Metaの順にタッチポイントを最適化することで、CVRが18%向上する可能性があります。' },
-];
+function getMockAiInsights(t: (key: string) => string): AiInsight[] {
+  return [
+    { id: 'i1', type: 'opportunity', title: t('mock.insightTikTokBudget'), description: t('mock.insightTikTokBudgetDesc') },
+    { id: 'i2', type: 'warning', title: t('mock.insightGoogleCpc'), description: t('mock.insightGoogleCpcDesc') },
+    { id: 'i3', type: 'achievement', title: t('mock.insightMetaRecord'), description: t('mock.insightMetaRecordDesc') },
+    { id: 'i4', type: 'opportunity', title: t('mock.insightCrossPlatform'), description: t('mock.insightCrossPlatformDesc') },
+  ];
+}
 
-const MOCK_AB_TESTS: AbTest[] = [
-  { id: 't1', name: 'ランディングページ A vs B', variants: ['パターンA（既存）', 'パターンB（新デザイン）'], currentWinner: 'パターンB', significance: 94, sampleProgress: 82 },
-  { id: 't2', name: 'CTA文言テスト', variants: ['今すぐ購入', '詳細を見る', '無料で試す'], currentWinner: '無料で試す', significance: 78, sampleProgress: 65 },
-  { id: 't3', name: 'ビジュアルクリエイティブ', variants: ['動画広告', '静止画カルーセル'], currentWinner: '動画広告', significance: 88, sampleProgress: 91 },
-];
+function getMockAbTests(t: (key: string) => string): AbTest[] {
+  return [
+    { id: 't1', name: t('mock.testLpAvsB'), variants: [t('mock.variantPatternA'), t('mock.variantPatternB')], currentWinner: t('mock.variantPatternB'), significance: 94, sampleProgress: 82 },
+    { id: 't2', name: t('mock.testCtaWording'), variants: [t('mock.variantBuyNow'), t('mock.variantViewDetails'), t('mock.variantFreeTrial')], currentWinner: t('mock.variantFreeTrial'), significance: 78, sampleProgress: 65 },
+    { id: 't3', name: t('mock.testVisualCreative'), variants: [t('mock.variantVideoAd'), t('mock.variantStaticCarousel')], currentWinner: t('mock.variantVideoAd'), significance: 88, sampleProgress: 91 },
+  ];
+}
 
-const MOCK_ACTIVITY: ActivityItem[] = [
-  { id: 'act1', message: '田中太郎がキャンペーン「春の新生活」を一時停止しました', time: '2分前', type: 'user' },
-  { id: 'act2', message: 'AIが予算最適化を実行: TikTok +15%, META -10%', time: '1時間前', type: 'ai' },
-  { id: 'act3', message: 'アラート: 「リマーケティング」のCTRが15%低下', time: '3時間前', type: 'alert' },
-  { id: 'act4', message: '山田花子がクリエイティブ「春セール動画v3」を承認しました', time: '4時間前', type: 'user' },
-  { id: 'act5', message: 'AIがA/Bテスト「CTA文言テスト」を開始しました', time: '5時間前', type: 'ai' },
-  { id: 'act6', message: '新規キャンペーン「GW特別セール」が下書き保存されました', time: '6時間前', type: 'user' },
-  { id: 'act7', message: 'レポート「3月パフォーマンスレポート」が自動生成されました', time: '8時間前', type: 'ai' },
-  { id: 'act8', message: 'アラート: Yahoo!広告の予算消化率が40%未満', time: '10時間前', type: 'alert' },
-  { id: 'act9', message: 'AIがオーディエンスの類似拡張を完了しました', time: '12時間前', type: 'ai' },
-  { id: 'act10', message: '佐藤一郎がキャンペーン「ブランド認知拡大」の予算を変更しました', time: '昨日', type: 'user' },
-];
+function getMockActivity(t: (key: string) => string): ActivityItem[] {
+  return [
+    { id: 'act1', message: t('mock.actPausedCampaign'), time: t('mock.time2minAgo'), type: 'user' },
+    { id: 'act2', message: t('mock.actAiBudgetOptimization'), time: t('mock.time1hAgo'), type: 'ai' },
+    { id: 'act3', message: t('mock.actAlertCtrDrop'), time: t('mock.time3hAgo'), type: 'alert' },
+    { id: 'act4', message: t('mock.actApprovedCreative'), time: t('mock.time4hAgo'), type: 'user' },
+    { id: 'act5', message: t('mock.actAiStartedAbTest'), time: t('mock.time5hAgo'), type: 'ai' },
+    { id: 'act6', message: t('mock.actDraftSaved'), time: t('mock.time6hAgo'), type: 'user' },
+    { id: 'act7', message: t('mock.actReportGenerated'), time: t('mock.time8hAgo'), type: 'ai' },
+    { id: 'act8', message: t('mock.actAlertBudgetUnder'), time: t('mock.time10hAgo'), type: 'alert' },
+    { id: 'act9', message: t('mock.actAiLookalikeCompleted'), time: t('mock.time12hAgo'), type: 'ai' },
+    { id: 'act10', message: t('mock.actBudgetChanged'), time: t('mock.timeYesterday'), type: 'user' },
+  ];
+}
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   meta: 'Meta',
@@ -452,7 +466,7 @@ function CampaignHealthCard({ campaign }: { campaign: CampaignHealth }): React.R
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(campaign.dailySpend)}/日
+          {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(campaign.dailySpend)}{t('dashboard.perDay')}
         </span>
         <span className={cn(
           'font-semibold',
@@ -688,17 +702,21 @@ export function DashboardClient(): React.ReactElement {
     : null;
 
   // Use real data if available, otherwise fall back to mock
+  const mockKpi = getMockKpi(t);
+  const mockCampaignHealth = getMockCampaignHealth(t);
+  const mockActivity = getMockActivity(t);
+
   const kpiData: KpiCardData[] = overviewQuery.error
-    ? MOCK_KPI
-    : (overviewQuery.data as KpiCardData[] | undefined) ?? MOCK_KPI;
+    ? mockKpi
+    : (overviewQuery.data as KpiCardData[] | undefined) ?? mockKpi;
 
   const campaignHealth: CampaignHealth[] = healthQuery.error
-    ? MOCK_CAMPAIGN_HEALTH
-    : (healthQuery.data as CampaignHealth[] | undefined) ?? MOCK_CAMPAIGN_HEALTH;
+    ? mockCampaignHealth
+    : (healthQuery.data as CampaignHealth[] | undefined) ?? mockCampaignHealth;
 
   const activityData: ActivityItem[] = activityQuery.error
-    ? MOCK_ACTIVITY
-    : (activityQuery.data as unknown as ActivityItem[] | undefined) ?? MOCK_ACTIVITY;
+    ? mockActivity
+    : (activityQuery.data as unknown as ActivityItem[] | undefined) ?? mockActivity;
 
   function handleRefresh(): void {
     overviewQuery.refetch().catch(() => { /* fallback to mock */ });
@@ -714,7 +732,8 @@ export function DashboardClient(): React.ReactElement {
     setDismissedAlerts((prev) => new Set([...prev, alert.id]));
   }
 
-  const visibleAlerts = MOCK_ALERTS.filter(
+  const mockAlerts = getMockAlerts(t);
+  const visibleAlerts = mockAlerts.filter(
     (a) => !dismissedAlerts.has(a.id) && !stoppedAlerts.has(a.id),
   );
 
@@ -776,7 +795,7 @@ export function DashboardClient(): React.ReactElement {
           </div>
 
           {/* Budget Pacing */}
-          <BudgetPacingBar pacing={MOCK_BUDGET_PACING} />
+          <BudgetPacingBar pacing={getMockBudgetPacing(t)} />
 
           {/* Active A/B Tests */}
           <div>
@@ -785,7 +804,7 @@ export function DashboardClient(): React.ReactElement {
               <h2 className="text-lg font-semibold text-foreground">{t('dashboard.activeAbTests')}</h2>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {MOCK_AB_TESTS.map((test) => (
+              {getMockAbTests(t).map((test) => (
                 <AbTestCard key={test.id} test={test} />
               ))}
             </div>
@@ -794,7 +813,7 @@ export function DashboardClient(): React.ReactElement {
 
         {/* Right: AI Insights */}
         <div>
-          <AiInsightsPanel insights={MOCK_AI_INSIGHTS} />
+          <AiInsightsPanel insights={getMockAiInsights(t)} />
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
+
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -48,6 +50,7 @@ function convertToCSV<T>(data: T[], columns: ColumnDefinition<T>[]): string {
 }
 
 function downloadBlob(content: string, filename: string, mimeType: string): void {
+
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -67,6 +70,7 @@ export function ExportButton<T>({
   filename = 'export',
   className,
 }: ExportButtonProps<T>): React.ReactElement {
+  const { t } = useI18n();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,12 +113,12 @@ export function ExportButton<T>({
           'inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent',
           className,
         )}
-        aria-label="エクスポートオプション"
+        aria-label={t('export.ariaLabel')}
         aria-expanded={dropdownOpen}
         aria-haspopup="true"
       >
         <Download size={14} />
-        <span>エクスポート</span>
+        <span>{t('export.label')}</span>
         <ChevronDown size={14} className={cn('transition-transform', dropdownOpen && 'rotate-180')} />
       </button>
 
@@ -134,7 +138,7 @@ export function ExportButton<T>({
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             <FileSpreadsheet size={14} className="text-blue-600" />
-            Excel (.xlsx) - CSV形式
+            {t('export.excelCsvFormat')}
           </button>
         </div>
       )}

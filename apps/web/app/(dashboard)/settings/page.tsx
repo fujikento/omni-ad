@@ -82,11 +82,13 @@ const MOCK_CONNECTIONS: PlatformConnection[] = [
   { platform: 'microsoft', label: 'Microsoft Ads', status: 'disconnected', icon: 'MS' },
 ];
 
-const MOCK_TEAM: TeamMember[] = [
-  { id: '1', name: '田中太郎', email: 'tanaka@example.com', role: 'admin', lastActive: '2026-04-02T06:00:00Z' },
-  { id: '2', name: '鈴木花子', email: 'suzuki@example.com', role: 'editor', lastActive: '2026-04-01T18:00:00Z' },
-  { id: '3', name: '佐藤一郎', email: 'sato@example.com', role: 'viewer', lastActive: '2026-03-30T12:00:00Z' },
+function getMockTeam(t: (key: string, params?: Record<string, string | number>) => string): TeamMember[] {
+  return [
+  { id: '1', name: t('settings.ha2aa03'), email: 'tanaka@example.com', role: 'admin', lastActive: '2026-04-02T06:00:00Z' },
+  { id: '2', name: t('settings.hcef95e'), email: 'suzuki@example.com', role: 'editor', lastActive: '2026-04-01T18:00:00Z' },
+  { id: '3', name: t('settings.h8c52a3'), email: 'sato@example.com', role: 'viewer', lastActive: '2026-03-30T12:00:00Z' },
 ];
+}
 
 // -- Subcomponents --
 
@@ -193,11 +195,11 @@ function TeamTab(): React.ReactElement {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>('viewer');
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(MOCK_TEAM);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getMockTeam(t));
 
   function handleInvite(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
-    showToast(`${inviteEmail} に招待を送信しました`);
+    showToast(t('settings.inviteSent', { email: inviteEmail }));
     setInviteOpen(false);
     setInviteEmail('');
   }
@@ -205,7 +207,7 @@ function TeamTab(): React.ReactElement {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">チームメンバーの管理と権限設定</p>
+        <p className="text-sm text-muted-foreground">{t('settings.teamDescription')}</p>
         <button
           type="button"
           onClick={() => setInviteOpen(true)}
@@ -221,7 +223,7 @@ function TeamTab(): React.ReactElement {
         <form onSubmit={handleInvite} className="rounded-lg border border-primary/30 bg-primary/5 p-4">
           <div className="flex items-end gap-3">
             <div className="flex-1">
-              <label htmlFor="invite-email" className="mb-1 block text-xs font-medium text-foreground">メールアドレス</label>
+              <label htmlFor="invite-email" className="mb-1 block text-xs font-medium text-foreground">{t('settings.emailLabel')}</label>
               <input
                 id="invite-email"
                 type="email"
@@ -233,7 +235,7 @@ function TeamTab(): React.ReactElement {
               />
             </div>
             <div className="w-32">
-              <label htmlFor="invite-role" className="mb-1 block text-xs font-medium text-foreground">権限</label>
+              <label htmlFor="invite-role" className="mb-1 block text-xs font-medium text-foreground">{t('settings.permissionLabel')}</label>
               <select
                 id="invite-role"
                 value={inviteRole}
@@ -255,7 +257,7 @@ function TeamTab(): React.ReactElement {
               type="button"
               onClick={() => setInviteOpen(false)}
               className="rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground"
-              aria-label="閉じる"
+              aria-label={t('settings.h5dce86')}
             >
               <X size={16} />
             </button>
@@ -294,12 +296,12 @@ function TeamTab(): React.ReactElement {
                   onClick={() => {
                     if (window.confirm(t('settings.removeMember'))) {
                       setTeamMembers((prev) => prev.filter((m) => m.id !== member.id));
-                      showToast(`${member.name}を削除しました`);
+                      showToast(t('settings.memberDeleted', { name: member.name }));
                     }
                   }}
                   className="rounded p-1 text-muted-foreground hover:text-destructive"
-                  title="削除"
-                  aria-label={`${member.name}を削除`}
+                  title={t('settings.hc6577c')}
+                  aria-label={t('settings.ariaMemberDelete', { name: member.name })}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -324,11 +326,11 @@ function BillingTab(): React.ReactElement {
               <Crown size={18} className="text-primary" />
               <h3 className="text-lg font-semibold text-foreground">{t('settings.planName')}</h3>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{t('settings.monthlyFee')} 98,000円</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('settings.monthlyFee')} {t('settings.monthlyFeeAmount')}</p>
           </div>
           <button
             type="button"
-            onClick={() => showToast('プラン変更は準備中です')}
+            onClick={() => showToast(t('settings.h0e7d61'))}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             {t('settings.managePlan')}
@@ -338,13 +340,13 @@ function BillingTab(): React.ReactElement {
 
       {/* Usage metrics */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-foreground">利用状況</h3>
+        <h3 className="mb-3 text-sm font-medium text-foreground">{t('settings.usageTitle')}</h3>
         <div className="space-y-3">
           {[
-            { label: 'キャンペーン数', current: 12, limit: 50 },
-            { label: 'チームメンバー', current: 3, limit: 10 },
-            { label: 'API呼び出し / 月', current: 45230, limit: 100000 },
-            { label: 'クリエイティブ生成 / 月', current: 28, limit: 100 },
+            { label: t('settings.h97f3c5'), current: 12, limit: 50 },
+            { label: t('settings.h3eb7e0'), current: 3, limit: 10 },
+            { label: t('settings.h36e8cf'), current: 45230, limit: 100000 },
+            { label: t('settings.h6a1f83'), current: 28, limit: 100 },
           ].map((item) => {
             const pct = (item.current / item.limit) * 100;
             return (
@@ -396,7 +398,7 @@ function ApiTab(): React.ReactElement {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-foreground">Live API Key</p>
-            <p className="text-xs text-muted-foreground">本番環境用のAPIキー</p>
+            <p className="text-xs text-muted-foreground">{t('settings.productionApiKey')}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -426,9 +428,9 @@ function ApiTab(): React.ReactElement {
       <div className="rounded-lg border border-border p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">APIキーのローテーション</p>
+            <p className="text-sm font-medium text-foreground">{t('settings.apiKeyRotation')}</p>
             <p className="text-xs text-muted-foreground">
-              新しいキーを生成します。古いキーは即座に無効化されます。
+              {t('settings.h4f5631')}
             </p>
           </div>
           <button
@@ -448,19 +450,19 @@ function ApiTab(): React.ReactElement {
 
       {/* API usage */}
       <div className="rounded-lg border border-border p-4">
-        <p className="text-sm font-medium text-foreground">API利用状況 (今月)</p>
+        <p className="text-sm font-medium text-foreground">{t('settings.apiUsageThisMonth')}</p>
         <div className="mt-3 grid grid-cols-3 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-foreground">45,230</p>
-            <p className="text-xs text-muted-foreground">リクエスト数</p>
+            <p className="text-xs text-muted-foreground">{t('settings.requestCount')}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-foreground">142ms</p>
-            <p className="text-xs text-muted-foreground">平均レスポンス</p>
+            <p className="text-xs text-muted-foreground">{t('settings.avgResponse')}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-foreground">99.8%</p>
-            <p className="text-xs text-muted-foreground">稼働率</p>
+            <p className="text-xs text-muted-foreground">{t('settings.uptime')}</p>
           </div>
         </div>
       </div>
@@ -469,10 +471,12 @@ function ApiTab(): React.ReactElement {
 }
 
 function AiTab(): React.ReactElement {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Claude APIキーの設定とAIオートパイロットの管理
+        {t('settings.aiSettingsDesc')}
       </p>
       <a
         href="/settings/ai"
@@ -483,9 +487,9 @@ function AiTab(): React.ReactElement {
             <Sparkles size={20} className="text-primary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">AI設定を開く</p>
+            <p className="text-sm font-medium text-foreground">{t('settings.openAiSettings')}</p>
             <p className="text-xs text-muted-foreground">
-              APIキー、オートパイロットモード、最適化設定を管理
+              {t('settings.aiSettingsManage')}
             </p>
           </div>
         </div>
@@ -495,22 +499,22 @@ function AiTab(): React.ReactElement {
       {/* Quick status */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border p-4">
-          <p className="text-xs font-medium text-muted-foreground">API接続</p>
+          <p className="text-xs font-medium text-muted-foreground">{t('settings.apiConnection')}</p>
           <div className="mt-1 flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="text-sm font-medium text-foreground">接続済み</span>
+            <span className="text-sm font-medium text-foreground">{t('settings.connectedStatus')}</span>
           </div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <p className="text-xs font-medium text-muted-foreground">オートパイロット</p>
+          <p className="text-xs font-medium text-muted-foreground">{t('settings.autopilotLabel')}</p>
           <div className="mt-1 flex items-center gap-1.5">
             <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-            <span className="text-sm font-medium text-foreground">稼働中（承認モード）</span>
+            <span className="text-sm font-medium text-foreground">{t('settings.autopilotRunningApproval')}</span>
           </div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <p className="text-xs font-medium text-muted-foreground">今日の判断</p>
-          <p className="mt-1 text-sm font-medium text-foreground">7件 (5実行, 2提案中)</p>
+          <p className="text-xs font-medium text-muted-foreground">{t('settings.todayDecisions')}</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{t('settings.todayDecisionsCount')}</p>
         </div>
       </div>
     </div>
@@ -540,7 +544,7 @@ export default function SettingsPage(): React.ReactElement {
 
       {/* Tabs */}
       <div className="border-b border-border">
-        <nav className="-mb-px flex gap-4" aria-label="設定タブ">
+        <nav className="-mb-px flex gap-4" aria-label={t('settings.h0ddc22')}>
           {TABS.map((tab) => (
             <button
               key={tab.key}

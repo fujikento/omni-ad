@@ -84,9 +84,13 @@ const CONVERSION_GOALS: { value: ConversionGoal; labelKey: string }[] = [
   { value: 'app_install', labelKey: 'onboarding.goalAppInstall' },
 ];
 
-const ONBOARDING_AGE_OPTIONS = ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
+function getOnboardingAgeOptions(): readonly string[] {
+  return ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
+}
 
-const ONBOARDING_REGION_OPTIONS = ['東京', '大阪', '名古屋', '福岡', '札幌', '横浜', '京都', '神戸', '仙台', '広島'] as const;
+function getOnboardingRegionOptions(t: (key: string, params?: Record<string, string | number>) => string): string[] {
+  return [t('onboarding.h707ba1'), t('onboarding.hd94e2b'), t('onboarding.h20b7eb'), t('onboarding.h81fd0e'), t('onboarding.haf0713'), t('onboarding.he31419'), t('onboarding.hcda9a8'), t('onboarding.h841dd1'), t('onboarding.h030dd7'), t('onboarding.h403713')];
+}
 
 const OBJECTIVES: (Omit<ObjectiveCard, 'label' | 'description'> & { labelKey: string; descriptionKey: string })[] = [
   { id: 'awareness', labelKey: 'onboarding.objectiveAwareness', descriptionKey: 'onboarding.objectiveAwarenessDesc', icon: <Eye size={28} className="text-blue-500" /> },
@@ -256,7 +260,7 @@ function PlatformStep({
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft size={16} />
-          戻る
+          {t('onboarding.h4a622f')}
         </button>
         <div className="flex items-center gap-3">
           <button
@@ -272,7 +276,7 @@ function PlatformStep({
             disabled={connectedPlatforms.size === 0}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            次へ
+            {t('onboarding.h0e032e')}
             <ArrowRight size={16} />
           </button>
         </div>
@@ -322,10 +326,10 @@ function CampaignStep({
     // Simulate AI generation
     setTimeout(() => {
       setAiPlan({
-        objective: 'コンバージョン最大化',
-        targeting: '20-35歳女性、東京・大阪・名古屋、スキンケア・美容に興味あり',
-        budget: '日次 ¥16,000 / 月間 ¥500,000 (Google 40%, Meta 35%, TikTok 25%)',
-        creative: '動画広告3本 + 静止画カルーセル2セット (AIが自動生成)',
+        objective: t('onboarding.hcf29b1'),
+        targeting: t('onboarding.heb1d5a'),
+        budget: t('onboarding.hb0dc08'),
+        creative: t('onboarding.hb1f05f'),
         platforms: 'Google Ads, Meta (Instagram), TikTok',
       });
       setAiGenerating(false);
@@ -373,7 +377,7 @@ function CampaignStep({
         </p>
         {aiMode && !aiPlan && (
           <div className="mt-3 space-y-3">
-            <label htmlFor="business-goal" className="sr-only">ビジネス目標</label>
+            <label htmlFor="business-goal" className="sr-only">{t('onboarding.ariaBusinessGoal')}</label>
             <textarea
               id="business-goal"
               value={businessGoal}
@@ -422,7 +426,7 @@ function CampaignStep({
                       type="button"
                       onClick={() => setEditingPlanField(isEditing ? null : key)}
                       className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                      aria-label={`${fieldLabels[key]}を編集`}
+                      aria-label={t('onboarding.ariaEditField', { field: fieldLabels[key] })}
                     >
                       <Edit3 size={10} />
                       {isEditing ? t('onboarding.doneEditing') : t('onboarding.editField')}
@@ -599,7 +603,7 @@ function CampaignStep({
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMin(e.target.value)}
                     className={cn(inputCls, 'appearance-none pr-8')}
                   >
-                    {ONBOARDING_AGE_OPTIONS.map((age) => (
+                    {getOnboardingAgeOptions().map((age) => (
                       <option key={age} value={age}>{age}{t('onboarding.ageSuffix')}</option>
                     ))}
                   </select>
@@ -615,7 +619,7 @@ function CampaignStep({
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMax(e.target.value)}
                     className={cn(inputCls, 'appearance-none pr-8')}
                   >
-                    {ONBOARDING_AGE_OPTIONS.map((age) => (
+                    {getOnboardingAgeOptions().map((age) => (
                       <option key={age} value={age}>{age}{t('onboarding.ageSuffix')}</option>
                     ))}
                   </select>
@@ -628,7 +632,7 @@ function CampaignStep({
             <div className="mt-3">
               <span className={labelCls}>{t('onboarding.region')}</span>
               <div className="flex flex-wrap gap-1.5">
-                {ONBOARDING_REGION_OPTIONS.map((region) => (
+                {getOnboardingRegionOptions(t).map((region) => (
                   <button
                     key={region}
                     type="button"
@@ -656,7 +660,7 @@ function CampaignStep({
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft size={16} />
-          戻る
+          {t('onboarding.h4a622f')}
         </button>
         <button
           type="button"

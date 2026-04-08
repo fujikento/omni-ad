@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
+
 import { useState } from 'react';
 import {
   Check,
@@ -92,13 +94,15 @@ interface FormState {
 // Constants
 // ============================================================
 
-const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  purchase: '購入完了',
-  lead: 'リード獲得',
-  add_to_cart: 'カート追加',
-  signup: '会員登録',
-  custom: 'カスタム',
+function getEventTypeLabels(t: (key: string, params?: Record<string, string | number>) => string): Record<EventType, string> {
+  return {
+  purchase: t('settings.conversions.h57997c'),
+  lead: t('settings.conversions.h7079a7'),
+  add_to_cart: t('settings.conversions.hfc18be'),
+  signup: t('settings.conversions.hfc96d0'),
+  custom: t('settings.conversions.h8032dc'),
 };
+}
 
 const EVENT_TYPE_OPTIONS: EventType[] = ['purchase', 'lead', 'add_to_cart', 'signup', 'custom'];
 
@@ -119,10 +123,11 @@ const DEFAULT_PLATFORM_MAPPING: PlatformMapping = {
 // Mock Data
 // ============================================================
 
-const MOCK_ENDPOINTS: TrackingEndpoint[] = [
+function getMockEndpoints(t: (key: string, params?: Record<string, string | number>) => string): TrackingEndpoint[] {
+  return [
   {
     id: 'ep1',
-    name: 'メインサイト コンバージョン',
+    name: t('settings.conversions.h53dddd'),
     active: true,
     pixelId: 'PX-abc123def456',
     domains: ['example.com', 'shop.example.com'],
@@ -144,7 +149,7 @@ const MOCK_ENDPOINTS: TrackingEndpoint[] = [
   },
   {
     id: 'ep2',
-    name: 'LPフォーム トラッキング',
+    name: t('settings.conversions.h6e1849'),
     active: true,
     pixelId: 'PX-xyz789ghi012',
     domains: ['lp.example.com'],
@@ -165,6 +170,7 @@ const MOCK_ENDPOINTS: TrackingEndpoint[] = [
     statsWeek: 523,
   },
 ];
+}
 
 const MOCK_DAILY_CONVERSIONS: DailyConversion[] = Array.from({ length: 7 }, (_, i) => {
   const date = new Date(2026, 2, 27 + i);
@@ -199,6 +205,7 @@ const MOCK_RECENT_EVENTS: RecentEvent[] = [
 // ============================================================
 
 function formatYen(value: number): string {
+
   return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
 }
 
@@ -207,6 +214,8 @@ function formatYen(value: number): string {
 // ============================================================
 
 function CopyButton({ text }: { text: string }): React.ReactElement {
+  const { t } = useI18n();
+
   const [copied, setCopied] = useState(false);
 
   function handleCopy(): void {
@@ -221,10 +230,10 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
       type="button"
       onClick={handleCopy}
       className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-      aria-label="コピー"
+      aria-label={t('settings.conversions.h9e646d')}
     >
       {copied ? <Check size={12} className="text-green-500" /> : <Clipboard size={12} />}
-      {copied ? 'コピー済み' : 'コピー'}
+      {copied ? t('settings.conversions.h93b4fb') : t('settings.conversions.h9e646d')}
     </button>
   );
 }
@@ -264,6 +273,7 @@ function EndpointCard({
   onGetCode: () => void;
   onDelete: () => void;
 }): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-start justify-between">
@@ -279,7 +289,7 @@ function EndpointCard({
               )}
               role="switch"
               aria-checked={endpoint.active}
-              aria-label={endpoint.active ? 'アクティブ' : '非アクティブ'}
+              aria-label={endpoint.active ? t('settings.conversions.h0277d5') : t('settings.conversions.hf32a54')}
             >
               <span
                 className={cn(
@@ -297,14 +307,14 @@ function EndpointCard({
           </div>
         </div>
         <div className="text-right text-sm text-muted-foreground">
-          <p>今日: <span className="font-medium text-foreground">{endpoint.statsToday}件</span></p>
-          <p>今週: <span className="font-medium text-foreground">{endpoint.statsWeek.toLocaleString('ja-JP')}件</span></p>
+          <p>{t('conversions.todayLabel')} <span className="font-medium text-foreground">{t('conversions.todayCount', { count: String(endpoint.statsToday) })}</span></p>
+          <p>{t('conversions.thisWeekLabel')} <span className="font-medium text-foreground">{t('conversions.todayCount', { count: endpoint.statsWeek.toLocaleString() })}</span></p>
         </div>
       </div>
 
       {/* Domains */}
       <div className="mt-3">
-        <p className="mb-1 text-xs text-muted-foreground">許可ドメイン</p>
+        <p className="mb-1 text-xs text-muted-foreground">{t('conversions.allowedDomains')}</p>
         <div className="flex flex-wrap gap-1">
           {endpoint.domains.map((d) => (
             <span key={d} className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs text-foreground">
@@ -317,11 +327,11 @@ function EndpointCard({
 
       {/* Event types */}
       <div className="mt-3">
-        <p className="mb-1 text-xs text-muted-foreground">イベントタイプ</p>
+        <p className="mb-1 text-xs text-muted-foreground">{t('conversions.eventTypeLabel')}</p>
         <div className="flex flex-wrap gap-1">
           {endpoint.eventTypes.map((et) => (
             <span key={et} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-              {EVENT_TYPE_LABELS[et]}
+              {getEventTypeLabels(t)[et]}
             </span>
           ))}
         </div>
@@ -329,7 +339,7 @@ function EndpointCard({
 
       {/* Platform mappings */}
       <div className="mt-3">
-        <p className="mb-1 text-xs text-muted-foreground">プラットフォーム連携</p>
+        <p className="mb-1 text-xs text-muted-foreground">{t('conversions.platformIntegration')}</p>
         <div className="flex flex-wrap gap-1">
           <PlatformMappingBadge label="Meta CAPI" enabled={endpoint.platformMapping.metaCapi} />
           <PlatformMappingBadge label="Google EC" enabled={endpoint.platformMapping.googleEc} />
@@ -346,7 +356,7 @@ function EndpointCard({
           className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >
           <Settings2 size={14} />
-          設定編集
+          {t('settings.conversions.h041346')}
         </button>
         <button
           type="button"
@@ -354,7 +364,7 @@ function EndpointCard({
           className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >
           <Code2 size={14} />
-          コード取得
+          {t('settings.conversions.he5e724')}
         </button>
         <button
           type="button"
@@ -362,7 +372,7 @@ function EndpointCard({
           className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
         >
           <Trash2 size={14} />
-          削除
+          {t('settings.conversions.hc6577c')}
         </button>
       </div>
     </div>
@@ -382,6 +392,7 @@ function CreateEditModal({
   onClose: () => void;
   editEndpoint: TrackingEndpoint | null;
 }): React.ReactElement | null {
+  const { t } = useI18n();
   const [form, setForm] = useState<FormState>(() => ({
     name: editEndpoint?.name ?? '',
     domains: editEndpoint?.domains ?? [],
@@ -444,9 +455,9 @@ function CreateEditModal({
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">
-            {editEndpoint ? 'エンドポイント編集' : 'エンドポイント作成'}
+            {editEndpoint ? t('settings.conversions.h8c11c8') : t('settings.conversions.h413501')}
           </h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('settings.conversions.h5dce86')}>
             <X size={20} />
           </button>
         </div>
@@ -455,7 +466,7 @@ function CreateEditModal({
           {/* Name */}
           <div>
             <label htmlFor="endpoint-name" className="mb-1 block text-sm font-medium text-foreground">
-              エンドポイント名
+              {t('settings.conversions.h34746f')}
             </label>
             <input
               id="endpoint-name"
@@ -465,14 +476,14 @@ function CreateEditModal({
                 setForm((prev) => ({ ...prev, name: e.target.value }))
               }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="メインサイト コンバージョン"
+              placeholder={t('settings.conversions.h53dddd')}
             />
           </div>
 
           {/* Domains */}
           <div>
             <label htmlFor="domain-input" className="mb-1 block text-sm font-medium text-foreground">
-              許可ドメイン
+              {t('settings.conversions.h496d55')}
             </label>
             <div className="flex gap-2">
               <input
@@ -491,7 +502,7 @@ function CreateEditModal({
                 onClick={handleAddDomain}
                 className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
-                追加
+                {t('settings.conversions.h7dc3a5')}
               </button>
             </div>
             {form.domains.length > 0 && (
@@ -503,7 +514,7 @@ function CreateEditModal({
                       type="button"
                       onClick={() => handleRemoveDomain(d)}
                       className="rounded-full hover:text-red-500"
-                      aria-label={`${d}を削除`}
+                      aria-label={t('conversions.ariaDeleteDomain', { domain: d })}
                     >
                       <X size={10} />
                     </button>
@@ -515,7 +526,7 @@ function CreateEditModal({
 
           {/* Event types */}
           <div>
-            <span className="mb-2 block text-sm font-medium text-foreground">イベントタイプ</span>
+            <span className="mb-2 block text-sm font-medium text-foreground">{t('conversions.eventTypeLabel')}</span>
             <div className="space-y-2">
               {EVENT_TYPE_OPTIONS.map((et) => (
                 <label key={et} className="flex items-center gap-2 text-sm text-foreground">
@@ -525,7 +536,7 @@ function CreateEditModal({
                     onChange={() => handleToggleEventType(et)}
                     className="rounded border-input"
                   />
-                  {EVENT_TYPE_LABELS[et]}
+                  {getEventTypeLabels(t)[et]}
                 </label>
               ))}
             </div>
@@ -533,7 +544,7 @@ function CreateEditModal({
 
           {/* Platform integrations */}
           <div className="space-y-4">
-            <span className="block text-sm font-medium text-foreground">プラットフォーム連携</span>
+            <span className="block text-sm font-medium text-foreground">{t('conversions.platformIntegration')}</span>
 
             {/* Meta */}
             <div className="rounded-md border border-border p-3">
@@ -653,13 +664,13 @@ function CreateEditModal({
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              キャンセル
+              {t('settings.conversions.h6ef349')}
             </button>
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              {editEndpoint ? '保存' : '作成'}
+              {editEndpoint ? t('settings.conversions.hbe5fbb') : t('settings.conversions.h4f8c0a')}
             </button>
           </div>
         </div>
@@ -677,6 +688,7 @@ function CodeModal({
   onClose: () => void;
   endpoint: TrackingEndpoint | null;
 }): React.ReactElement | null {
+  const { t } = useI18n();
   if (!open || !endpoint) return null;
 
   const pixelSnippet = `<!-- OMNI-AD Conversion Tracking -->
@@ -689,13 +701,13 @@ m.head.appendChild(s)}(window,document);
 OmniAd('init', '${endpoint.pixelId}');
 </script>`;
 
-  const eventExamples = `// 購入完了
+  const eventExamples = `// Purchase
 OmniAd('track', 'purchase', { value: 29800, currency: 'JPY' });
 
-// リード獲得
+// Lead
 OmniAd('track', 'lead', { email: 'user@example.com' });
 
-// カート追加
+// Add to Cart
 OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
 
   const curlExample = `curl -X POST https://api.omni-ad.jp/v1/events \\
@@ -711,18 +723,18 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
     }
   }'`;
 
-  const gtmInstructions = `1. Google Tag Managerにログイン
-2. 新規タグ > カスタムHTML を選択
-3. 上記のピクセルコードを貼り付け
-4. トリガー: All Pages を設定
-5. イベント用タグは該当ページのトリガーに紐付け`;
+  const gtmInstructions = `1. Log in to Google Tag Manager
+2. New Tag > Custom HTML
+3. Paste the pixel code above
+4. Set trigger: All Pages
+5. Link event tags to page triggers`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">連携コード - {endpoint.name}</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label="閉じる">
+          <h2 className="text-lg font-semibold text-foreground">{t('conversions.integrationCodeTitle', { name: endpoint.name })}</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={t('settings.conversions.h5dce86')}>
             <X size={20} />
           </button>
         </div>
@@ -731,7 +743,7 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
           {/* Pixel snippet */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">ピクセルコード (HTML)</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('conversions.pixelCodeHtml')}</h3>
               <CopyButton text={pixelSnippet} />
             </div>
             <pre className="overflow-x-auto rounded-md bg-gray-900 p-4 text-xs text-gray-100">
@@ -742,7 +754,7 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
           {/* Event examples */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">イベント計測例 (JavaScript)</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('conversions.eventExamplesJs')}</h3>
               <CopyButton text={eventExamples} />
             </div>
             <pre className="overflow-x-auto rounded-md bg-gray-900 p-4 text-xs text-gray-100">
@@ -753,7 +765,7 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
           {/* Server-side */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">サーバーサイド API (curl)</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('conversions.serverSideApi')}</h3>
               <CopyButton text={curlExample} />
             </div>
             <pre className="overflow-x-auto rounded-md bg-gray-900 p-4 text-xs text-gray-100">
@@ -765,7 +777,7 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
           <div>
             <h3 className="mb-2 text-sm font-semibold text-foreground">
               <ExternalLink size={14} className="mr-1 inline" />
-              Google Tag Manager連携
+              {t('conversions.gtmIntegration')}
             </h3>
             <div className="rounded-md bg-muted/50 p-4">
               <pre className="whitespace-pre-wrap text-xs text-muted-foreground">{gtmInstructions}</pre>
@@ -782,7 +794,8 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
 // ============================================================
 
 export default function ConversionsPage(): React.ReactElement {
-  const [endpoints, setEndpoints] = useState<TrackingEndpoint[]>(MOCK_ENDPOINTS);
+  const { t } = useI18n();
+  const [endpoints, setEndpoints] = useState<TrackingEndpoint[]>(getMockEndpoints(t));
   const [modalMode, setModalMode] = useState<ModalMode>('closed');
   const [editTarget, setEditTarget] = useState<TrackingEndpoint | null>(null);
   const [codeTarget, setCodeTarget] = useState<TrackingEndpoint | null>(null);
@@ -820,10 +833,10 @@ export default function ConversionsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            コンバージョン追跡
+            {t('settings.conversions.h631116')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            サーバーサイドイベント計測でiOS/Cookie規制下でも正確なコンバージョンデータを取得
+            {t('conversions.serverSideDesc')}
           </p>
         </div>
         <button
@@ -832,7 +845,7 @@ export default function ConversionsPage(): React.ReactElement {
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus size={16} />
-          エンドポイント作成
+          {t('settings.conversions.h413501')}
         </button>
       </div>
 
@@ -841,9 +854,9 @@ export default function ConversionsPage(): React.ReactElement {
         {endpoints.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
             <Code2 size={40} className="mb-3 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-foreground">エンドポイントがありません</p>
+            <p className="text-sm font-medium text-foreground">{t('conversions.noEndpoints')}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              最初のエンドポイントを作成してコンバージョン計測を開始しましょう
+              {t('settings.conversions.h79dcf4')}
             </p>
             <button
               type="button"
@@ -851,7 +864,7 @@ export default function ConversionsPage(): React.ReactElement {
               className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Plus size={16} />
-              エンドポイント作成
+              {t('settings.conversions.h413501')}
             </button>
           </div>
         ) : (
@@ -870,11 +883,11 @@ export default function ConversionsPage(): React.ReactElement {
 
       {/* Conversion Dashboard */}
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-foreground">コンバージョンダッシュボード</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('conversions.dashboardTitle')}</h2>
 
         {/* Daily events chart */}
         <div className="rounded-lg border border-border bg-card p-6">
-          <h3 className="mb-4 text-base font-semibold text-foreground">日別コンバージョンイベント</h3>
+          <h3 className="mb-4 text-base font-semibold text-foreground">{t('conversions.dailyChartTitle')}</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={MOCK_DAILY_CONVERSIONS} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -889,10 +902,10 @@ export default function ConversionsPage(): React.ReactElement {
                 }}
               />
               <Legend />
-              <Bar dataKey="purchase" name="購入完了" stackId="a" fill="hsl(262, 83%, 58%)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="lead" name="リード" stackId="a" fill="hsl(221, 83%, 53%)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="addToCart" name="カート追加" stackId="a" fill="hsl(142, 71%, 45%)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="signup" name="会員登録" stackId="a" fill="hsl(25, 95%, 53%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="purchase" name={t('settings.conversions.h57997c')} stackId="a" fill="hsl(262, 83%, 58%)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="lead" name={t('settings.conversions.had963b')} stackId="a" fill="hsl(221, 83%, 53%)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="addToCart" name={t('settings.conversions.hfc18be')} stackId="a" fill="hsl(142, 71%, 45%)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="signup" name={t('settings.conversions.hfc96d0')} stackId="a" fill="hsl(25, 95%, 53%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -900,16 +913,16 @@ export default function ConversionsPage(): React.ReactElement {
         {/* Platform sync status */}
         <div className="rounded-lg border border-border bg-card">
           <div className="border-b border-border px-6 py-4">
-            <h3 className="text-base font-semibold text-foreground">プラットフォーム同期状況</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('conversions.syncStatusTitle')}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">プラットフォーム</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">送信済み</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">確認済み</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">成功率</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('conversions.syncPlatform')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('conversions.thSent')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('conversions.thConfirmed')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('conversions.thSuccessRate')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -936,17 +949,17 @@ export default function ConversionsPage(): React.ReactElement {
         {/* Recent events */}
         <div className="rounded-lg border border-border bg-card">
           <div className="border-b border-border px-6 py-4">
-            <h3 className="text-base font-semibold text-foreground">最近のイベント</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('conversions.recentEventsTitle')}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">日時</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">タイプ</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">金額</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ソース</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">連携先</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('conversions.thDatetime')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('conversions.thType')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t('conversions.thAmount')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('conversions.thSource')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('conversions.thIntegrationDest')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -957,7 +970,7 @@ export default function ConversionsPage(): React.ReactElement {
                     </td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                        {EVENT_TYPE_LABELS[event.eventType]}
+                        {getEventTypeLabels(t)[event.eventType]}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-foreground">

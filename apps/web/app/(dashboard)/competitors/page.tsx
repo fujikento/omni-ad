@@ -242,7 +242,9 @@ const COUNTER_STATUS_CONFIG: Record<
   },
 };
 
-const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日'] as const;
+function getDayLabels(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [t('competitors.he42b99'), t('competitors.hdf3bbd'), t('competitors.heab619'), t('competitors.he0a5e0'), t('competitors.h9c4189'), t('competitors.h06da77'), t('competitors.h3edddd')] as const;
+}
 
 const STRATEGY_RADIO_OPTIONS: {
   value: CompetitorStrategy;
@@ -357,7 +359,8 @@ const MOCK_ALERTS: CompetitorAlert[] = [
   },
 ];
 
-const MOCK_COMPETITORS: Competitor[] = [
+function getMockCompetitors(t: (key: string, params?: Record<string, string | number>) => string): Competitor[] {
+  return [
   {
     id: 'c1',
     name: 'CompetitorA',
@@ -368,8 +371,8 @@ const MOCK_COMPETITORS: Competitor[] = [
     adCount: 85,
     estimatedMonthlyBudget: 3800000,
     overlapRate: 62,
-    latestActivity: '新クリエイティブ5本追加',
-    latestActivityTime: '2時間前',
+    latestActivity: t('competitors.hf954e0'),
+    latestActivityTime: t('competitors.h2012e9'),
   },
   {
     id: 'c2',
@@ -381,8 +384,8 @@ const MOCK_COMPETITORS: Competitor[] = [
     adCount: 42,
     estimatedMonthlyBudget: 1800000,
     overlapRate: 45,
-    latestActivity: '新キャンペーン開始',
-    latestActivityTime: '8時間前',
+    latestActivity: t('competitors.h539b6c'),
+    latestActivityTime: t('competitors.hc8d38c'),
   },
   {
     id: 'c3',
@@ -394,8 +397,8 @@ const MOCK_COMPETITORS: Competitor[] = [
     adCount: 210,
     estimatedMonthlyBudget: 5200000,
     overlapRate: 71,
-    latestActivity: '推定予算30%増加',
-    latestActivityTime: '4時間前',
+    latestActivity: t('competitors.h18b19c'),
+    latestActivityTime: t('competitors.hcf7356'),
   },
   {
     id: 'c4',
@@ -407,8 +410,8 @@ const MOCK_COMPETITORS: Competitor[] = [
     adCount: 67,
     estimatedMonthlyBudget: 2400000,
     overlapRate: 38,
-    latestActivity: 'TikTok予算倍増',
-    latestActivityTime: '12時間前',
+    latestActivity: t('competitors.h380c0a'),
+    latestActivityTime: t('competitors.h3dfa67'),
   },
   {
     id: 'c5',
@@ -420,10 +423,11 @@ const MOCK_COMPETITORS: Competitor[] = [
     adCount: 93,
     estimatedMonthlyBudget: 3100000,
     overlapRate: 55,
-    latestActivity: '主要KWで1位獲得',
-    latestActivityTime: '5時間前',
+    latestActivity: t('competitors.hf81811'),
+    latestActivityTime: t('competitors.h00bb20'),
   },
 ];
+}
 
 const MOCK_KPI_CARDS: (Omit<KpiCardData, 'label' | 'value' | 'trend'> & { labelKey: string; valueKey?: string; value: string; trendKey?: string; trend: string })[] = [
   {
@@ -478,238 +482,242 @@ function generateImpressionShareData(): ImpressionShareDataPoint[] {
   return data;
 }
 
-const MOCK_IMPRESSION_SHARE_DATA = generateImpressionShareData();
+function getMockImpressionShareData(): ImpressionShareDataPoint[] {
+  return generateImpressionShareData();
+}
 
-const MOCK_COUNTER_ACTIONS: CounterAction[] = [
+function getMockCounterActions(t: (key: string, params?: Record<string, string | number>) => string): CounterAction[] {
+  return [
   {
     id: 'ca1',
     type: 'bid_adjustment',
     status: 'executed',
     competitorName: 'CompetitorA',
-    campaignName: 'Google検索 ブランドKW',
+    campaignName: t('competitors.hcaf606'),
     reasoning:
-      'CompetitorAがブランドキーワードのCPCを18%引き上げました。インプレッションシェアが5pt低下しており、即座の対抗入札が必要です。',
+      t('competitors.h7bb11d'),
     confidence: 92,
     risk: 'low',
-    actionDetail: 'Google検索 CPC: ¥150 → ¥172 (+15%)',
-    result: 'インプレッションシェア: 38% → 45% (+7pt)',
+    actionDetail: t('competitors.h4f34a6'),
+    result: t('competitors.h486852'),
     timestamp: '2026-04-02T13:00:00Z',
-    timeAgo: '1時間前',
+    timeAgo: t('competitors.h6ff847'),
   },
   {
     id: 'ca2',
     type: 'budget_shift',
     status: 'executed',
     competitorName: 'CompetitorC',
-    campaignName: 'Meta リターゲティング',
+    campaignName: t('competitors.h890fdc'),
     reasoning:
-      'CompetitorCのMeta広告予算が30%増加しています。当社のリターゲティング効率が高いため、予算を追加投入してシェアを維持します。',
+      t('competitors.h05eae3'),
     confidence: 85,
     risk: 'medium',
-    actionDetail: 'Meta予算: ¥150,000/日 → ¥180,000/日 (+20%)',
+    actionDetail: t('competitors.h0ee6ba'),
     result: 'ROAS: 3.2 → 3.5 (+9%)',
     timestamp: '2026-04-02T12:00:00Z',
-    timeAgo: '2時間前',
+    timeAgo: t('competitors.h2012e9'),
   },
   {
     id: 'ca3',
     type: 'creative_counter',
     status: 'proposed',
     competitorName: 'CompetitorA',
-    campaignName: 'TikTok 新規獲得',
+    campaignName: t('competitors.hc46dba'),
     reasoning:
-      'CompetitorAが新クリエイティブ5本を投入し、エンゲージメント率が上昇しています。対抗クリエイティブの制作を推奨します。',
+      t('competitors.hb8c1fe'),
     confidence: 78,
     risk: 'low',
-    actionDetail: '新クリエイティブ3本の制作・入稿を提案',
+    actionDetail: t('competitors.hed9430'),
     result: null,
     timestamp: '2026-04-02T11:30:00Z',
-    timeAgo: '2.5時間前',
+    timeAgo: t('competitors.hf72dd0'),
   },
   {
     id: 'ca4',
     type: 'keyword_defense',
     status: 'executed',
     competitorName: 'CompetitorE',
-    campaignName: 'Google検索 一般KW',
+    campaignName: t('competitors.h7551ef'),
     reasoning:
-      'CompetitorEが主要キーワード「マーケティングツール」で1位を獲得。防御入札と品質スコア改善施策を実行します。',
+      t('competitors.hcfea07'),
     confidence: 88,
     risk: 'medium',
     actionDetail:
-      'キーワード入札: ¥280 → ¥320 (+14%), 広告文A/Bテスト開始',
-    result: '掲載順位: 3位 → 2位',
+      t('competitors.hbbed9f'),
+    result: t('competitors.h5f3f94'),
     timestamp: '2026-04-02T10:00:00Z',
-    timeAgo: '4時間前',
+    timeAgo: t('competitors.hcf7356'),
   },
   {
     id: 'ca5',
     type: 'timing_attack',
     status: 'executed',
     competitorName: 'CompetitorB',
-    campaignName: 'Google検索 コンバージョンKW',
+    campaignName: t('competitors.hf4903b'),
     reasoning:
-      'CompetitorBは平日18:00-22:00に配信を強化する傾向があります。その時間帯を避け、早朝6:00-9:00に予算を集中させることでCPAを削減できます。',
+      t('competitors.hd3b024'),
     confidence: 82,
     risk: 'low',
-    actionDetail: '配信スケジュール調整: 6:00-9:00に予算の40%を集中',
+    actionDetail: t('competitors.hc5c92e'),
     result: 'CPA: ¥3,200 → ¥2,700 (-16%)',
     timestamp: '2026-04-02T09:00:00Z',
-    timeAgo: '5時間前',
+    timeAgo: t('competitors.h00bb20'),
   },
   {
     id: 'ca6',
     type: 'targeting_expansion',
     status: 'executed',
     competitorName: 'CompetitorC',
-    campaignName: 'Meta 類似オーディエンス',
+    campaignName: t('competitors.h16aa88'),
     reasoning:
-      'CompetitorCが既存オーディエンスを飽和させている兆候があります。新たな類似オーディエンスを追加し、未開拓セグメントを先取りします。',
+      t('competitors.hcbe9dd'),
     confidence: 75,
     risk: 'medium',
-    actionDetail: '類似オーディエンス3セグメント追加 (2%, 5%, 8%)',
-    result: 'リーチ: +45%, CPA: ¥2,100 (目標内)',
+    actionDetail: t('competitors.hb84b45'),
+    result: t('competitors.h1ec5b3'),
     timestamp: '2026-04-02T08:00:00Z',
-    timeAgo: '6時間前',
+    timeAgo: t('competitors.ha45695'),
   },
   {
     id: 'ca7',
     type: 'skip',
     status: 'executed',
     competitorName: 'CompetitorD',
-    campaignName: 'TikTok ブランド認知',
+    campaignName: t('competitors.hb40af6'),
     reasoning:
-      'CompetitorDのTikTok予算倍増はブランド認知目的と推定されます。当社のコンバージョン重視キャンペーンとは競合領域が異なるため、対抗不要と判断しました。',
+      t('competitors.hb3a27d'),
     confidence: 90,
     risk: 'low',
-    actionDetail: '対抗アクション不要 - 競合領域の重複なし',
+    actionDetail: t('competitors.he4ef7c'),
     result: null,
     timestamp: '2026-04-02T07:00:00Z',
-    timeAgo: '7時間前',
+    timeAgo: t('competitors.hc00d00'),
   },
   {
     id: 'ca8',
     type: 'bid_adjustment',
     status: 'rolled_back',
     competitorName: 'CompetitorA',
-    campaignName: 'Google検索 商品KW',
+    campaignName: t('competitors.hcdc49a'),
     reasoning:
-      'CompetitorAの入札強化に対抗しましたが、CPAが目標を30%超過。ガードレール上限に達したためロールバックしました。',
+      t('competitors.h360f03'),
     confidence: 65,
     risk: 'high',
-    actionDetail: 'CPC: ¥200 → ¥245 (+22%) → ¥200 (ロールバック)',
-    result: 'CPA超過のためロールバック実行',
+    actionDetail: t('competitors.h196708'),
+    result: t('competitors.h69348a'),
     timestamp: '2026-04-01T20:00:00Z',
-    timeAgo: '18時間前',
+    timeAgo: t('competitors.h3bdef6'),
   },
   {
     id: 'ca9',
     type: 'budget_shift',
     status: 'executed',
     competitorName: 'CompetitorE',
-    campaignName: 'Amazon スポンサープロダクト',
+    campaignName: t('competitors.ha821eb'),
     reasoning:
-      'CompetitorEのAmazon広告が強化されています。スポンサープロダクト広告の予算を増額し、商品ページの露出を確保します。',
+      t('competitors.h30a347'),
     confidence: 80,
     risk: 'low',
-    actionDetail: 'Amazon予算: ¥80,000/日 → ¥100,000/日 (+25%)',
+    actionDetail: t('competitors.h30ea54'),
     result: 'ACoS: 15% → 13% (-2pt)',
     timestamp: '2026-04-01T18:00:00Z',
-    timeAgo: '20時間前',
+    timeAgo: t('competitors.h930405'),
   },
   {
     id: 'ca10',
     type: 'creative_counter',
     status: 'executed',
     competitorName: 'CompetitorC',
-    campaignName: 'Meta ストーリーズ',
+    campaignName: t('competitors.haaff51'),
     reasoning:
-      'CompetitorCの新ストーリーズ広告のCTRが高い。同フォーマットでの対抗クリエイティブを即座に入稿しました。',
+      t('competitors.hf424c2'),
     confidence: 84,
     risk: 'low',
-    actionDetail: 'ストーリーズ用クリエイティブ4本を新規入稿',
+    actionDetail: t('competitors.h5a63f2'),
     result: 'CTR: 2.1% → 2.8% (+33%)',
     timestamp: '2026-04-01T15:00:00Z',
-    timeAgo: '23時間前',
+    timeAgo: t('competitors.h749b81'),
   },
   {
     id: 'ca11',
     type: 'keyword_defense',
     status: 'executed',
     competitorName: 'CompetitorA',
-    campaignName: 'Google検索 ブランドKW',
+    campaignName: t('competitors.hcaf606'),
     reasoning:
-      'CompetitorAがブランド名での出稿を開始しました。ブランドキーワードの防御入札を強化し、品質スコアの優位性を活用します。',
+      t('competitors.h352b33'),
     confidence: 95,
     risk: 'low',
     actionDetail:
-      'ブランドKW入札: ¥50 → ¥65 (+30%), サイトリンク追加',
-    result: 'ブランドKWシェア: 85% → 95% (+10pt)',
+      t('competitors.he0d125'),
+    result: t('competitors.h012102'),
     timestamp: '2026-04-01T12:00:00Z',
-    timeAgo: '1日前',
+    timeAgo: t('competitors.heabfe8'),
   },
   {
     id: 'ca12',
     type: 'timing_attack',
     status: 'proposed',
     competitorName: 'CompetitorC',
-    campaignName: 'Google検索 一般KW',
+    campaignName: t('competitors.h7551ef'),
     reasoning:
-      'CompetitorCは週末の配信が弱い傾向があります。土日に予算を集中させることで、低CPCでシェアを拡大できます。',
+      t('competitors.hcaef81'),
     confidence: 72,
     risk: 'low',
-    actionDetail: '土日の予算配分を平日比+30%に設定',
+    actionDetail: t('competitors.h8160cc'),
     result: null,
     timestamp: '2026-04-02T13:30:00Z',
-    timeAgo: '30分前',
+    timeAgo: t('competitors.h98a92c'),
   },
   {
     id: 'ca13',
     type: 'targeting_expansion',
     status: 'proposed',
     competitorName: 'CompetitorD',
-    campaignName: 'Meta コンバージョン',
+    campaignName: t('competitors.h75882c'),
     reasoning:
-      'CompetitorDがカバーしていない35-44歳男性セグメントで高いCVRが期待できます。テスト配信を推奨します。',
+      t('competitors.h68d7a4'),
     confidence: 68,
     risk: 'medium',
     actionDetail:
-      '35-44歳男性セグメントへのテスト配信 (予算¥30,000/日)',
+      t('competitors.h5597c2'),
     result: null,
     timestamp: '2026-04-02T13:15:00Z',
-    timeAgo: '45分前',
+    timeAgo: t('competitors.h6ab184'),
   },
   {
     id: 'ca14',
     type: 'bid_adjustment',
     status: 'executed',
     competitorName: 'CompetitorB',
-    campaignName: 'LINE広告 リマーケティング',
+    campaignName: t('competitors.h70836d'),
     reasoning:
-      'CompetitorBのLINE広告が縮小傾向にあります。この機会にCPCを微調整し、低コストでシェアを拡大します。',
+      t('competitors.h3ac1e0'),
     confidence: 87,
     risk: 'low',
     actionDetail: 'LINE CPC: ¥85 → ¥92 (+8%)',
-    result: 'インプレッション: +22%, CPA据置',
+    result: t('competitors.he5f300'),
     timestamp: '2026-04-01T10:00:00Z',
-    timeAgo: '1日前',
+    timeAgo: t('competitors.heabfe8'),
   },
   {
     id: 'ca15',
     type: 'budget_shift',
     status: 'executed',
     competitorName: 'CompetitorA',
-    campaignName: 'TikTok コンバージョン',
+    campaignName: t('competitors.ha90af4'),
     reasoning:
-      'CompetitorAのTikTok広告効率が低下している兆候があります。当社のTikTokコンバージョンキャンペーンに予算をシフトし、シェアを拡大します。',
+      t('competitors.hcf9aa1'),
     confidence: 79,
     risk: 'low',
-    actionDetail: 'TikTok予算: ¥120,000/日 → ¥145,000/日 (+21%)',
+    actionDetail: t('competitors.h075ba5'),
     result: 'CVR: 1.8% → 2.2% (+22%)',
     timestamp: '2026-04-01T08:00:00Z',
-    timeAgo: '1日前',
+    timeAgo: t('competitors.heabfe8'),
   },
 ];
+}
 
 function generateWeakWindowData(): WeakWindowCell[] {
   const cells: WeakWindowCell[] = [];
@@ -1281,7 +1289,7 @@ function WeakWindowsHeatmap({
                 className="w-10 flex-shrink-0 pr-2 text-right text-xs font-medium text-muted-foreground"
                 role="rowheader"
               >
-                {DAY_LABELS[dayIdx]}
+                {getDayLabels(t)[dayIdx]}
               </div>
               {Array.from({ length: 24 }, (_, hourIdx) => {
                 const cell = data.find(
@@ -1302,7 +1310,7 @@ function WeakWindowsHeatmap({
                     onMouseEnter={() => setHoveredCell(cell)}
                     onMouseLeave={() => setHoveredCell(null)}
                     role="gridcell"
-                    aria-label={`${DAY_LABELS[dayIdx]}曜 ${hourIdx}:00 CPC ¥${cell.competitorCpc}`}
+                    aria-label={t('competitors.heatmapCellAria', { day: getDayLabels(t)[dayIdx] ?? '', hour: String(hourIdx), cpc: String(cell.competitorCpc) })}
                   />
                 );
               })}
@@ -1314,14 +1322,14 @@ function WeakWindowsHeatmap({
       {/* Tooltip */}
       {hoveredCell !== null && (
         <div className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-foreground">
-          {DAY_LABELS[hoveredCell.day]}曜 {hoveredCell.hour}:00 - CPC
-          ¥{hoveredCell.competitorCpc} (平均比
+          {(getDayLabels(t)[hoveredCell.day] ?? '')}{t('competitors.dayOfWeekSuffix')} {hoveredCell.hour}:00 - CPC
+          ¥{hoveredCell.competitorCpc} ({t('competitors.vsAvg')}
           {Math.round(
             ((hoveredCell.competitorCpc - hoveredCell.avgCpc) /
               hoveredCell.avgCpc) *
               100
           )}
-          %), インプレッションシェア {hoveredCell.impressionShare}%
+          %), {t('competitors.impressionShareLabel')} {hoveredCell.impressionShare}%
         </div>
       )}
 
@@ -1381,6 +1389,7 @@ function AddCompetitorModal({
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
+    const { t } = useI18n();
     e.preventDefault();
     if (!name || !domain) return;
     setIsAdding(true);
@@ -1410,7 +1419,7 @@ function AddCompetitorModal({
             type="button"
             onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label="閉じる"
+            aria-label={t('competitors.h5dce86')}
           >
             <X size={20} />
           </button>
@@ -1585,7 +1594,7 @@ function AddCompetitorModal({
                   e: React.ChangeEvent<HTMLInputElement>
                 ) => setMaxBidIncrease(Number(e.target.value))}
                 className="w-full accent-primary"
-                aria-label="最大入札上昇率"
+                aria-label={t('competitors.h1fe820')}
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>5%</span>
@@ -1610,7 +1619,7 @@ function AddCompetitorModal({
                   e: React.ChangeEvent<HTMLInputElement>
                 ) => setMaxBudgetShift(Number(e.target.value))}
                 className="w-full accent-primary"
-                aria-label="最大予算シフト率"
+                aria-label={t('competitors.h8accf1')}
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>5%</span>
@@ -1626,7 +1635,7 @@ function AddCompetitorModal({
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
             >
-              キャンセル
+              {t('competitors.h6ef349')}
             </button>
             <button
               type="submit"
@@ -1674,6 +1683,7 @@ export default function CompetitorsPage(): React.ReactElement {
   }
 
   function handleScan(): void {
+    const { t } = useI18n();
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
@@ -1745,7 +1755,7 @@ export default function CompetitorsPage(): React.ReactElement {
       <KpiCardRow cards={MOCK_KPI_CARDS} />
 
       {/* Impression share chart */}
-      <ImpressionShareChart data={MOCK_IMPRESSION_SHARE_DATA} />
+      <ImpressionShareChart data={getMockImpressionShareData()} />
 
       {/* Competitor map */}
       <div>
@@ -1753,7 +1763,7 @@ export default function CompetitorsPage(): React.ReactElement {
           {t('competitors.competitorMap')}
         </h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {MOCK_COMPETITORS.map((competitor) => (
+          {getMockCompetitors(t).map((competitor) => (
             <CompetitorMapCard
               key={competitor.id}
               competitor={competitor}
@@ -1775,7 +1785,7 @@ export default function CompetitorsPage(): React.ReactElement {
 
       {/* Counter-action timeline */}
       <CounterActionTimeline
-        actions={MOCK_COUNTER_ACTIONS}
+        actions={getMockCounterActions(t)}
         expanded={counterLogExpanded}
         onToggle={() => setCounterLogExpanded((prev) => !prev)}
       />

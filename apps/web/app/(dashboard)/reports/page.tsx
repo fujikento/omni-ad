@@ -70,36 +70,38 @@ const FREQUENCY_LABEL_KEYS: Record<Frequency, string> = {
   monthly: 'reports.frequency.monthly',
 };
 
-const MOCK_REPORTS: Report[] = [
+function getMockReports(t: (key: string, params?: Record<string, string | number>) => string): Report[] {
+  return [
   {
-    id: '1', type: 'performance', title: '3月パフォーマンスレポート',
+    id: '1', type: 'performance', title: t('reports.hd62085'),
     dateRange: '2026/03/01 - 2026/03/31', status: 'ready', createdAt: '2026-04-01T09:00:00Z',
     format: 'PDF',
-    insights: ['Google広告のROASが前月比15%改善', 'TikTok広告のCTRが業界平均を上回る', 'Meta広告のCPAが10%減少'],
+    insights: [t('reports.h3bd087'), t('reports.hecd2d1'), t('reports.hef87b1')],
   },
   {
-    id: '2', type: 'executive_summary', title: 'Q1エグゼクティブサマリー',
+    id: '2', type: 'executive_summary', title: t('reports.h623532'),
     dateRange: '2026/01/01 - 2026/03/31', status: 'ready', createdAt: '2026-04-01T10:00:00Z',
     format: 'PDF',
-    insights: ['四半期売上目標達成率: 112%', 'クロスチャネルROAS: 3.2x (前期比+18%)', 'AIクリエイティブが手動作成より25%高いCTR'],
+    insights: [t('reports.h7b96d8'), t('reports.hd8ad39'), t('reports.h05bd03')],
   },
   {
-    id: '3', type: 'budget', title: '3月予算レポート',
+    id: '3', type: 'budget', title: t('reports.h58d3bf'),
     dateRange: '2026/03/01 - 2026/03/31', status: 'ready', createdAt: '2026-03-31T18:00:00Z',
     format: 'XLSX',
-    insights: ['予算消化率: 94%', 'Google広告の予算効率が最も高い', '未消化予算: 32,000円'],
+    insights: [t('reports.h35d33c'), t('reports.h8eec82'), t('reports.h68a005')],
   },
   {
-    id: '4', type: 'attribution', title: 'アトリビューション分析',
+    id: '4', type: 'attribution', title: t('reports.h286062'),
     dateRange: '2026/03/15 - 2026/03/31', status: 'generating', createdAt: '2026-04-02T06:00:00Z',
     format: 'PDF', insights: [],
   },
   {
-    id: '5', type: 'creative', title: 'クリエイティブパフォーマンス',
+    id: '5', type: 'creative', title: t('reports.hfcfd3d'),
     dateRange: '2026/03/01 - 2026/03/31', status: 'scheduled', createdAt: '2026-04-02T00:00:00Z',
     format: 'PDF', insights: [],
   },
 ];
+}
 
 const MOCK_SCHEDULES: ScheduleConfig[] = [
   { type: 'performance', frequency: 'weekly', recipients: ['marketing@example.com'] },
@@ -479,7 +481,7 @@ export default function ReportsPage(): React.ReactElement {
 
   const reportsQuery = trpc.reports.list.useQuery(undefined, { retry: false });
 
-  const reports = reportsQuery.error ? MOCK_REPORTS : (reportsQuery.data as Report[] | undefined) ?? MOCK_REPORTS;
+  const reports = reportsQuery.error ? getMockReports(t) : (reportsQuery.data as Report[] | undefined) ?? getMockReports(t);
   const isLoading = reportsQuery.isLoading && !reportsQuery.error;
 
   function formatDate(dateStr: string): string {
@@ -572,8 +574,8 @@ export default function ReportsPage(): React.ReactElement {
                               type="button"
                               onClick={() => handleExportCSV(report)}
                               className="rounded px-1.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                              title="CSVダウンロード"
-                              aria-label={`${report.title}をCSVでダウンロード`}
+                              title={t('reports.h9846f6')}
+                              aria-label={t('reports.ariaDownloadCsv', { title: report.title })}
                             >
                               <span className="flex items-center gap-1">
                                 <FileText size={12} />
@@ -584,8 +586,8 @@ export default function ReportsPage(): React.ReactElement {
                               type="button"
                               onClick={() => handleExportExcel(report)}
                               className="rounded px-1.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
-                              title="Excelダウンロード"
-                              aria-label={`${report.title}をExcelでダウンロード`}
+                              title={t('reports.h8156a0')}
+                              aria-label={t('reports.ariaDownloadExcel', { title: report.title })}
                             >
                               <span className="flex items-center gap-1">
                                 <FileSpreadsheet size={12} />
@@ -596,8 +598,8 @@ export default function ReportsPage(): React.ReactElement {
                               type="button"
                               onClick={() => setInlinePreviewReport(report)}
                               className="rounded px-1.5 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
-                              title="HTML(PDF)で開く"
-                              aria-label={`${report.title}をHTML(PDF)で表示`}
+                              title={t('reports.he569d7')}
+                              aria-label={t('reports.ariaOpenHtml', { title: report.title })}
                             >
                               <span className="flex items-center gap-1">
                                 <Printer size={12} />

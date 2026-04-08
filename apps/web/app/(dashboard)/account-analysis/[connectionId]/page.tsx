@@ -179,68 +179,70 @@ function generateDailySpend(): DailySpend[] {
   });
 }
 
-function generateWeekdayAverage(): WeekdayAverage[] {
-  const days = ['月', '火', '水', '木', '金', '土', '日'];
+function generateWeekdayAverage(t: (key: string, params?: Record<string, string | number>) => string): WeekdayAverage[] {
+  const days = [t('accountanalysis.connectionId.he42b99'), t('accountanalysis.connectionId.hdf3bbd'), t('accountanalysis.connectionId.heab619'), t('accountanalysis.connectionId.he0a5e0'), t('accountanalysis.connectionId.h9c4189'), t('accountanalysis.connectionId.h06da77'), t('accountanalysis.connectionId.h3edddd')];
   const averages = [92000, 95000, 98000, 96000, 88000, 62000, 58000];
   return days.map((day, i) => ({ day, average: averages[i] ?? 0 }));
 }
 
-const MOCK_DATA: AccountAnalysisData = {
+function getMockData(t: (key: string, params?: Record<string, string | number>) => string): AccountAnalysisData {
+  return {
   platformLabel: 'Google Ads',
   platformIcon: 'G',
   accountName: 'OMNI-AD Google',
   overallScore: 62,
   analysisDate: '2026-04-03 09:30',
-  aiSummary: 'Google Adsアカウント全体の運用効率は中程度です。特に「春のプロモーション2026」と「ブランド認知」キャンペーンが高いROASを維持しており、アカウント全体の収益性を支えています。しかし、「新規顧客獲得」キャンペーンと「ディスプレイ広告テスト」キャンペーンのパフォーマンスが著しく低下しており、これらが全体スコアを押し下げています。\n\n予算配分に関しては、パフォーマンスの低いキャンペーンに過度な予算が割り当てられている傾向が見られます。ROASが1.0を下回るキャンペーンへの支出を30%削減し、上位パフォーマーへ再配分することで、全体ROASを0.5ポイント改善できる見込みです。また、週末の支出効率が平日と比較して40%低いため、曜日別の予算調整も推奨します。',
+  aiSummary: t('accountanalysis.connectionId.hde029e'),
   totalCampaigns: 8,
   activeCampaigns: 5,
   totalSpend30d: 2450000,
   averageRoas: 2.8,
   averageCtr: 3.2,
   campaigns: [
-    { id: 'c1', name: '春のプロモーション2026', status: 'active', objective: 'conversions', dailyBudget: 50000, spend30d: 680000, roas: 4.5, ctr: 4.2, impressions: 250000 },
-    { id: 'c2', name: 'ブランド認知 - Google', status: 'active', objective: 'awareness', dailyBudget: 30000, spend30d: 420000, roas: 3.8, ctr: 2.8, impressions: 520000 },
-    { id: 'c3', name: 'リターゲティング', status: 'active', objective: 'conversions', dailyBudget: 25000, spend30d: 350000, roas: 3.2, ctr: 5.1, impressions: 180000 },
-    { id: 'c4', name: 'ショッピング広告', status: 'active', objective: 'conversions', dailyBudget: 35000, spend30d: 480000, roas: 2.4, ctr: 3.5, impressions: 310000 },
-    { id: 'c5', name: '動画キャンペーン', status: 'paused', objective: 'engagement', dailyBudget: 20000, spend30d: 180000, roas: 1.8, ctr: 1.2, impressions: 420000 },
-    { id: 'c6', name: '新規顧客獲得', status: 'active', objective: 'traffic', dailyBudget: 15000, spend30d: 210000, roas: 0.8, ctr: 2.1, impressions: 150000 },
-    { id: 'c7', name: 'ディスプレイ広告テスト', status: 'paused', objective: 'awareness', dailyBudget: 10000, spend30d: 85000, roas: 0.5, ctr: 0.4, impressions: 380000 },
-    { id: 'c8', name: '季節キャンペーン（終了）', status: 'completed', objective: 'conversions', dailyBudget: 0, spend30d: 45000, roas: 2.1, ctr: 3.8, impressions: 95000 },
+    { id: 'c1', name: t('accountanalysis.connectionId.hc6f094'), status: 'active', objective: 'conversions', dailyBudget: 50000, spend30d: 680000, roas: 4.5, ctr: 4.2, impressions: 250000 },
+    { id: 'c2', name: t('accountanalysis.connectionId.h03d928'), status: 'active', objective: 'awareness', dailyBudget: 30000, spend30d: 420000, roas: 3.8, ctr: 2.8, impressions: 520000 },
+    { id: 'c3', name: t('accountanalysis.connectionId.h038dd1'), status: 'active', objective: 'conversions', dailyBudget: 25000, spend30d: 350000, roas: 3.2, ctr: 5.1, impressions: 180000 },
+    { id: 'c4', name: t('accountanalysis.connectionId.hb59a3d'), status: 'active', objective: 'conversions', dailyBudget: 35000, spend30d: 480000, roas: 2.4, ctr: 3.5, impressions: 310000 },
+    { id: 'c5', name: t('accountanalysis.connectionId.h345237'), status: 'paused', objective: 'engagement', dailyBudget: 20000, spend30d: 180000, roas: 1.8, ctr: 1.2, impressions: 420000 },
+    { id: 'c6', name: t('accountanalysis.connectionId.h152ccd'), status: 'active', objective: 'traffic', dailyBudget: 15000, spend30d: 210000, roas: 0.8, ctr: 2.1, impressions: 150000 },
+    { id: 'c7', name: t('accountanalysis.connectionId.h86923f'), status: 'paused', objective: 'awareness', dailyBudget: 10000, spend30d: 85000, roas: 0.5, ctr: 0.4, impressions: 380000 },
+    { id: 'c8', name: t('accountanalysis.connectionId.h9336ef'), status: 'completed', objective: 'conversions', dailyBudget: 0, spend30d: 45000, roas: 2.1, ctr: 3.8, impressions: 95000 },
   ],
   dailySpend: generateDailySpend(),
-  weekdayAverage: generateWeekdayAverage(),
-  peakDay: '水曜日',
-  lowDay: '日曜日',
+  weekdayAverage: generateWeekdayAverage(t),
+  peakDay: t('accountanalysis.connectionId.hc1440f'),
+  lowDay: t('accountanalysis.connectionId.h17f430'),
   topPerformers: [
-    { campaignName: '春のプロモーション2026', roas: 4.5, reason: '季節需要と高精度ターゲティングにより高いコンバージョン率を維持' },
-    { campaignName: 'ブランド認知 - Google', roas: 3.8, reason: '適切なオーディエンス設定と効果的なクリエイティブにより認知施策としては優秀なROAS' },
-    { campaignName: 'リターゲティング', roas: 3.2, reason: 'サイト訪問者への再アプローチが効果的に機能している' },
+    { campaignName: t('accountanalysis.connectionId.hc6f094'), roas: 4.5, reason: t('accountanalysis.connectionId.h8ef9c1') },
+    { campaignName: t('accountanalysis.connectionId.h03d928'), roas: 3.8, reason: t('accountanalysis.connectionId.h3ad3c0') },
+    { campaignName: t('accountanalysis.connectionId.h038dd1'), roas: 3.2, reason: t('accountanalysis.connectionId.h97c1d0') },
   ],
   underPerformers: [
-    { campaignName: '新規顧客獲得', roas: 0.8, reason: 'ターゲティングが広すぎ、関連性の低いクリックが多発。CPA上限の見直しが必要' },
-    { campaignName: 'ディスプレイ広告テスト', roas: 0.5, reason: 'クリエイティブの品質が低く、CTR0.4%は業界平均を大幅に下回る' },
-    { campaignName: '動画キャンペーン', roas: 1.8, reason: '視聴率は良好だが直接コンバージョンへの導線が弱い' },
+    { campaignName: t('accountanalysis.connectionId.h152ccd'), roas: 0.8, reason: t('accountanalysis.connectionId.hfb0b39') },
+    { campaignName: t('accountanalysis.connectionId.h86923f'), roas: 0.5, reason: t('accountanalysis.connectionId.h80e7b5') },
+    { campaignName: t('accountanalysis.connectionId.h345237'), roas: 1.8, reason: t('accountanalysis.connectionId.hd411e0') },
   ],
   opportunities: [
-    { text: 'ROASが3.0以上のキャンペーンに予算を20%増額することで、月間収益を推定15%向上可能' },
-    { text: '週末の入札額を平日の60%に自動調整するルールを設定し、無駄な支出を削減' },
-    { text: '新規顧客獲得キャンペーンのターゲティングを絞り込み、類似オーディエンスを活用' },
-    { text: 'ディスプレイ広告のクリエイティブをA/Bテストで最適化し、CTRを1.5%まで改善目標' },
-    { text: 'リターゲティングの除外リストを更新し、既存顧客への重複配信を防止' },
+    { text: t('accountanalysis.connectionId.h8df653') },
+    { text: t('accountanalysis.connectionId.h39e157') },
+    { text: t('accountanalysis.connectionId.hc2cab4') },
+    { text: t('accountanalysis.connectionId.ha87ed3') },
+    { text: t('accountanalysis.connectionId.h4ef798') },
   ],
   suggestions: [
-    { id: 's1', priority: 'HIGH', title: '予算再配分の実施', description: 'ROASが1.0未満の「新規顧客獲得」と「ディスプレイ広告テスト」への予算を30%削減し、「春のプロモーション2026」と「リターゲティング」に再配分してください。', estimatedImpact: '全体ROAS +0.5pt, 月間収益 +12%' },
-    { id: 's2', priority: 'HIGH', title: '新規顧客獲得のターゲティング修正', description: 'ターゲットオーディエンスが広すぎます。過去のコンバージョンデータに基づく類似オーディエンスに絞り込み、除外キーワードの追加を推奨します。', estimatedImpact: 'CPA -35%, ROAS +1.2pt' },
-    { id: 's3', priority: 'MEDIUM', title: '曜日別入札調整の導入', description: '週末（土日）のCPAが平日の1.6倍になっています。土日の入札額を-40%に自動調整するルールを導入してください。', estimatedImpact: '月間支出 -8%, 全体CPA -12%' },
-    { id: 's4', priority: 'MEDIUM', title: 'ディスプレイ広告クリエイティブの刷新', description: 'CTR 0.4%は業界平均（1.5%）を大幅に下回っています。クリエイティブのA/Bテストを実施し、画像・コピーの全面見直しを推奨します。', estimatedImpact: 'CTR +1.0pt, 品質スコア改善' },
-    { id: 's5', priority: 'LOW', title: '動画キャンペーンのコンバージョン導線強化', description: '視聴完了率は高いですが、ランディングページへの遷移が少ない状態です。CTAオーバーレイの追加やサイトリンク拡張機能の活用を検討してください。', estimatedImpact: 'ROAS +0.5pt, CV数 +20%' },
+    { id: 's1', priority: 'HIGH', title: t('accountanalysis.connectionId.h03ed83'), description: t('accountanalysis.connectionId.haffd78'), estimatedImpact: t('accountanalysis.connectionId.h9c0b51') },
+    { id: 's2', priority: 'HIGH', title: t('accountanalysis.connectionId.h3742a7'), description: t('accountanalysis.connectionId.h4e3f5c'), estimatedImpact: 'CPA -35%, ROAS +1.2pt' },
+    { id: 's3', priority: 'MEDIUM', title: t('accountanalysis.connectionId.h917b64'), description: t('accountanalysis.connectionId.h3465e8'), estimatedImpact: t('accountanalysis.connectionId.h548143') },
+    { id: 's4', priority: 'MEDIUM', title: t('accountanalysis.connectionId.h3cc035'), description: t('accountanalysis.connectionId.hb59719'), estimatedImpact: t('accountanalysis.connectionId.h71875d') },
+    { id: 's5', priority: 'LOW', title: t('accountanalysis.connectionId.h1dac3a'), description: t('accountanalysis.connectionId.h38e370'), estimatedImpact: t('accountanalysis.connectionId.h506f3c') },
   ],
   risks: [
-    { id: 'r1', severity: 'CRITICAL', title: '予算超過リスク', description: '「春のプロモーション2026」の日次支出が設定予算の120%に達する日が週3回以上発生しています。日次予算上限の厳格化が必要です。', affectedCampaigns: ['春のプロモーション2026'] },
-    { id: 'r2', severity: 'WARNING', title: 'オーディエンス飽和', description: 'リターゲティングキャンペーンのフリークエンシーが月間8.5回に達しており、クリック率の低下傾向が見られます。オーディエンスリストの拡張を推奨します。', affectedCampaigns: ['リターゲティング'] },
-    { id: 'r3', severity: 'INFO', title: '品質スコア低下傾向', description: '3つのキャンペーンで品質スコアが過去30日間で平均0.8ポイント低下しています。ランディングページの関連性とキーワードの見直しを推奨します。', affectedCampaigns: ['ショッピング広告', '新規顧客獲得', 'ディスプレイ広告テスト'] },
+    { id: 'r1', severity: 'CRITICAL', title: t('accountanalysis.connectionId.hc81a5f'), description: t('accountanalysis.connectionId.h486166'), affectedCampaigns: [t('accountanalysis.connectionId.hc6f094')] },
+    { id: 'r2', severity: 'WARNING', title: t('accountanalysis.connectionId.h639b4d'), description: t('accountanalysis.connectionId.h741959'), affectedCampaigns: [t('accountanalysis.connectionId.h038dd1')] },
+    { id: 'r3', severity: 'INFO', title: t('accountanalysis.connectionId.hffef54'), description: t('accountanalysis.connectionId.he1883f'), affectedCampaigns: [t('accountanalysis.connectionId.hb59a3d'), t('accountanalysis.connectionId.h152ccd'), t('accountanalysis.connectionId.h86923f')] },
   ],
 };
+}
 
 // ============================================================
 // Score Indicator
@@ -479,7 +481,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
   // TODO: replace mock data with tRPC query using connectionId
   void connectionId;
-  const data = MOCK_DATA;
+  const data = getMockData(t);
 
   function handleReanalyze(): void {
     setIsReanalyzing(true);

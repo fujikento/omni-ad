@@ -121,31 +121,32 @@ const APPROVER_ROLE_LABEL_KEYS: Record<ApproverRole, string> = {
 // Mock Data
 // ============================================================
 
-const MOCK_PENDING: ApprovalRequest[] = [
+function getMockPending(t: (key: string, params?: Record<string, string | number>) => string): ApprovalRequest[] {
+  return [
   {
     id: 'r1',
     type: 'budget_change',
-    title: 'キャンペーン「春の新生活」の予算を ¥80,000 → ¥150,000 に変更',
-    requester: { name: '田中太郎', role: 'マーケター', avatar: 'T' },
-    timeAgo: '3時間前',
-    reason: 'コンバージョン率が好調のため、予算を増額してリーチを拡大したい',
-    changes: [{ label: '月間予算', before: '¥80,000', after: '¥150,000', percentChange: 87.5 }],
+    title: t('approvals.hbbe89f'),
+    requester: { name: t('approvals.ha2aa03'), role: t('approvals.h44a95d'), avatar: 'T' },
+    timeAgo: t('approvals.h5bf96a'),
+    reason: t('approvals.h9b8a06'),
+    changes: [{ label: t('approvals.h3af4b5'), before: '¥80,000', after: '¥150,000', percentChange: 87.5 }],
     comments: [
-      { id: 'c1', user: '鈴木花子', text: 'ROAS 3.5以上を維持しているので問題ないと思います', timestamp: '2時間前' },
+      { id: 'c1', user: t('approvals.hcef95e'), text: t('approvals.hb89412'), timestamp: t('approvals.h2012e9') },
     ],
     status: 'pending',
   },
   {
     id: 'r2',
     type: 'campaign_create',
-    title: '新規キャンペーン「GWセール2026」の作成',
-    requester: { name: '佐藤健一', role: 'マーケター', avatar: 'S' },
-    timeAgo: '5時間前',
-    reason: 'ゴールデンウィーク向けセールキャンペーンを開始したい',
+    title: t('approvals.h87ec6c'),
+    requester: { name: t('approvals.hd44bfa'), role: t('approvals.h44a95d'), avatar: 'S' },
+    timeAgo: t('approvals.h00bb20'),
+    reason: t('approvals.hf27651'),
     changes: [
-      { label: '予算', before: '--', after: '¥300,000' },
-      { label: '期間', before: '--', after: '4/29 - 5/6' },
-      { label: '対象', before: '--', after: 'Google, Meta, TikTok' },
+      { label: t('approvals.h0b721f'), before: '--', after: '¥300,000' },
+      { label: t('approvals.h853ac7'), before: '--', after: '4/29 - 5/6' },
+      { label: t('approvals.hcd47fa'), before: '--', after: 'Google, Meta, TikTok' },
     ],
     comments: [],
     status: 'pending',
@@ -153,84 +154,86 @@ const MOCK_PENDING: ApprovalRequest[] = [
   {
     id: 'r3',
     type: 'creative_publish',
-    title: 'クリエイティブ「夏先取りビジュアル」の配信開始',
-    requester: { name: '山田美咲', role: 'デザイナー', avatar: 'Y' },
-    timeAgo: '1日前',
-    reason: '夏商品の先行プロモーション用ビジュアルを承認してほしい',
+    title: t('approvals.h882b95'),
+    requester: { name: t('approvals.hdec8fe'), role: t('approvals.haa6851'), avatar: 'Y' },
+    timeAgo: t('approvals.heabfe8'),
+    reason: t('approvals.h5e8b3f'),
     changes: [
-      { label: '配信先', before: '--', after: 'Meta, TikTok' },
-      { label: 'ターゲット', before: '--', after: '18-35歳 女性' },
+      { label: t('approvals.h2ed498'), before: '--', after: 'Meta, TikTok' },
+      { label: t('approvals.h9991e0'), before: '--', after: t('approvals.hd238a2') },
     ],
     comments: [
-      { id: 'c2', user: '田中太郎', text: '薬機法チェック済みですか？', timestamp: '18時間前' },
-      { id: 'c3', user: '山田美咲', text: 'はい、法務部に確認済みです', timestamp: '16時間前' },
+      { id: 'c2', user: t('approvals.ha2aa03'), text: t('approvals.he2b053'), timestamp: t('approvals.h3bdef6') },
+      { id: 'c3', user: t('approvals.hdec8fe'), text: t('approvals.h0ac9c7'), timestamp: t('approvals.h56602f') },
     ],
     status: 'pending',
   },
   {
     id: 'r4',
     type: 'rule_change',
-    title: '自動入札ルール「CPA上限」のしきい値変更',
-    requester: { name: '田中太郎', role: 'マーケター', avatar: 'T' },
-    timeAgo: '1日前',
-    reason: 'CPA上限を緩和してリーチを広げたい',
-    changes: [{ label: 'CPA上限', before: '¥3,000', after: '¥5,000', percentChange: 66.7 }],
+    title: t('approvals.hcf9805'),
+    requester: { name: t('approvals.ha2aa03'), role: t('approvals.h44a95d'), avatar: 'T' },
+    timeAgo: t('approvals.heabfe8'),
+    reason: t('approvals.h898772'),
+    changes: [{ label: t('approvals.h086871'), before: '¥3,000', after: '¥5,000', percentChange: 66.7 }],
     comments: [],
     status: 'pending',
   },
   {
     id: 'r5',
     type: 'budget_change',
-    title: 'キャンペーン「Meta リターゲティング」の日次上限変更',
-    requester: { name: '鈴木花子', role: 'マネージャー', avatar: 'H' },
-    timeAgo: '2日前',
-    reason: '週末に向けて予算を増額',
-    changes: [{ label: '日次上限', before: '¥10,000', after: '¥25,000', percentChange: 150 }],
+    title: t('approvals.hf646b1'),
+    requester: { name: t('approvals.hcef95e'), role: t('approvals.h6a7bea'), avatar: 'H' },
+    timeAgo: t('approvals.ha601b9'),
+    reason: t('approvals.h478cf9'),
+    changes: [{ label: t('approvals.h0560e6'), before: '¥10,000', after: '¥25,000', percentChange: 150 }],
     comments: [],
     status: 'pending',
   },
 ];
+}
 
-const MOCK_MY_REQUESTS: ApprovalRequest[] = [
+function getMockMyRequests(t: (key: string, params?: Record<string, string | number>) => string): ApprovalRequest[] {
+  return [
   {
     id: 'mr1',
     type: 'budget_change',
-    title: 'キャンペーン「春のプロモーション」の予算増額',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '1日前',
+    title: t('approvals.h42661f'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.heabfe8'),
     reason: '',
-    changes: [{ label: '月間予算', before: '¥400,000', after: '¥500,000' }],
-    comments: [{ id: 'mc1', user: '管理者', text: '承認しました。ROASに注視してください', timestamp: '12時間前' }],
+    changes: [{ label: t('approvals.h3af4b5'), before: '¥400,000', after: '¥500,000' }],
+    comments: [{ id: 'mc1', user: t('approvals.h509397'), text: t('approvals.h33b803'), timestamp: t('approvals.h3dfa67') }],
     status: 'approved',
   },
   {
     id: 'mr2',
     type: 'campaign_create',
-    title: '新規キャンペーン「TikTokテスト」の作成',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '3日前',
+    title: t('approvals.hbec60f'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.h35ee47'),
     reason: '',
-    changes: [{ label: '予算', before: '--', after: '¥100,000' }],
-    comments: [{ id: 'mc2', user: '管理者', text: '却下。先にA/Bテストの結果を確認してください', timestamp: '2日前' }],
+    changes: [{ label: t('approvals.h0b721f'), before: '--', after: '¥100,000' }],
+    comments: [{ id: 'mc2', user: t('approvals.h509397'), text: t('approvals.h4e0821'), timestamp: t('approvals.ha601b9') }],
     status: 'rejected',
   },
   {
     id: 'mr3',
     type: 'budget_change',
-    title: 'キャンペーン「LINE公式」の日次上限変更',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '5時間前',
+    title: t('approvals.h0376f4'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.h00bb20'),
     reason: '',
-    changes: [{ label: '日次上限', before: '¥30,000', after: '¥50,000' }],
+    changes: [{ label: t('approvals.h0560e6'), before: '¥30,000', after: '¥50,000' }],
     comments: [],
     status: 'pending',
   },
   {
     id: 'mr4',
     type: 'creative_publish',
-    title: 'クリエイティブ「春セールバナー」の配信',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '1週間前',
+    title: t('approvals.heacbc8'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.h9778cc'),
     reason: '',
     changes: [],
     comments: [],
@@ -239,9 +242,9 @@ const MOCK_MY_REQUESTS: ApprovalRequest[] = [
   {
     id: 'mr5',
     type: 'rule_change',
-    title: '自動予算配分ルールの変更',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '2週間前',
+    title: t('approvals.hd305bb'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.hec37ad'),
     reason: '',
     changes: [],
     comments: [],
@@ -250,42 +253,44 @@ const MOCK_MY_REQUESTS: ApprovalRequest[] = [
   {
     id: 'mr6',
     type: 'budget_change',
-    title: 'Google広告の月間予算変更',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '2週間前',
+    title: t('approvals.h32d043'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.hec37ad'),
     reason: '',
-    changes: [{ label: '月間予算', before: '¥200,000', after: '¥350,000' }],
+    changes: [{ label: t('approvals.h3af4b5'), before: '¥200,000', after: '¥350,000' }],
     comments: [],
     status: 'approved',
   },
   {
     id: 'mr7',
     type: 'campaign_create',
-    title: '新規キャンペーン「Yahoo検索」',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '3週間前',
+    title: t('approvals.h750ba8'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.h0f215e'),
     reason: '',
-    changes: [{ label: '予算', before: '--', after: '¥150,000' }],
+    changes: [{ label: t('approvals.h0b721f'), before: '--', after: '¥150,000' }],
     comments: [],
     status: 'approved',
   },
   {
     id: 'mr8',
     type: 'creative_publish',
-    title: 'クリエイティブ「動画広告v2」の配信',
-    requester: { name: '自分', role: 'マーケター', avatar: 'U' },
-    timeAgo: '1ヶ月前',
+    title: t('approvals.h62a1a4'),
+    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
+    timeAgo: t('approvals.h1cee87'),
     reason: '',
     changes: [],
     comments: [],
     status: 'rejected',
   },
 ];
+}
 
-const MOCK_POLICIES: ApprovalPolicy[] = [
+function getMockPolicies(t: (key: string, params?: Record<string, string | number>) => string): ApprovalPolicy[] {
+  return [
   {
     id: 'p1',
-    name: '高額予算変更ポリシー',
+    name: t('approvals.h01e53a'),
     target: 'budget',
     budgetThreshold: 100000,
     requiredApprovers: 2,
@@ -295,7 +300,7 @@ const MOCK_POLICIES: ApprovalPolicy[] = [
   },
   {
     id: 'p2',
-    name: 'キャンペーン作成ポリシー',
+    name: t('approvals.h2885c0'),
     target: 'campaign',
     budgetThreshold: 50000,
     requiredApprovers: 1,
@@ -305,7 +310,7 @@ const MOCK_POLICIES: ApprovalPolicy[] = [
   },
   {
     id: 'p3',
-    name: '自動ルール変更ポリシー',
+    name: t('approvals.h5e77cb'),
     target: 'auto_rule',
     budgetThreshold: 0,
     requiredApprovers: 1,
@@ -314,6 +319,7 @@ const MOCK_POLICIES: ApprovalPolicy[] = [
     enabled: false,
   },
 ];
+}
 
 // ============================================================
 // Helpers
@@ -765,7 +771,7 @@ function PolicyCreateModal({
 
 function PoliciesTab(): React.ReactElement {
   const { t } = useI18n();
-  const [policies, setPolicies] = useState<ApprovalPolicy[]>(MOCK_POLICIES);
+  const [policies, setPolicies] = useState<ApprovalPolicy[]>(getMockPolicies(t));
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   function handleTogglePolicy(id: string): void {
@@ -851,14 +857,14 @@ function PoliciesTab(): React.ReactElement {
                       <button
                         type="button"
                         className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                        aria-label="編集"
+                        aria-label={t('approvals.h757886')}
                       >
                         <Settings2 size={14} />
                       </button>
                       <button
                         type="button"
                         className="rounded p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                        aria-label="削除"
+                        aria-label={t('approvals.hc6577c')}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -883,8 +889,8 @@ function PoliciesTab(): React.ReactElement {
 export default function ApprovalsPage(): React.ReactElement {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<ApprovalTab>('pending');
-  const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>(MOCK_PENDING);
-  const [myRequests, setMyRequests] = useState<ApprovalRequest[]>(MOCK_MY_REQUESTS);
+  const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>(getMockPending(t));
+  const [myRequests, setMyRequests] = useState<ApprovalRequest[]>(getMockMyRequests(t));
 
   const pendingCount = pendingRequests.length;
 

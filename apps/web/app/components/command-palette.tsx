@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
+
 import { useState, useEffect, useRef } from 'react';
 import {
   BarChart3,
@@ -42,44 +44,54 @@ interface CommandPaletteProps {
 
 // -- Constants --
 
-const CATEGORY_LABELS: Record<CommandCategory, string> = {
-  navigation: 'ページ移動',
-  action: 'アクション',
-  campaign: '最近のキャンペーン',
+function getCategoryLabels(t: (key: string, params?: Record<string, string | number>) => string): Record<CommandCategory, string> {
+  return {
+  navigation: t('comp.commandpalette.h6d7b08'),
+  action: t('comp.commandpalette.h36a9d7'),
+  campaign: t('comp.commandpalette.h0e59bd'),
 };
+}
 
-const NAVIGATION_COMMANDS: CommandItem[] = [
-  { id: 'nav-home', label: 'ダッシュボード', category: 'navigation', icon: <Home size={16} />, href: '/home', keywords: ['home', 'ホーム', '概要'] },
-  { id: 'nav-campaigns', label: 'キャンペーン', category: 'navigation', icon: <LayoutDashboard size={16} />, href: '/campaigns', keywords: ['campaign'] },
-  { id: 'nav-creatives', label: 'クリエイティブ', category: 'navigation', icon: <BrainCircuit size={16} />, href: '/creatives', keywords: ['creative', 'AI'] },
-  { id: 'nav-analytics', label: '分析', category: 'navigation', icon: <BarChart3 size={16} />, href: '/analytics', keywords: ['analytics', 'chart'] },
-  { id: 'nav-audiences', label: 'オーディエンス', category: 'navigation', icon: <Users size={16} />, href: '/audiences', keywords: ['audience', 'セグメント'] },
-  { id: 'nav-budgets', label: '予算最適化', category: 'navigation', icon: <Gauge size={16} />, href: '/budgets', keywords: ['budget', '予算'] },
-  { id: 'nav-funnels', label: 'ファネル', category: 'navigation', icon: <GitFork size={16} />, href: '/funnels', keywords: ['funnel'] },
-  { id: 'nav-reports', label: 'レポート', category: 'navigation', icon: <ScrollText size={16} />, href: '/reports', keywords: ['report'] },
-  { id: 'nav-abtests', label: 'A/Bテスト', category: 'navigation', icon: <FlaskConical size={16} />, href: '/ab-tests', keywords: ['ab', 'test', 'テスト'] },
-  { id: 'nav-rules', label: '自動ルール', category: 'navigation', icon: <Workflow size={16} />, href: '/auto-rules', keywords: ['rule', 'automation', 'ルール'] },
-  { id: 'nav-competitors', label: '競合分析', category: 'navigation', icon: <Swords size={16} />, href: '/competitors', keywords: ['competitor'] },
-  { id: 'nav-settings', label: '設定', category: 'navigation', icon: <Settings size={16} />, href: '/settings', keywords: ['settings', '設定'] },
+function getNavigationCommands(t: (key: string, params?: Record<string, string | number>) => string): CommandItem[] {
+  return [
+  { id: 'nav-home', label: t('comp.commandpalette.h284ed1'), category: 'navigation', icon: <Home size={16} />, href: '/home', keywords: ['home', t('comp.commandpalette.h3eaf70'), t('comp.commandpalette.h7f1b21')] },
+  { id: 'nav-campaigns', label: t('comp.commandpalette.h36486b'), category: 'navigation', icon: <LayoutDashboard size={16} />, href: '/campaigns', keywords: ['campaign'] },
+  { id: 'nav-creatives', label: t('comp.commandpalette.hbd0154'), category: 'navigation', icon: <BrainCircuit size={16} />, href: '/creatives', keywords: ['creative', 'AI'] },
+  { id: 'nav-analytics', label: t('comp.commandpalette.h72fa7c'), category: 'navigation', icon: <BarChart3 size={16} />, href: '/analytics', keywords: ['analytics', 'chart'] },
+  { id: 'nav-audiences', label: t('comp.commandpalette.h434306'), category: 'navigation', icon: <Users size={16} />, href: '/audiences', keywords: ['audience', t('comp.commandpalette.h272b0f')] },
+  { id: 'nav-budgets', label: t('comp.commandpalette.h7990a3'), category: 'navigation', icon: <Gauge size={16} />, href: '/budgets', keywords: ['budget', t('comp.commandpalette.h0b721f')] },
+  { id: 'nav-funnels', label: t('comp.commandpalette.h463159'), category: 'navigation', icon: <GitFork size={16} />, href: '/funnels', keywords: ['funnel'] },
+  { id: 'nav-reports', label: t('comp.commandpalette.h0b0dce'), category: 'navigation', icon: <ScrollText size={16} />, href: '/reports', keywords: ['report'] },
+  { id: 'nav-abtests', label: t('comp.commandpalette.hfa64f9'), category: 'navigation', icon: <FlaskConical size={16} />, href: '/ab-tests', keywords: ['ab', 'test', t('comp.commandpalette.hb0f1c5')] },
+  { id: 'nav-rules', label: t('comp.commandpalette.h8096f8'), category: 'navigation', icon: <Workflow size={16} />, href: '/auto-rules', keywords: ['rule', 'automation', t('comp.commandpalette.hd08a26')] },
+  { id: 'nav-competitors', label: t('comp.commandpalette.h62d409'), category: 'navigation', icon: <Swords size={16} />, href: '/competitors', keywords: ['competitor'] },
+  { id: 'nav-settings', label: t('comp.commandpalette.h029c0d'), category: 'navigation', icon: <Settings size={16} />, href: '/settings', keywords: ['settings', t('comp.commandpalette.h029c0d')] },
 ];
+}
 
-const ACTION_COMMANDS: CommandItem[] = [
-  { id: 'act-new-campaign', label: '新規キャンペーン作成', category: 'action', icon: <Plus size={16} />, href: '/campaigns?action=create', keywords: ['new', 'create', '作成'] },
-  { id: 'act-optimize', label: '最適化実行', category: 'action', icon: <Zap size={16} />, href: '/budgets?action=optimize', keywords: ['optimize', '最適化'] },
-  { id: 'act-report', label: 'レポート生成', category: 'action', icon: <ScrollText size={16} />, href: '/reports?action=generate', keywords: ['generate', 'report', '生成'] },
+function getActionCommands(t: (key: string, params?: Record<string, string | number>) => string): CommandItem[] {
+  return [
+  { id: 'act-new-campaign', label: t('comp.commandpalette.ha13ce9'), category: 'action', icon: <Plus size={16} />, href: '/campaigns?action=create', keywords: ['new', 'create', t('comp.commandpalette.h4f8c0a')] },
+  { id: 'act-optimize', label: t('comp.commandpalette.hb3fff2'), category: 'action', icon: <Zap size={16} />, href: '/budgets?action=optimize', keywords: ['optimize', t('comp.commandpalette.h3e9aab')] },
+  { id: 'act-report', label: t('comp.commandpalette.h84a29d'), category: 'action', icon: <ScrollText size={16} />, href: '/reports?action=generate', keywords: ['generate', 'report', t('comp.commandpalette.h4dfe70')] },
 ];
+}
 
-const RECENT_CAMPAIGN_COMMANDS: CommandItem[] = [
-  { id: 'camp-1', label: '春のプロモーション2026', category: 'campaign', icon: <LayoutDashboard size={16} />, href: '/campaigns/1' },
-  { id: 'camp-2', label: 'TikTok新規獲得キャンペーン', category: 'campaign', icon: <LayoutDashboard size={16} />, href: '/campaigns/2' },
-  { id: 'camp-3', label: 'ブランド認知拡大', category: 'campaign', icon: <LayoutDashboard size={16} />, href: '/campaigns/3' },
+function getRecentCampaignCommands(t: (key: string, params?: Record<string, string | number>) => string): CommandItem[] {
+  return [
+  { id: 'camp-1', label: t('comp.commandpalette.hc6f094'), category: 'campaign', icon: <LayoutDashboard size={16} />, href: '/campaigns/1' },
+  { id: 'camp-2', label: t('comp.commandpalette.haa8e92'), category: 'campaign', icon: <LayoutDashboard size={16} />, href: '/campaigns/2' },
+  { id: 'camp-3', label: t('comp.commandpalette.h986608'), category: 'campaign', icon: <LayoutDashboard size={16} />, href: '/campaigns/3' },
 ];
+}
 
-const ALL_COMMANDS: CommandItem[] = [
-  ...NAVIGATION_COMMANDS,
-  ...ACTION_COMMANDS,
-  ...RECENT_CAMPAIGN_COMMANDS,
-];
+function getAllCommands(t: (key: string, params?: Record<string, string | number>) => string): CommandItem[] {
+  return [
+    ...getNavigationCommands(t),
+    ...getActionCommands(t),
+    ...getRecentCampaignCommands(t),
+  ];
+}
 
 // -- Helpers --
 
@@ -104,14 +116,16 @@ function fuzzyMatch(query: string, text: string, keywords?: string[]): boolean {
 // -- Component --
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps): React.ReactElement | null {
+  const { t } = useI18n();
+
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const filtered = query
-    ? ALL_COMMANDS.filter((cmd) => fuzzyMatch(query, cmd.label, cmd.keywords))
-    : ALL_COMMANDS;
+    ? getAllCommands(t).filter((cmd) => fuzzyMatch(query, cmd.label, cmd.keywords))
+    : getAllCommands(t);
 
   const grouped = (['navigation', 'action', 'campaign'] as CommandCategory[])
     .map((cat) => ({
@@ -198,14 +212,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps): Rea
         }}
         role="button"
         tabIndex={0}
-        aria-label="コマンドパレットを閉じる"
+        aria-label={t('comp.commandpalette.h29f02d')}
       />
 
       {/* Modal */}
       <div
         className="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
         role="dialog"
-        aria-label="コマンドパレット"
+        aria-label={t('comp.commandpalette.h771978')}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 border-b border-border px-4 py-3">
@@ -217,8 +231,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps): Rea
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-            placeholder="コマンドを検索..."
-            aria-label="コマンド検索"
+            placeholder={t('comp.commandpalette.hce9728')}
+            aria-label={t('comp.commandpalette.h7e759b')}
           />
           <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-block">
             ESC
@@ -229,13 +243,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps): Rea
         <div ref={listRef} className="max-h-80 overflow-y-auto p-2" role="listbox">
           {flatItems.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              一致する結果がありません
+              {t('comp.commandpalette.h9de5ba')}
             </div>
           ) : (
             grouped.map((group) => (
               <div key={group.category} className="mb-2">
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  {CATEGORY_LABELS[group.category]}
+                  {getCategoryLabels(t)[group.category]}
                 </div>
                 {group.items.map((item) => {
                   const currentIndex = flatIndex++;
@@ -277,15 +291,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps): Rea
             <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">
               <span className="text-[9px]">&#x2191;&#x2193;</span>
             </kbd>
-            <span>移動</span>
+            <span>{t('commandPalette.navigate')}</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">Enter</kbd>
-            <span>選択</span>
+            <span>{t('commandPalette.select')}</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">Esc</kbd>
-            <span>閉じる</span>
+            <span>{t('commandPalette.close')}</span>
           </div>
         </div>
       </div>

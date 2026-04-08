@@ -111,19 +111,20 @@ const STEPS: { step: StepNumber; labelKey: string }[] = [
 ];
 
 function generateMockCreative(index: number): GeneratedCreative {
+  const { t } = useI18n();
   const headlines = [
-    'コスト50%削減を実現', '今だけ限定キャンペーン', '専門家が選ぶNo.1ツール',
-    'たった3分で設定完了', '利用者満足度98%', '他社比較で圧倒的な差',
-    '残り僅か！早期申込割引', '知らないと損する新常識',
+    t('creatives.massproduction.hdaca99'), t('creatives.massproduction.hd903c2'), t('creatives.massproduction.h1e4a02'),
+    t('creatives.massproduction.h7cebce'), t('creatives.massproduction.h7ae9c2'), t('creatives.massproduction.h04717e'),
+    t('creatives.massproduction.h7274e9'), t('creatives.massproduction.h1dd742'),
   ];
-  const ctaOptions = ['今すぐ始める', '無料で試す', '詳細を見る', '資料請求', 'お問い合わせ'];
-  const styleOptions = ['プロフェッショナル', 'ライフスタイル', 'ミニマル', 'ボールド', 'テキスト重視'];
+  const ctaOptions = [t('creatives.massproduction.ha75439'), t('creatives.massproduction.h9da9f9'), t('creatives.massproduction.h2fc4c4'), t('creatives.massproduction.h40ca12'), t('creatives.massproduction.he3daad')];
+  const styleOptions = [t('creatives.massproduction.hfaaee7'), t('creatives.massproduction.h7ba865'), t('creatives.massproduction.he7794f'), t('creatives.massproduction.h916ca3'), t('creatives.massproduction.h42ae18')];
   const platformOptions = ['Meta', 'Google', 'TikTok', 'LINE/Yahoo', 'X', 'Amazon', 'Microsoft'];
 
   return {
     id: `gen-${index}`,
     headline: headlines[index % headlines.length] ?? '',
-    body: 'AIが自動生成した本文コピーがここに表示されます。ベネフィットを重視した訴求文です。',
+    body: t('creatives.massproduction.h2998a7'),
     cta: ctaOptions[index % ctaOptions.length] ?? '',
     imageStyle: styleOptions[index % styleOptions.length] ?? '',
     platform: platformOptions[index % platformOptions.length] ?? '',
@@ -272,9 +273,9 @@ function CombinationCalculator({
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
-        実際の生成数: <span className="font-semibold text-foreground">{actualGeneration.toLocaleString()}</span>
+        {t('massProduction.actualGenerationLabel')} <span className="font-semibold text-foreground">{actualGeneration.toLocaleString()}</span>
         {totalCombinations > maxGeneration && (
-          <span> (上限適用: {totalCombinations.toLocaleString()} 中 {maxGeneration} を生成)</span>
+          <span> {t('massProduction.limitAppliedLabel', { total: totalCombinations.toLocaleString(), max: String(maxGeneration) })}</span>
         )}
       </p>
     </div>
@@ -527,7 +528,7 @@ export default function MassProductionPage(): React.ReactElement {
             type="button"
             onClick={() => setBatchProgress({ status: 'idle', total: 0, completed: 0, speed: 10, creatives: [] })}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="戻る"
+            aria-label={t('creatives.massproduction.h4a622f')}
             disabled={batchProgress.status === 'generating'}
           >
             <ArrowLeft size={20} />
@@ -616,7 +617,7 @@ export default function MassProductionPage(): React.ReactElement {
                 value={product.name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateProduct('name', e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="OMNI-AD マーケティングプラットフォーム"
+                placeholder={t('creatives.massproduction.he3f3f7')}
               />
             </div>
             <div>
@@ -629,7 +630,7 @@ export default function MassProductionPage(): React.ReactElement {
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateProduct('description', e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 rows={3}
-                placeholder="AI搭載のクロスチャネルマーケティング自動化プラットフォーム。6つの広告プラットフォームを一元管理。"
+                placeholder={t('creatives.massproduction.h13675a')}
               />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -643,7 +644,7 @@ export default function MassProductionPage(): React.ReactElement {
                   value={product.usp}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateProduct('usp', e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="6チャネル統合管理、AI予算最適化"
+                  placeholder={t('creatives.massproduction.ha84309')}
                 />
               </div>
               <div>
@@ -656,7 +657,7 @@ export default function MassProductionPage(): React.ReactElement {
                   value={product.targetAudience}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateProduct('targetAudience', e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="マーケティング担当者、広告代理店"
+                  placeholder={t('creatives.massproduction.h7f3e06')}
                 />
               </div>
             </div>
@@ -670,7 +671,7 @@ export default function MassProductionPage(): React.ReactElement {
                 value={product.price}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateProduct('price', e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="月額 29,800円〜"
+                placeholder={t('creatives.massproduction.h999a69')}
               />
             </div>
 
@@ -680,7 +681,7 @@ export default function MassProductionPage(): React.ReactElement {
                 <span className="mb-2 block text-sm font-medium text-foreground">{t('massProduction.language')}</span>
                 <div className="flex gap-2">
                   {([
-                    { value: 'ja' as const, label: '日本語' },
+                    { value: 'ja' as const, label: t('creatives.massproduction.h00110a') },
                     { value: 'en' as const, label: 'English' },
                   ]).map((opt) => (
                     <button
@@ -844,7 +845,7 @@ export default function MassProductionPage(): React.ReactElement {
                   <div>
                     <span className="text-muted-foreground">{t('massProduction.languageLabel')}</span>{' '}
                     <span className="font-medium text-foreground">
-                      {product.language === 'ja' ? '日本語' : 'English'}
+                      {product.language === 'ja' ? t('creatives.massproduction.h00110a') : 'English'}
                     </span>
                   </div>
                   <div className="col-span-2">

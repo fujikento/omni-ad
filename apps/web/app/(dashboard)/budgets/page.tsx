@@ -303,6 +303,7 @@ interface SliderProps {
 }
 
 function BudgetSlider({ label, value, min, max, color, onChange }: SliderProps): React.ReactElement {
+  const { t } = useI18n();
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
@@ -322,7 +323,7 @@ function BudgetSlider({ label, value, min, max, color, onChange }: SliderProps):
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value))}
         className="w-full accent-primary"
-        aria-label={`${label}の予算`}
+        aria-label={t('budgets.budgetForLabel', { label })}
       />
     </div>
   );

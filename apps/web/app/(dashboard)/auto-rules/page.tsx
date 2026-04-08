@@ -195,10 +195,11 @@ const COOLDOWN_OPTIONS = [
 // Mock Data
 // ============================================================
 
-const MOCK_RULES: AutoRule[] = [
+function getMockRules(t: (key: string, params?: Record<string, string | number>) => string): AutoRule[] {
+  return [
   {
     id: 'r1',
-    name: 'CPA上限で停止',
+    name: t('autorules.h8710de'),
     enabled: true,
     conditions: [
       { type: 'metric_threshold', metric: 'cpa', operator: 'gt', value: 5000, duration: '3days' },
@@ -207,27 +208,27 @@ const MOCK_RULES: AutoRule[] = [
       { type: 'pause_campaign' },
     ],
     triggerCount: 8,
-    lastTriggered: '3時間前',
+    lastTriggered: t('autorules.h5bf96a'),
     cooldownMinutes: 60,
   },
   {
     id: 'r2',
-    name: 'ROAS目標維持',
+    name: t('autorules.haebfb7'),
     enabled: true,
     conditions: [
       { type: 'metric_threshold', metric: 'roas', operator: 'lt', value: 1.2, duration: 'daily' },
     ],
     actions: [
       { type: 'adjust_budget', adjustmentType: 'percent', value: 20, direction: 'decrease' },
-      { type: 'send_notification', channels: ['slack'], message: 'ROASが目標値を下回りました。予算を20%削減しました。' },
+      { type: 'send_notification', channels: ['slack'], message: t('autorules.hfe63e0') },
     ],
     triggerCount: 15,
-    lastTriggered: '1日前',
+    lastTriggered: t('autorules.heabfe8'),
     cooldownMinutes: 240,
   },
   {
     id: 'r3',
-    name: 'クリエイティブ自動ローテーション',
+    name: t('autorules.hdab0d8'),
     enabled: true,
     conditions: [
       { type: 'creative_fatigue', ctrDeclinePercent: 15, days: 5 },
@@ -236,12 +237,12 @@ const MOCK_RULES: AutoRule[] = [
       { type: 'rotate_creative' },
     ],
     triggerCount: 6,
-    lastTriggered: '2日前',
+    lastTriggered: t('autorules.ha601b9'),
     cooldownMinutes: 1440,
   },
   {
     id: 'r4',
-    name: '深夜配信停止',
+    name: t('autorules.hb08352'),
     enabled: true,
     conditions: [
       { type: 'time_based', dayOfWeek: [1, 2, 3, 4, 5], hourRange: [0, 6] },
@@ -250,35 +251,38 @@ const MOCK_RULES: AutoRule[] = [
       { type: 'pause_campaign' },
     ],
     triggerCount: 42,
-    lastTriggered: '6時間前',
+    lastTriggered: t('autorules.ha45695'),
     cooldownMinutes: 30,
   },
   {
     id: 'r5',
-    name: '予算超過アラート',
+    name: t('autorules.h5b8abb'),
     enabled: false,
     conditions: [
       { type: 'budget_pacing', pace: 'over', threshold: 20 },
     ],
     actions: [
-      { type: 'send_notification', channels: ['dashboard', 'slack'], message: '予算ペーシングが超過しています。' },
+      { type: 'send_notification', channels: ['dashboard', 'slack'], message: t('autorules.h0e4efe') },
     ],
     triggerCount: 0,
     lastTriggered: null,
     cooldownMinutes: 120,
   },
 ];
+}
 
-const MOCK_EXECUTIONS: RuleExecution[] = [
-  { id: 'e1', datetime: '2026-04-02 09:15', ruleName: 'CPA上限で停止', campaignName: 'TikTok新規獲得', conditionValue: 'CPA: ¥5,420', executedAction: 'キャンペーン停止', status: 'success' },
-  { id: 'e2', datetime: '2026-04-02 06:00', ruleName: '深夜配信停止', campaignName: '春のプロモーション2026', conditionValue: '時間帯: 0:00-6:00', executedAction: 'キャンペーン停止', status: 'success' },
-  { id: 'e3', datetime: '2026-04-01 18:30', ruleName: 'ROAS目標維持', campaignName: 'LINE公式キャンペーン', conditionValue: 'ROAS: 0.95', executedAction: '予算20%削減 + Slack通知', status: 'success' },
-  { id: 'e4', datetime: '2026-04-01 14:00', ruleName: 'クリエイティブ自動ローテーション', campaignName: 'ブランド認知拡大', conditionValue: 'CTR低下: 18%', executedAction: 'クリエイティブ変更', status: 'failed' },
-  { id: 'e5', datetime: '2026-04-01 10:00', ruleName: 'CPA上限で停止', campaignName: 'GW特別セール', conditionValue: 'CPA: ¥4,800', executedAction: 'キャンペーン停止', status: 'skipped' },
-  { id: 'e6', datetime: '2026-03-31 22:00', ruleName: 'ROAS目標維持', campaignName: 'TikTok新規獲得', conditionValue: 'ROAS: 1.1', executedAction: '予算20%削減 + Slack通知', status: 'success' },
-  { id: 'e7', datetime: '2026-03-31 15:30', ruleName: '深夜配信停止', campaignName: 'LINE公式キャンペーン', conditionValue: '時間帯: 0:00-6:00', executedAction: 'キャンペーン停止', status: 'success' },
-  { id: 'e8', datetime: '2026-03-31 09:00', ruleName: 'CPA上限で停止', campaignName: '春のプロモーション2026', conditionValue: 'CPA: ¥5,100', executedAction: 'キャンペーン停止', status: 'success' },
+function getMockExecutions(t: (key: string, params?: Record<string, string | number>) => string): RuleExecution[] {
+  return [
+  { id: 'e1', datetime: '2026-04-02 09:15', ruleName: t('autorules.h8710de'), campaignName: t('autorules.hb2cb88'), conditionValue: 'CPA: ¥5,420', executedAction: t('autorules.hd75535'), status: 'success' },
+  { id: 'e2', datetime: '2026-04-02 06:00', ruleName: t('autorules.hb08352'), campaignName: t('autorules.hc6f094'), conditionValue: t('autorules.h196fa3'), executedAction: t('autorules.hd75535'), status: 'success' },
+  { id: 'e3', datetime: '2026-04-01 18:30', ruleName: t('autorules.haebfb7'), campaignName: t('autorules.h5f8f25'), conditionValue: 'ROAS: 0.95', executedAction: t('autorules.h238687'), status: 'success' },
+  { id: 'e4', datetime: '2026-04-01 14:00', ruleName: t('autorules.hdab0d8'), campaignName: t('autorules.h986608'), conditionValue: t('autorules.h2297ed'), executedAction: t('autorules.h36d8aa'), status: 'failed' },
+  { id: 'e5', datetime: '2026-04-01 10:00', ruleName: t('autorules.h8710de'), campaignName: t('autorules.h72fcf2'), conditionValue: 'CPA: ¥4,800', executedAction: t('autorules.hd75535'), status: 'skipped' },
+  { id: 'e6', datetime: '2026-03-31 22:00', ruleName: t('autorules.haebfb7'), campaignName: t('autorules.hb2cb88'), conditionValue: 'ROAS: 1.1', executedAction: t('autorules.h238687'), status: 'success' },
+  { id: 'e7', datetime: '2026-03-31 15:30', ruleName: t('autorules.hb08352'), campaignName: t('autorules.h5f8f25'), conditionValue: t('autorules.h196fa3'), executedAction: t('autorules.hd75535'), status: 'success' },
+  { id: 'e8', datetime: '2026-03-31 09:00', ruleName: t('autorules.h8710de'), campaignName: t('autorules.hc6f094'), conditionValue: 'CPA: ¥5,100', executedAction: t('autorules.hd75535'), status: 'success' },
 ];
+}
 
 // ============================================================
 // Helper Functions
@@ -289,7 +293,7 @@ function describeCondition(condition: RuleCondition, t: (key: string, params?: R
     case 'metric_threshold': {
       const metricKey = METRIC_LABEL_KEYS[condition.metric];
       const metricLabel = metricKey.startsWith('autoRules.') ? t(metricKey) : metricKey;
-      return `${metricLabel} ${OPERATOR_LABELS[condition.operator]} ${formatConditionValue(condition.metric, condition.value)} が ${t(DURATION_LABEL_KEYS[condition.duration])}`;
+      return t('autoRules.conditionSummary', { metric: metricLabel, operator: OPERATOR_LABELS[condition.operator], value: formatConditionValue(condition.metric, condition.value), duration: t(DURATION_LABEL_KEYS[condition.duration]) });
     }
     case 'budget_pacing':
       return `${t('autoRules.conditionBudgetPacing')}${condition.pace === 'over' ? t('autoRules.paceOver') : t('autoRules.paceUnder')} ${condition.threshold}%`;
@@ -325,7 +329,7 @@ function describeAction(action: RuleAction, t: (key: string) => string): string 
     case 'resume_campaign':
       return t('autoRules.actionResumeCampaign');
     case 'adjust_budget':
-      return `${t('autoRules.actionAdjustBudget')}${action.value}${action.adjustmentType === 'percent' ? '%' : '円'}${action.direction === 'increase' ? t('autoRules.increase') : t('autoRules.decrease')}`;
+      return `${t('autoRules.actionAdjustBudget')}${action.value}${action.adjustmentType === 'percent' ? '%' : t('autorules.ha6de4c')}${action.direction === 'increase' ? t('autoRules.increase') : t('autoRules.decrease')}`;
     case 'rotate_creative':
       return t('autoRules.actionRotateCreative');
     case 'send_notification':
@@ -1219,7 +1223,7 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border px-4 py-3">
               <span className="text-xs text-muted-foreground">
-                {page * pageSize + 1}-{Math.min((page + 1) * pageSize, executions.length)} / {executions.length}件
+                {t('autoRules.paginationOf', { from: String(page * pageSize + 1), to: String(Math.min((page + 1) * pageSize, executions.length)), total: String(executions.length) })}
               </span>
               <div className="flex gap-2">
                 <button
@@ -1255,7 +1259,7 @@ export default function AutoRulesPage(): React.ReactElement {
   const { t } = useI18n();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [rules, setRules] = useState<AutoRule[]>(MOCK_RULES);
+  const [rules, setRules] = useState<AutoRule[]>(getMockRules(t));
   const [evaluating, setEvaluating] = useState(false);
 
   const evaluateMutation = trpc.rules.evaluate.useMutation({
@@ -1355,7 +1359,7 @@ export default function AutoRulesPage(): React.ReactElement {
       )}
 
       {/* Execution history */}
-      <ExecutionHistorySection executions={MOCK_EXECUTIONS} />
+      <ExecutionHistorySection executions={getMockExecutions(t)} />
 
       {/* Create rule modal */}
       <CreateRuleModal

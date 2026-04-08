@@ -79,14 +79,15 @@ const CYCLE_STEPS: CycleStep[] = [
   { id: 'regenerate', labelKey: 'creativeOptimization.cycleRegenerate', icon: <RefreshCw size={16} />, status: 'waiting', count: 0 },
 ];
 
-const MOCK_CAMPAIGNS: OptimizationCampaign[] = [
+function getMockCampaigns(t: (key: string, params?: Record<string, string | number>) => string): OptimizationCampaign[] {
+  return [
   {
     id: 'oc1',
-    name: '春のスキンケアプロモーション',
+    name: t('creatives.optimization.hc1d2a8'),
     activeVariants: 12,
     killedVariants: 8,
     winners: 3,
-    nextGenEta: '2時間後',
+    nextGenEta: t('creatives.optimization.hbb787b'),
     trendData: [
       { day: '3/27', value: 2.1 }, { day: '3/28', value: 2.4 }, { day: '3/29', value: 2.8 },
       { day: '3/30', value: 3.1 }, { day: '3/31', value: 2.9 }, { day: '4/1', value: 3.5 }, { day: '4/2', value: 3.8 },
@@ -94,11 +95,11 @@ const MOCK_CAMPAIGNS: OptimizationCampaign[] = [
   },
   {
     id: 'oc2',
-    name: 'GW旅行パッケージ',
+    name: t('creatives.optimization.h430222'),
     activeVariants: 8,
     killedVariants: 4,
     winners: 2,
-    nextGenEta: '6時間後',
+    nextGenEta: t('creatives.optimization.h10cc68'),
     trendData: [
       { day: '3/27', value: 1.5 }, { day: '3/28', value: 1.8 }, { day: '3/29', value: 2.0 },
       { day: '3/30', value: 2.2 }, { day: '3/31', value: 2.5 }, { day: '4/1', value: 2.7 }, { day: '4/2', value: 3.0 },
@@ -106,33 +107,38 @@ const MOCK_CAMPAIGNS: OptimizationCampaign[] = [
   },
   {
     id: 'oc3',
-    name: '新規SaaSツール認知拡大',
+    name: t('creatives.optimization.h0b1979'),
     activeVariants: 16,
     killedVariants: 12,
     winners: 4,
-    nextGenEta: '完了',
+    nextGenEta: t('creatives.optimization.h6b2dfe'),
     trendData: [
       { day: '3/27', value: 1.2 }, { day: '3/28', value: 1.6 }, { day: '3/29', value: 1.9 },
       { day: '3/30', value: 2.3 }, { day: '3/31', value: 2.8 }, { day: '4/1', value: 3.2 }, { day: '4/2', value: 3.6 },
     ],
   },
 ];
+}
 
-const MOCK_PATTERNS: WinningPattern[] = [
-  { id: 'wp1', description: 'Instagramの美容商品では、体験談見出しが課題提起見出しよりCTR 34%高い', platform: 'Meta', category: '美容', liftPercent: 34, sampleSize: 12400 },
-  { id: 'wp2', description: 'TikTok 15秒動画で、冒頭3秒に問題提起を入れるとVTR 28%改善', platform: 'TikTok', category: '動画', liftPercent: 28, sampleSize: 8500 },
-  { id: 'wp3', description: 'Google検索広告で数字を含む見出しはCTR 22%向上', platform: 'Google', category: '検索', liftPercent: 22, sampleSize: 45000 },
-  { id: 'wp4', description: 'LINE広告で絵文字付きメッセージのCTRが18%上昇', platform: 'LINE', category: 'メッセージ', liftPercent: 18, sampleSize: 15200 },
-  { id: 'wp5', description: 'Meta広告でUGC風の画像がプロ撮影画像よりCVR 15%高い', platform: 'Meta', category: 'クリエイティブ', liftPercent: 15, sampleSize: 22000 },
-  { id: 'wp6', description: '旅行商品ではカウントダウンCTAが通常CTAよりCVR 41%高い', platform: 'Meta', category: '旅行', liftPercent: 41, sampleSize: 9800 },
-  { id: 'wp7', description: 'SaaS広告で「無料トライアル」CTAが「詳細を見る」よりCTR 26%高い', platform: 'Google', category: 'SaaS', liftPercent: 26, sampleSize: 31000 },
-  { id: 'wp8', description: 'X広告で質問形式の本文がステートメント形式よりエンゲージメント 19%高い', platform: 'X', category: 'エンゲージメント', liftPercent: 19, sampleSize: 18000 },
+function getMockPatterns(t: (key: string, params?: Record<string, string | number>) => string): WinningPattern[] {
+  return [
+  { id: 'wp1', description: t('creatives.optimization.h38f489'), platform: 'Meta', category: t('creatives.optimization.h53b4b8'), liftPercent: 34, sampleSize: 12400 },
+  { id: 'wp2', description: t('creatives.optimization.h0219a9'), platform: 'TikTok', category: t('creatives.optimization.h5976ec'), liftPercent: 28, sampleSize: 8500 },
+  { id: 'wp3', description: t('creatives.optimization.h4be29d'), platform: 'Google', category: t('creatives.optimization.hfc0d49'), liftPercent: 22, sampleSize: 45000 },
+  { id: 'wp4', description: t('creatives.optimization.ha1a545'), platform: 'LINE', category: t('creatives.optimization.hfb9603'), liftPercent: 18, sampleSize: 15200 },
+  { id: 'wp5', description: t('creatives.optimization.h9f8454'), platform: 'Meta', category: t('creatives.optimization.hbd0154'), liftPercent: 15, sampleSize: 22000 },
+  { id: 'wp6', description: t('creatives.optimization.hd11b3c'), platform: 'Meta', category: t('creatives.optimization.h874834'), liftPercent: 41, sampleSize: 9800 },
+  { id: 'wp7', description: t('creatives.optimization.h212ba7'), platform: 'Google', category: 'SaaS', liftPercent: 26, sampleSize: 31000 },
+  { id: 'wp8', description: t('creatives.optimization.h1ba3df'), platform: 'X', category: t('creatives.optimization.hc9e6bc'), liftPercent: 19, sampleSize: 18000 },
 ];
+}
 
-const MOCK_NEXT_GEN: NextGenBatch[] = [
-  { id: 'ng1', name: '春スキンケア 第3世代', variantCount: 15, basedOn: '体験談見出し + UGC画像', status: 'generating', createdAt: '2026-04-02 10:30' },
-  { id: 'ng2', name: 'GW旅行 第2世代', variantCount: 10, basedOn: 'カウントダウンCTA + 問題提起動画', status: 'completed', createdAt: '2026-04-02 08:15' },
+function getMockNextGen(t: (key: string, params?: Record<string, string | number>) => string): NextGenBatch[] {
+  return [
+  { id: 'ng1', name: t('creatives.optimization.he34fc4'), variantCount: 15, basedOn: t('creatives.optimization.hc10365'), status: 'generating', createdAt: '2026-04-02 10:30' },
+  { id: 'ng2', name: t('creatives.optimization.h7bd4e5'), variantCount: 10, basedOn: t('creatives.optimization.h72b995'), status: 'completed', createdAt: '2026-04-02 08:15' },
 ];
+}
 
 const STATUS_CONFIG: Record<NextGenStatus, { labelKey: string; className: string }> = {
   generating: {
@@ -466,13 +472,13 @@ export default function CreativeOptimizationPage(): React.ReactElement {
       <CycleVisualization steps={CYCLE_STEPS} />
 
       {/* Active campaigns table */}
-      <CampaignTable campaigns={MOCK_CAMPAIGNS} />
+      <CampaignTable campaigns={getMockCampaigns(t)} />
 
       {/* Winning patterns */}
-      <WinningPatternsPanel patterns={MOCK_PATTERNS} />
+      <WinningPatternsPanel patterns={getMockPatterns(t)} />
 
       {/* Next gen queue */}
-      <NextGenQueue batches={MOCK_NEXT_GEN} />
+      <NextGenQueue batches={getMockNextGen(t)} />
     </div>
   );
 }

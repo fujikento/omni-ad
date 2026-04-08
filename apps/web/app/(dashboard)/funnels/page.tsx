@@ -67,59 +67,61 @@ const STAGE_HEADER_COLORS: Record<string, string> = {
   retention: 'bg-green-500',
 };
 
-const MOCK_FUNNEL: Funnel = {
+function getMockFunnel(t: (key: string, params?: Record<string, string | number>) => string): Funnel {
+  return {
   id: '1',
-  name: '標準コンバージョンファネル',
-  description: '認知から追客までの標準的なファネル構造',
+  name: t('funnels.he68f77'),
+  description: t('funnels.h5b44d5'),
   stages: [
     {
       id: 's1',
-      name: '認知',
+      name: t('funnels.h5ab04e'),
       type: 'awareness',
       platforms: ['google', 'meta', 'tiktok'],
       campaigns: [
-        { id: 'c1', name: 'ブランド認知拡大' },
-        { id: 'c2', name: 'TikTok認知キャンペーン' },
+        { id: 'c1', name: t('funnels.h986608') },
+        { id: 'c2', name: t('funnels.h691393') },
       ],
       budgetAllocation: 35,
       metrics: { impressions: 500000, clicks: 25000, conversions: 0, dropOffRate: 0 },
     },
     {
       id: 's2',
-      name: '興味喚起',
+      name: t('funnels.h5ddcc3'),
       type: 'interest',
       platforms: ['meta', 'line_yahoo'],
       campaigns: [
-        { id: 'c3', name: 'リターゲティング - 興味' },
+        { id: 'c3', name: t('funnels.h18110e') },
       ],
       budgetAllocation: 25,
       metrics: { impressions: 250000, clicks: 15000, conversions: 0, dropOffRate: 40 },
     },
     {
       id: 's3',
-      name: 'クロージング',
+      name: t('funnels.h8c9928'),
       type: 'closing',
       platforms: ['google', 'meta', 'line_yahoo'],
       campaigns: [
-        { id: 'c4', name: 'コンバージョン最適化' },
-        { id: 'c5', name: 'ショッピング広告' },
+        { id: 'c4', name: t('funnels.h8327cb') },
+        { id: 'c5', name: t('funnels.hb59a3d') },
       ],
       budgetAllocation: 30,
       metrics: { impressions: 100000, clicks: 8000, conversions: 1200, dropOffRate: 47 },
     },
     {
       id: 's4',
-      name: '追客',
+      name: t('funnels.h9bb2fe'),
       type: 'retention',
       platforms: ['line_yahoo', 'meta'],
       campaigns: [
-        { id: 'c6', name: 'リピーター獲得' },
+        { id: 'c6', name: t('funnels.h17c1f2') },
       ],
       budgetAllocation: 10,
       metrics: { impressions: 50000, clicks: 3000, conversions: 450, dropOffRate: 63 },
     },
   ],
 };
+}
 
 // -- Subcomponents --
 
@@ -342,8 +344,8 @@ export default function FunnelsPage(): React.ReactElement {
 
   // Use mock data when API not available
   const funnel = funnelsQuery.error
-    ? MOCK_FUNNEL
-    : (funnelsQuery.data as Funnel | undefined) ?? MOCK_FUNNEL;
+    ? getMockFunnel(t)
+    : (funnelsQuery.data as Funnel | undefined) ?? getMockFunnel(t);
   const isLoading = funnelsQuery.isLoading && !funnelsQuery.error;
 
   return (

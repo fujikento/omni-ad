@@ -138,67 +138,81 @@ const BID_STRATEGY_OPTIONS: { value: BidStrategy; labelKey: string; descKey: str
   { value: 'manual_cpc', labelKey: 'campaigns.bidManualCpc', descKey: 'campaigns.bidManualCpcDesc' },
 ];
 
-const CONVERSION_POINTS = ['メインサイト購入', 'リード獲得フォーム', 'アプリインストール'] as const;
+function getConversionPoints(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [t('campaigns.hcb222d'), t('campaigns.h41ac90'), t('campaigns.hf06d76')] as const;
+}
 
-const AGE_OPTIONS = ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
+function getAgeOptions() {
+  return ['18', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65+'] as const;
+}
 
-const REGION_SUGGESTIONS = ['東京', '大阪', '名古屋', '福岡', '札幌', '横浜', '京都', '神戸', '仙台', '広島'] as const;
+function getRegionSuggestions(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [t('campaigns.h707ba1'), t('campaigns.hd94e2b'), t('campaigns.h20b7eb'), t('campaigns.h81fd0e'), t('campaigns.haf0713'), t('campaigns.he31419'), t('campaigns.hcda9a8'), t('campaigns.h841dd1'), t('campaigns.h030dd7'), t('campaigns.h403713')] as const;
+}
 
-const INTEREST_SUGGESTIONS = ['不動産投資', '資産運用', 'スキンケア', 'フィットネス', '旅行', 'テクノロジー', 'ファッション', '料理', 'ペット', '教育'] as const;
+function getInterestSuggestions(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [t('campaigns.h081747'), t('campaigns.hb93315'), t('campaigns.h85da04'), t('campaigns.hf11732'), t('campaigns.h874834'), t('campaigns.hc9aa09'), t('campaigns.h9d859b'), t('campaigns.h8e545f'), t('campaigns.h054653'), t('campaigns.h8640cb')] as const;
+}
 
-const EXCLUSION_AUDIENCES = ['既存購入者', '既存リード', 'メルマガ解除者'] as const;
+function getExclusionAudiences(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [t('campaigns.h6b9f86'), t('campaigns.hf666f2'), t('campaigns.hb7b07f')] as const;
+}
 
-const MOCK_EXISTING_CREATIVES = [
-  { id: 'c1', name: '春の新作コレクション', thumbnail: '' },
-  { id: 'c2', name: '期間限定30%OFF', thumbnail: '' },
-  { id: 'c3', name: '新生活応援キャンペーン', thumbnail: '' },
-  { id: 'c4', name: '会員限定セール', thumbnail: '' },
-  { id: 'c5', name: '無料配送キャンペーン', thumbnail: '' },
-  { id: 'c6', name: 'レビュー投稿でポイント付与', thumbnail: '' },
+function getMockExistingCreatives(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [
+  { id: 'c1', name: t('campaigns.h017432'), thumbnail: '' },
+  { id: 'c2', name: t('campaigns.hf90c9c'), thumbnail: '' },
+  { id: 'c3', name: t('campaigns.h1c0e47'), thumbnail: '' },
+  { id: 'c4', name: t('campaigns.h824c21'), thumbnail: '' },
+  { id: 'c5', name: t('campaigns.ha20bff'), thumbnail: '' },
+  { id: 'c6', name: t('campaigns.h96e1ed'), thumbnail: '' },
 ];
+}
 
 // ============================================================
 // Mock data
 // ============================================================
 
-const MOCK_CAMPAIGNS: Campaign[] = [
+function getMockCampaigns(t: (key: string, params?: Record<string, string | number>) => string): Campaign[] {
+  return [
   {
-    id: '1', name: '春のプロモーション2026', status: 'active',
+    id: '1', name: t('campaigns.hc6f094'), status: 'active',
     platforms: ['google', 'meta', 'line_yahoo'],
     budget: { total: 500000, currency: 'JPY', dailyLimit: 50000 },
     roas: 3.2, updatedAt: '2026-04-01T10:00:00Z', objective: 'conversion',
   },
   {
-    id: '2', name: 'TikTok新規獲得キャンペーン', status: 'paused',
+    id: '2', name: t('campaigns.haa8e92'), status: 'paused',
     platforms: ['tiktok'],
     budget: { total: 200000, currency: 'JPY' },
     roas: 1.8, updatedAt: '2026-03-28T14:30:00Z', objective: 'leads',
   },
   {
-    id: '3', name: 'ブランド認知拡大', status: 'draft',
+    id: '3', name: t('campaigns.h986608'), status: 'draft',
     platforms: ['google', 'meta', 'x', 'line_yahoo'],
     budget: { total: 1000000, currency: 'JPY', dailyLimit: 100000 },
     roas: 0, updatedAt: '2026-03-25T09:00:00Z', objective: 'awareness',
   },
   {
-    id: '4', name: '年末セール 2025', status: 'completed',
+    id: '4', name: t('campaigns.h44c4f0'), status: 'completed',
     platforms: ['google', 'meta', 'line_yahoo', 'amazon'],
     budget: { total: 800000, currency: 'JPY' },
     roas: 4.5, updatedAt: '2026-01-15T18:00:00Z', objective: 'retargeting',
   },
   {
-    id: '5', name: 'GW特別セール', status: 'draft',
+    id: '5', name: t('campaigns.h72fcf2'), status: 'draft',
     platforms: ['google', 'meta', 'tiktok'],
     budget: { total: 600000, currency: 'JPY', dailyLimit: 60000 },
     roas: 0, updatedAt: '2026-04-02T08:00:00Z', objective: 'conversion',
   },
   {
-    id: '6', name: 'LINE公式キャンペーン', status: 'active',
+    id: '6', name: t('campaigns.h5f8f25'), status: 'active',
     platforms: ['line_yahoo'],
     budget: { total: 300000, currency: 'JPY', dailyLimit: 30000 },
     roas: 2.6, updatedAt: '2026-04-01T16:00:00Z', objective: 'engagement',
   },
 ];
+}
 
 // ============================================================
 // Subcomponents
@@ -340,13 +354,13 @@ function CampaignDetailModal({ campaign, onClose }: CampaignDetailModalProps): R
             <p className="mb-2 text-xs font-semibold text-muted-foreground">{t('campaigns.changeHistory')}</p>
             <div className="space-y-2">
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                2026/04/01 10:00 — 予算を ¥400,000 から ¥500,000 に変更
+                {t('campaigns.historyBudgetChange')}
               </div>
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                2026/03/28 14:30 — ステータスを「配信中」に変更
+                {t('campaigns.historyStatusChange')}
               </div>
               <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                2026/03/25 09:00 — キャンペーンを作成
+                {t('campaigns.historyCreated')}
               </div>
             </div>
           </div>
@@ -380,6 +394,7 @@ function TagInput({
   placeholder: string;
   id: string;
 }): React.ReactElement {
+  const { t } = useI18n();
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -447,7 +462,7 @@ function TagInput({
                 type="button"
                 onClick={() => onRemove(tag)}
                 className="rounded-full p-0.5 hover:bg-primary/20"
-                aria-label={`${tag}を削除`}
+                aria-label={t('campaigns.ariaDeleteTag', { tag })}
               >
                 <X size={10} />
               </button>
@@ -476,7 +491,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
   const [targetRoas, setTargetRoas] = useState('');
 
   // Tab 2: Conversion Settings
-  const [conversionPoint, setConversionPoint] = useState<string>(CONVERSION_POINTS[0]);
+  const [conversionPoint, setConversionPoint] = useState<string>(getConversionPoints(t)[0]);
   const [cpaAlertLimit, setCpaAlertLimit] = useState('');
   const [roasAlertMin, setRoasAlertMin] = useState('');
   const [ctrAlertMin, setCtrAlertMin] = useState('');
@@ -836,7 +851,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                     }
                     className={cn(inputCls, 'appearance-none pr-8')}
                   >
-                    {CONVERSION_POINTS.map((cp) => (
+                    {getConversionPoints(t).map((cp) => (
                       <option key={cp} value={cp}>{cp}</option>
                     ))}
                   </select>
@@ -937,7 +952,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMin(e.target.value)}
                       className={cn(inputCls, 'appearance-none pr-8')}
                     >
-                      {AGE_OPTIONS.map((age) => (
+                      {getAgeOptions().map((age) => (
                         <option key={age} value={age}>{age}{t('campaigns.ageSuffix')}</option>
                       ))}
                     </select>
@@ -953,7 +968,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgeMax(e.target.value)}
                       className={cn(inputCls, 'appearance-none pr-8')}
                     >
-                      {AGE_OPTIONS.map((age) => (
+                      {getAgeOptions().map((age) => (
                         <option key={age} value={age}>{age}{t('campaigns.ageSuffix')}</option>
                       ))}
                     </select>
@@ -993,7 +1008,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 tags={regions}
                 onAdd={(tag) => setRegions((prev) => [...prev, tag])}
                 onRemove={(tag) => setRegions((prev) => prev.filter((t) => t !== tag))}
-                suggestions={REGION_SUGGESTIONS}
+                suggestions={getRegionSuggestions(t)}
                 placeholder={t('campaigns.regionPlaceholder')}
               />
 
@@ -1003,7 +1018,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                 tags={interests}
                 onAdd={(tag) => setInterests((prev) => [...prev, tag])}
                 onRemove={(tag) => setInterests((prev) => prev.filter((t) => t !== tag))}
-                suggestions={INTEREST_SUGGESTIONS}
+                suggestions={getInterestSuggestions(t)}
                 placeholder={t('campaigns.interestsPlaceholder')}
               />
 
@@ -1037,7 +1052,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
               <div>
                 <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.exclusionAudiences')}</span>
                 <div className="flex flex-wrap gap-2">
-                  {EXCLUSION_AUDIENCES.map((audience) => (
+                  {getExclusionAudiences(t).map((audience) => (
                     <button
                       key={audience}
                       type="button"
@@ -1063,7 +1078,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
               <div>
                 <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.selectFromCreatives')}</span>
                 <div className="grid grid-cols-3 gap-3">
-                  {MOCK_EXISTING_CREATIVES.map((creative) => {
+                  {getMockExistingCreatives(t).map((creative) => {
                     const isSelected = selectedCreativeIds.includes(creative.id);
                     return (
                       <button
@@ -1218,7 +1233,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                             handlePlatformBudgetChange(platform, Number(e.target.value))
                           }
                           className="flex-1 accent-primary"
-                          aria-label={`${PLATFORM_CONFIG[platform].label}の予算配分`}
+                          aria-label={t('campaigns.ariaBudgetAllocation', { platform: PLATFORM_CONFIG[platform].label })}
                         />
                         <span className="w-12 text-right text-sm font-semibold text-foreground">
                           {platformBudgetAllocation[platform]}%
@@ -1547,8 +1562,8 @@ export default function CampaignsPage(): React.ReactElement {
   const resumeMutation = trpc.campaigns.resume.useMutation();
 
   const campaigns: Campaign[] = campaignsQuery.error
-    ? MOCK_CAMPAIGNS
-    : (campaignsQuery.data as Campaign[] | undefined) ?? MOCK_CAMPAIGNS;
+    ? getMockCampaigns(t)
+    : (campaignsQuery.data as Campaign[] | undefined) ?? getMockCampaigns(t);
 
   const isLoading = campaignsQuery.isLoading && !campaignsQuery.error;
 
@@ -1633,10 +1648,12 @@ export default function CampaignsPage(): React.ReactElement {
   }
 
   function formatCurrency(amount: number): string {
+
     return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(amount);
   }
 
   function formatDate(dateStr: string): string {
+
     return new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(dateStr));
   }
 
@@ -1751,7 +1768,7 @@ export default function CampaignsPage(): React.ReactElement {
                         checked={selectedIds.has(campaign.id)}
                         onChange={() => toggleSelect(campaign.id)}
                         className="h-4 w-4 rounded border-input text-primary accent-primary"
-                        aria-label={`${campaign.name}を選択`}
+                        aria-label={t('campaigns.ariaSelectCampaign', { name: campaign.name })}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -1783,8 +1800,8 @@ export default function CampaignsPage(): React.ReactElement {
                             type="button"
                             onClick={() => pauseMutation.mutate({ id: campaign.id })}
                             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-yellow-100 hover:text-yellow-700"
-                            title="一時停止"
-                            aria-label={`${campaign.name}を一時停止`}
+                            title={t('campaigns.hb57e4b')}
+                            aria-label={t('campaigns.ariaPauseCampaign', { name: campaign.name })}
                           >
                             <Pause size={14} />
                           </button>
@@ -1793,8 +1810,8 @@ export default function CampaignsPage(): React.ReactElement {
                             type="button"
                             onClick={() => resumeMutation.mutate({ id: campaign.id })}
                             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-green-100 hover:text-green-700"
-                            title="再開"
-                            aria-label={`${campaign.name}を再開`}
+                            title={t('campaigns.h3fade1')}
+                            aria-label={t('campaigns.ariaResumeCampaign', { name: campaign.name })}
                           >
                             <Play size={14} />
                           </button>
@@ -1802,16 +1819,16 @@ export default function CampaignsPage(): React.ReactElement {
                         <button
                           type="button"
                           className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                          title="編集"
-                          aria-label={`${campaign.name}を編集`}
+                          title={t('campaigns.h757886')}
+                          aria-label={t('campaigns.ariaEditCampaign', { name: campaign.name })}
                         >
                           <Edit3 size={14} />
                         </button>
                         <button
                           type="button"
                           className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-100 hover:text-red-700"
-                          title="削除"
-                          aria-label={`${campaign.name}を削除`}
+                          title={t('campaigns.hc6577c')}
+                          aria-label={t('campaigns.ariaDeleteCampaign', { name: campaign.name })}
                         >
                           <Trash2 size={14} />
                         </button>

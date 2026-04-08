@@ -60,31 +60,37 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   microsoft: 'bg-teal-500',
 };
 
-const MOCK_SEGMENTS: AudienceSegment[] = [
-  { id: '1', name: '高価値リピーター', size: 15200, platform: 'google', fatigueScore: 12, lastUpdated: '2026-04-01T10:00:00Z', description: '過去3ヶ月で3回以上購入した顧客' },
-  { id: '2', name: 'カート離脱者', size: 28400, platform: 'meta', fatigueScore: 45, lastUpdated: '2026-04-01T12:00:00Z', description: 'カートに商品を入れたが購入しなかったユーザー' },
-  { id: '3', name: '新規訪問者', size: 125000, platform: 'google', fatigueScore: 8, lastUpdated: '2026-04-02T06:00:00Z', description: '過去7日間の新規サイト訪問者' },
-  { id: '4', name: 'LINE友達', size: 45000, platform: 'line_yahoo', fatigueScore: 22, lastUpdated: '2026-03-30T18:00:00Z', description: 'LINE公式アカウントの友達' },
-  { id: '5', name: 'TikTokエンゲージ', size: 89000, platform: 'tiktok', fatigueScore: 15, lastUpdated: '2026-04-01T08:00:00Z', description: 'TikTok広告にエンゲージしたユーザー' },
-  { id: '6', name: 'メルマガ購読者', size: 32000, platform: 'line_yahoo', fatigueScore: 58, lastUpdated: '2026-03-28T14:00:00Z', description: 'メールマガジン購読中のユーザー' },
-  { id: '7', name: 'X フォロワー', size: 18500, platform: 'x', fatigueScore: 30, lastUpdated: '2026-04-01T16:00:00Z', description: 'X公式アカウントのフォロワー' },
-  { id: '8', name: 'アプリユーザー', size: 67000, platform: 'meta', fatigueScore: 20, lastUpdated: '2026-04-02T04:00:00Z', description: 'モバイルアプリのアクティブユーザー' },
+function getMockSegments(t: (key: string, params?: Record<string, string | number>) => string): AudienceSegment[] {
+  return [
+  { id: '1', name: t('audiences.h61d77f'), size: 15200, platform: 'google', fatigueScore: 12, lastUpdated: '2026-04-01T10:00:00Z', description: t('audiences.h3d90eb') },
+  { id: '2', name: t('audiences.h22b7fc'), size: 28400, platform: 'meta', fatigueScore: 45, lastUpdated: '2026-04-01T12:00:00Z', description: t('audiences.h146dab') },
+  { id: '3', name: t('audiences.hb17e70'), size: 125000, platform: 'google', fatigueScore: 8, lastUpdated: '2026-04-02T06:00:00Z', description: t('audiences.hd7b69c') },
+  { id: '4', name: t('audiences.h0c5ae6'), size: 45000, platform: 'line_yahoo', fatigueScore: 22, lastUpdated: '2026-03-30T18:00:00Z', description: t('audiences.h1be250') },
+  { id: '5', name: t('audiences.ha78d21'), size: 89000, platform: 'tiktok', fatigueScore: 15, lastUpdated: '2026-04-01T08:00:00Z', description: t('audiences.h7f94ee') },
+  { id: '6', name: t('audiences.h2b5f14'), size: 32000, platform: 'line_yahoo', fatigueScore: 58, lastUpdated: '2026-03-28T14:00:00Z', description: t('audiences.hf712a8') },
+  { id: '7', name: t('audiences.he328b8'), size: 18500, platform: 'x', fatigueScore: 30, lastUpdated: '2026-04-01T16:00:00Z', description: t('audiences.he2a163') },
+  { id: '8', name: t('audiences.h06a958'), size: 67000, platform: 'meta', fatigueScore: 20, lastUpdated: '2026-04-02T04:00:00Z', description: t('audiences.ha3d503') },
 ];
+}
 
-const MOCK_OVERLAP_CIRCLES: OverlapCircle[] = [
-  { id: '1', name: '高価値リピーター', size: 15200, color: '#4285F4' },
-  { id: '2', name: 'カート離脱者', size: 28400, color: '#6366F1' },
-  { id: '4', name: 'LINE友達', size: 45000, color: '#06C755' },
+function getMockOverlapCircles(t: (key: string, params?: Record<string, string | number>) => string): OverlapCircle[] {
+  return [
+  { id: '1', name: t('audiences.h61d77f'), size: 15200, color: '#4285F4' },
+  { id: '2', name: t('audiences.h22b7fc'), size: 28400, color: '#6366F1' },
+  { id: '4', name: t('audiences.h0c5ae6'), size: 45000, color: '#06C755' },
 ];
+}
 
 // -- Subcomponents --
 
 function FatigueIndicator({ score }: { score: number }): React.ReactElement {
+  const { t } = useI18n();
+
   const level = score >= 50 ? 'high' : score >= 25 ? 'medium' : 'low';
   const config = {
-    high: { label: '高', className: 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400' },
-    medium: { label: '中', className: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400' },
-    low: { label: '低', className: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400' },
+    high: { label: t('audiences.h4296d7'), className: 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400' },
+    medium: { label: t('audiences.haed1df'), className: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400' },
+    low: { label: t('audiences.h19ac67'), className: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400' },
   };
   const c = config[level];
 
@@ -184,7 +190,7 @@ function CreateSegmentModal({ open, onClose }: CreateSegmentModalProps): React.R
               value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="高エンゲージメントユーザー"
+              placeholder={t('audiences.he5477d')}
               required
             />
           </div>
@@ -259,7 +265,7 @@ export default function AudiencesPage(): React.ReactElement {
 
   const audiencesQuery = trpc.audiences.list.useQuery(undefined, { retry: false });
 
-  const segments = audiencesQuery.error ? MOCK_SEGMENTS : (audiencesQuery.data as AudienceSegment[] | undefined) ?? MOCK_SEGMENTS;
+  const segments = audiencesQuery.error ? getMockSegments(t) : (audiencesQuery.data as AudienceSegment[] | undefined) ?? getMockSegments(t);
   const isLoading = audiencesQuery.isLoading && !audiencesQuery.error;
 
   const filteredSegments = searchQuery
@@ -323,9 +329,9 @@ export default function AudiencesPage(): React.ReactElement {
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-semibold text-foreground">{t('audiences.overlapAnalysis')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t('audiences.overlapDescription')}</p>
-          <OverlapVisualization circles={MOCK_OVERLAP_CIRCLES} />
+          <OverlapVisualization circles={getMockOverlapCircles(t)} />
           <div className="mt-2 flex flex-wrap justify-center gap-3">
-            {MOCK_OVERLAP_CIRCLES.map((circle) => (
+            {getMockOverlapCircles(t).map((circle) => (
               <div key={circle.id} className="flex items-center gap-1.5">
                 <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: circle.color }} />
                 <span className="text-xs text-muted-foreground">{circle.name}</span>

@@ -133,16 +133,18 @@ const TEST_TYPE_CONFIG: Record<TestType, { labelKey: string; className: string }
   lp: { labelKey: 'abTests.testType.lp', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
 };
 
-const CAMPAIGN_OPTIONS = [
-  '春のプロモーション2026',
-  'TikTok新規獲得キャンペーン',
-  'ブランド認知拡大',
-  'LINE公式キャンペーン',
-  'GW特別セール',
-  'リターゲティング強化',
-  '新商品ローンチ',
-  'Amazon季節セール',
+function getCampaignOptions(t: (key: string, params?: Record<string, string | number>) => string) {
+  return [
+  t('abtests.hc6f094'),
+  t('abtests.haa8e92'),
+  t('abtests.h986608'),
+  t('abtests.h5f8f25'),
+  t('abtests.h72fcf2'),
+  t('abtests.h60ef5c'),
+  t('abtests.h09330f'),
+  t('abtests.h3ed7bb'),
 ];
+}
 
 const TRAFFIC_OPTIONS: { value: TrafficAllocation; labelKey: string; descKey: string }[] = [
   { value: 'equal', labelKey: 'abTests.equalAllocation', descKey: 'abTests.equalAllocationDesc' },
@@ -154,15 +156,15 @@ const TRAFFIC_OPTIONS: { value: TrafficAllocation; labelKey: string; descKey: st
 // Mock Data (25 tests)
 // ============================================================
 
-function generateMockTests(): ABTest[] {
+function generateMockTests(t: (key: string, params?: Record<string, string | number>) => string): ABTest[] {
   const names = [
-    'CTA文言テスト', 'ヘッドライン検証A', '画像スタイルA/B', '入札戦略テスト',
-    'LP色彩テスト', 'ターゲット年齢層', 'コピー長さテスト', 'カルーセル順序',
-    'CTA色テスト', 'ヘッドライン感情訴求', '動画 vs 静止画', '価格表示テスト',
-    'レビュー表示テスト', 'バナーサイズテスト', '送料表示テスト', 'ボタン形状テスト',
-    'フォントテスト', '背景画像テスト', '時間帯最適化', 'デバイス別クリエイティブ',
-    '緊急性訴求テスト', 'ソーシャルプルーフ', '割引表示方法', 'LPファーストビュー',
-    'メールCTAテスト',
+    t('abtests.h115194'), t('abtests.hdd82ff'), t('abtests.h7dfccf'), t('abtests.h9fd32b'),
+    t('abtests.h61aa86'), t('abtests.h16c3ca'), t('abtests.haa46d0'), t('abtests.h6b7e11'),
+    t('abtests.h855fc4'), t('abtests.hcda532'), t('abtests.hf8f528'), t('abtests.hda1767'),
+    t('abtests.h37ab0d'), t('abtests.h59df6c'), t('abtests.h4f73cd'), t('abtests.hb51571'),
+    t('abtests.h5f4060'), t('abtests.h6a7254'), t('abtests.h861234'), t('abtests.h4f579c'),
+    t('abtests.h4633c0'), t('abtests.h7798f4'), t('abtests.h713bc9'), t('abtests.h1dc3ce'),
+    t('abtests.hf5fb5e'),
   ];
 
   const testTypes: TestType[] = ['creative', 'headline', 'cta', 'targeting', 'bidding', 'lp'];
@@ -209,7 +211,7 @@ function generateMockTests(): ABTest[] {
       status,
       metric,
       testType,
-      campaignName: CAMPAIGN_OPTIONS[i % CAMPAIGN_OPTIONS.length] ?? '',
+      campaignName: getCampaignOptions(t)[i % getCampaignOptions(t).length] ?? '',
       variantCount,
       currentSamples,
       requiredSamples: status === 'completed' ? currentSamples : requiredSamples,
@@ -226,7 +228,7 @@ function generateMockTests(): ABTest[] {
   });
 }
 
-const ALL_MOCK_TESTS = generateMockTests();
+// Mock tests generated inside component via useMemo
 
 // ============================================================
 // Helpers
@@ -506,7 +508,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
   const [name, setName] = useState('');
   const [testType, setTestType] = useState<TestType>('creative');
   const [metric, setMetric] = useState<MetricType>('ctr');
-  const [campaign, setCampaign] = useState(CAMPAIGN_OPTIONS[0] ?? '');
+  const [campaign, setCampaign] = useState(getCampaignOptions(t)[0] ?? '');
   const [variants, setVariants] = useState<CreateFormVariant[]>([
     { name: '', description: '' },
     { name: '', description: '' },
@@ -582,7 +584,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
               value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="CTA文言テスト"
+              placeholder={t('abtests.h115194')}
               required
             />
           </div>
@@ -597,7 +599,7 @@ function CreateTestModal({ open, onClose }: CreateTestModalProps): React.ReactEl
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCampaign(e.target.value)}
                 className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {CAMPAIGN_OPTIONS.map((c) => (
+                {getCampaignOptions(t).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -932,7 +934,7 @@ function BulkActionsBar({
 
 export default function ABTestsPage(): React.ReactElement {
   const { t } = useI18n();
-  const [tests, setTests] = useState<ABTest[]>(ALL_MOCK_TESTS);
+  const [tests, setTests] = useState<ABTest[]>(() => generateMockTests(t));
   const [modalOpen, setModalOpen] = useState(false);
   const [detailTest, setDetailTest] = useState<ABTest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

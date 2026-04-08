@@ -119,15 +119,17 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  { id: 'n1', severity: 'critical', message: '支出急増検出: Google広告「春のプロモーション」', time: '5分前', read: false, href: '/campaigns/1' },
-  { id: 'n2', severity: 'critical', message: 'Meta広告のコンバージョンピクセルが無応答', time: '30分前', read: false, href: '/settings' },
-  { id: 'n3', severity: 'warning', message: 'TikTok広告のCTRが20%低下', time: '1時間前', read: false, href: '/analytics' },
-  { id: 'n4', severity: 'warning', message: 'オーディエンス飽和: LINEリマーケティング', time: '2時間前', read: true, href: '/audiences' },
-  { id: 'n5', severity: 'info', message: 'レポート「3月パフォーマンスレポート」が完了', time: '3時間前', read: true, href: '/reports' },
-  { id: 'n6', severity: 'info', message: 'A/Bテスト「CTA文言テスト」の結果が出ました', time: '5時間前', read: true, href: '/ab-tests' },
-  { id: 'n7', severity: 'info', message: 'AI予算最適化が完了しました', time: '6時間前', read: true, href: '/budgets' },
+function getMockNotifications(t: (key: string, params?: Record<string, string | number>) => string): Notification[] {
+  return [
+  { id: 'n1', severity: 'critical', message: t('mock.notifSpendSpike'), time: t('mock.time5minAgo'), read: false, href: '/campaigns/1' },
+  { id: 'n2', severity: 'critical', message: t('mock.notifConvPixelDown'), time: t('mock.time30minAgo'), read: false, href: '/settings' },
+  { id: 'n3', severity: 'warning', message: t('mock.notifTikTokCtrDrop'), time: t('mock.time1hAgo'), read: false, href: '/analytics' },
+  { id: 'n4', severity: 'warning', message: t('mock.notifAudienceSaturation'), time: t('mock.time2hAgo'), read: true, href: '/audiences' },
+  { id: 'n5', severity: 'info', message: t('mock.notifReportCompleted'), time: t('mock.time3hAgo'), read: true, href: '/reports' },
+  { id: 'n6', severity: 'info', message: t('mock.notifAbTestResult'), time: t('mock.time5hAgo'), read: true, href: '/ab-tests' },
+  { id: 'n7', severity: 'info', message: t('mock.notifBudgetOptDone'), time: t('mock.time6hAgo'), read: true, href: '/budgets' },
 ];
+}
 
 const SEVERITY_DOT_CLASS: Record<NotificationSeverity, string> = {
   critical: 'bg-red-500',
@@ -346,6 +348,7 @@ async function trpcMutate(
   procedure: string,
   input?: Record<string, unknown>,
 ): Promise<void> {
+  const { t } = useI18n();
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('omni-ad-token')
     : null;
@@ -368,7 +371,7 @@ async function trpcMutate(
     const parsed = body as TRPCErrorResponse | null;
     const message = parsed?.error?.json?.message
       ?? parsed?.error?.message
-      ?? 'リクエストに失敗しました';
+      ?? t('layout.requestFailed');
     throw new Error(message);
   }
 }
@@ -387,6 +390,7 @@ interface TRPCQueryResult {
 }
 
 async function fetchNotifications(): Promise<Notification[]> {
+  const { t } = useI18n();
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('omni-ad-token')
     : null;
@@ -398,7 +402,7 @@ async function fetchNotifications(): Promise<Notification[]> {
 
   const response = await fetch(`${API_URL}/notifications.list`, { headers });
   if (!response.ok) {
-    throw new Error('通知の取得に失敗しました');
+    throw new Error(t('layout.fetchNotificationsFailed'));
   }
 
   const data: unknown = await response.json();
@@ -433,7 +437,7 @@ function DashboardLayoutInner({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>(getMockNotifications(t));
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
   const [emergencyStopModalOpen, setEmergencyStopModalOpen] = useState(false);
   const [emergencyStopped, setEmergencyStopped] = useState(false);
@@ -481,6 +485,7 @@ function DashboardLayoutInner({
   const [emergencyError, setEmergencyError] = useState<string | null>(null);
 
   async function handleEmergencyStop(): Promise<void> {
+  const { t } = useI18n();
     setEmergencyStopping(true);
     setEmergencyError(null);
     try {
@@ -490,7 +495,7 @@ function DashboardLayoutInner({
     } catch (err: unknown) {
       const message = err instanceof Error
         ? err.message
-        : '緊急停止に失敗しました';
+        : t('layout.emergencyStopFailed');
       setEmergencyError(message);
     } finally {
       setEmergencyStopping(false);
@@ -498,13 +503,14 @@ function DashboardLayoutInner({
   }
 
   async function handleEmergencyResume(): Promise<void> {
+    const { t } = useI18n();
     try {
       await trpcMutate('emergency.resume');
       setEmergencyStopped(false);
     } catch (err: unknown) {
       const message = err instanceof Error
         ? err.message
-        : '再開に失敗しました';
+        : t('layout.resumeFailed');
       setEmergencyError(message);
     }
   }

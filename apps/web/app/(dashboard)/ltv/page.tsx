@@ -98,14 +98,16 @@ const MOCK_LTV_DISTRIBUTION: LtvDistributionEntry[] = [
   { range: '¥100K+', count: 103 },
 ];
 
-const MOCK_PLATFORM_LTV: PlatformLtvRow[] = [
-  { platform: 'Google', avgLtv: 48200, avgCac: 11800, ltvCacRatio: 4.1, bestCampaign: '春のプロモーション2026' },
-  { platform: 'Meta', avgLtv: 42500, avgCac: 12200, ltvCacRatio: 3.5, bestCampaign: 'リターゲティング配信' },
-  { platform: 'LINE', avgLtv: 39800, avgCac: 10500, ltvCacRatio: 3.8, bestCampaign: '公式アカウント配信' },
-  { platform: 'TikTok', avgLtv: 35400, avgCac: 14200, ltvCacRatio: 2.5, bestCampaign: '若年層向けプロモ' },
-  { platform: 'Yahoo!', avgLtv: 31200, avgCac: 15800, ltvCacRatio: 2.0, bestCampaign: 'ディスプレイ広告' },
-  { platform: 'X', avgLtv: 28600, avgCac: 18500, ltvCacRatio: 1.5, bestCampaign: 'トレンド広告' },
+function getMockPlatformLtv(t: (key: string, params?: Record<string, string | number>) => string): PlatformLtvRow[] {
+  return [
+  { platform: 'Google', avgLtv: 48200, avgCac: 11800, ltvCacRatio: 4.1, bestCampaign: t('ltv.hc6f094') },
+  { platform: 'Meta', avgLtv: 42500, avgCac: 12200, ltvCacRatio: 3.5, bestCampaign: t('ltv.h5ec7c4') },
+  { platform: 'LINE', avgLtv: 39800, avgCac: 10500, ltvCacRatio: 3.8, bestCampaign: t('ltv.hbd9acd') },
+  { platform: 'TikTok', avgLtv: 35400, avgCac: 14200, ltvCacRatio: 2.5, bestCampaign: t('ltv.hfc027b') },
+  { platform: 'Yahoo!', avgLtv: 31200, avgCac: 15800, ltvCacRatio: 2.0, bestCampaign: t('ltv.hd4d8ab') },
+  { platform: 'X', avgLtv: 28600, avgCac: 18500, ltvCacRatio: 1.5, bestCampaign: t('ltv.hfb7a86') },
 ];
+}
 
 const MOCK_TOP_CUSTOMERS: TopCustomerRow[] = [
   { hashedId: 'c8a2f1...d3e4', totalRevenue: 285000, conversions: 12, firstAcquisition: '2026-01-15', platform: 'Google' },
@@ -337,7 +339,7 @@ export default function LtvPage(): React.ReactElement {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_PLATFORM_LTV.map((row) => (
+                {getMockPlatformLtv(t).map((row) => (
                   <tr key={row.platform} className="border-b border-border transition-colors hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium text-foreground">{row.platform}</td>
                     <td className="px-3 py-2 text-right text-foreground">{formatYen(row.avgLtv)}</td>

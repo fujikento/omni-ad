@@ -60,16 +60,18 @@ function getMockPortfolioKpi(t: (key: string) => string): PortfolioKpi[] {
   ];
 }
 
-const MOCK_CLIENTS: ClientRow[] = [
-  { id: 'c1', name: '株式会社テックフォワード', plan: 'エンタープライズ', monthlyBudget: 5000000, spendRate: 78, roas: 4.2, activeCampaigns: 8, status: 'good', metrics: { ctr: 3.8, cpa: 2800 } },
-  { id: 'c2', name: '合同会社ブライトコマース', plan: 'プロフェッショナル', monthlyBudget: 3500000, spendRate: 85, roas: 3.8, activeCampaigns: 5, status: 'good', metrics: { ctr: 3.2, cpa: 3200 } },
-  { id: 'c3', name: '株式会社グリーンライフ', plan: 'プロフェッショナル', monthlyBudget: 2800000, spendRate: 62, roas: 2.9, activeCampaigns: 4, status: 'warning', metrics: { ctr: 2.5, cpa: 4100 } },
-  { id: 'c4', name: '有限会社ファッションモール', plan: 'エンタープライズ', monthlyBudget: 4200000, spendRate: 91, roas: 3.5, activeCampaigns: 7, status: 'good', metrics: { ctr: 4.1, cpa: 2600 } },
-  { id: 'c5', name: '株式会社ヘルシーフード', plan: 'スタンダード', monthlyBudget: 1500000, spendRate: 45, roas: 1.8, activeCampaigns: 3, status: 'critical', metrics: { ctr: 1.9, cpa: 5800 } },
-  { id: 'c6', name: '株式会社デジタルメディア', plan: 'プロフェッショナル', monthlyBudget: 3000000, spendRate: 72, roas: 3.1, activeCampaigns: 5, status: 'good', metrics: { ctr: 3.0, cpa: 3500 } },
-  { id: 'c7', name: '合同会社スマートホーム', plan: 'スタンダード', monthlyBudget: 2000000, spendRate: 58, roas: 2.4, activeCampaigns: 3, status: 'warning', metrics: { ctr: 2.2, cpa: 4500 } },
-  { id: 'c8', name: '株式会社トラベルジャパン', plan: 'エンタープライズ', monthlyBudget: 6500000, spendRate: 68, roas: 3.9, activeCampaigns: 10, status: 'good', metrics: { ctr: 3.5, cpa: 3000 } },
+function getMockClients(t: (key: string, params?: Record<string, string | number>) => string): ClientRow[] {
+  return [
+  { id: 'c1', name: t('clients.hc3821e'), plan: t('clients.h9cfdec'), monthlyBudget: 5000000, spendRate: 78, roas: 4.2, activeCampaigns: 8, status: 'good', metrics: { ctr: 3.8, cpa: 2800 } },
+  { id: 'c2', name: t('clients.hc7d318'), plan: t('clients.hfaaee7'), monthlyBudget: 3500000, spendRate: 85, roas: 3.8, activeCampaigns: 5, status: 'good', metrics: { ctr: 3.2, cpa: 3200 } },
+  { id: 'c3', name: t('clients.he5d26e'), plan: t('clients.hfaaee7'), monthlyBudget: 2800000, spendRate: 62, roas: 2.9, activeCampaigns: 4, status: 'warning', metrics: { ctr: 2.5, cpa: 4100 } },
+  { id: 'c4', name: t('clients.h58b898'), plan: t('clients.h9cfdec'), monthlyBudget: 4200000, spendRate: 91, roas: 3.5, activeCampaigns: 7, status: 'good', metrics: { ctr: 4.1, cpa: 2600 } },
+  { id: 'c5', name: t('clients.hc49cea'), plan: t('clients.h83c3a6'), monthlyBudget: 1500000, spendRate: 45, roas: 1.8, activeCampaigns: 3, status: 'critical', metrics: { ctr: 1.9, cpa: 5800 } },
+  { id: 'c6', name: t('clients.h6ceac0'), plan: t('clients.hfaaee7'), monthlyBudget: 3000000, spendRate: 72, roas: 3.1, activeCampaigns: 5, status: 'good', metrics: { ctr: 3.0, cpa: 3500 } },
+  { id: 'c7', name: t('clients.h4df490'), plan: t('clients.h83c3a6'), monthlyBudget: 2000000, spendRate: 58, roas: 2.4, activeCampaigns: 3, status: 'warning', metrics: { ctr: 2.2, cpa: 4500 } },
+  { id: 'c8', name: t('clients.hccd8c6'), plan: t('clients.h9cfdec'), monthlyBudget: 6500000, spendRate: 68, roas: 3.9, activeCampaigns: 10, status: 'good', metrics: { ctr: 3.5, cpa: 3000 } },
 ];
+}
 
 const HEATMAP_METRICS: { key: HeatmapMetric; labelKey: string }[] = [
   { key: 'roas', labelKey: 'metrics.roas' },
@@ -222,7 +224,7 @@ export default function ClientsPage(): React.ReactElement {
     }
   }
 
-  const sortedClients = [...MOCK_CLIENTS].sort((a, b) =>
+  const sortedClients = [...getMockClients(t)].sort((a, b) =>
     compareSortValues(getSortValue(a, sortField), getSortValue(b, sortField), sortDirection),
   );
 
@@ -339,7 +341,7 @@ export default function ClientsPage(): React.ReactElement {
               </tr>
             </thead>
             <tbody>
-              {MOCK_CLIENTS.map((client) => (
+              {getMockClients(t).map((client) => (
                 <tr key={client.id} className="border-b border-border">
                   <td className="px-4 py-3 font-medium text-foreground">{client.name}</td>
                   {HEATMAP_METRICS.map((metric) => {
