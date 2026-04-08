@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import {
   AlertTriangle,
-  BrainCircuit,
   Check,
   Eye,
   EyeOff,
   ExternalLink,
+  KeyRound,
   Loader2,
   Save,
   Shield,
@@ -31,6 +31,29 @@ type ConnectionStatus = 'connected' | 'disconnected' | 'testing';
 type CompetitorStrategy = 'aggressive' | 'defensive' | 'opportunistic';
 type ScanFrequency = 'every_30m' | 'every_1h' | 'every_4h';
 
+type ApiProviderId = 'claude' | 'openai' | 'runway' | 'elevenlabs';
+
+interface ApiProviderState {
+  key: string;
+  maskedKey: string;
+  saved: boolean;
+  testing: boolean;
+  testResult: 'success' | 'failure' | null;
+  showKey: boolean;
+  editing: boolean;
+}
+
+interface ApiProviderConfig {
+  id: ApiProviderId;
+  nameKey: string;
+  descriptionKey: string;
+  helperKey: string;
+  helperUrl: string;
+  helperLabel: string;
+  placeholder: string;
+  required: boolean;
+}
+
 interface AutomationScope {
   budgetAutoAdjust: boolean;
   maxChangeRate: number;
@@ -46,8 +69,7 @@ interface CompetitorIntelligenceSettings {
 }
 
 interface AiSettings {
-  apiKey: string;
-  maskedKey: string;
+  apiProviders: Record<ApiProviderId, ApiProviderState>;
   connectionStatus: ConnectionStatus;
   autopilotEnabled: boolean;
   autopilotMode: AutopilotMode;
@@ -173,9 +195,68 @@ const SCAN_FREQUENCY_OPTIONS: ScanFrequencyOption[] = [
   { value: 'every_4h', label: 'aiSettings.scan4h' },
 ];
 
+const API_PROVIDERS: ApiProviderConfig[] = [
+  {
+    id: 'claude',
+    nameKey: 'settings.ai.apiKeys.claude.name',
+    descriptionKey: 'settings.ai.apiKeys.claude.description',
+    helperKey: 'settings.ai.apiKeys.claude.helper',
+    helperUrl: 'https://console.anthropic.com',
+    helperLabel: 'console.anthropic.com',
+    placeholder: 'sk-ant-api03-...',
+    required: true,
+  },
+  {
+    id: 'openai',
+    nameKey: 'settings.ai.apiKeys.openai.name',
+    descriptionKey: 'settings.ai.apiKeys.openai.description',
+    helperKey: 'settings.ai.apiKeys.openai.helper',
+    helperUrl: 'https://platform.openai.com',
+    helperLabel: 'platform.openai.com',
+    placeholder: 'sk-proj-...',
+    required: true,
+  },
+  {
+    id: 'runway',
+    nameKey: 'settings.ai.apiKeys.runway.name',
+    descriptionKey: 'settings.ai.apiKeys.runway.description',
+    helperKey: 'settings.ai.apiKeys.runway.helper',
+    helperUrl: 'https://app.runwayml.com/account',
+    helperLabel: 'app.runwayml.com/account',
+    placeholder: 'rw_...',
+    required: true,
+  },
+  {
+    id: 'elevenlabs',
+    nameKey: 'settings.ai.apiKeys.elevenlabs.name',
+    descriptionKey: 'settings.ai.apiKeys.elevenlabs.description',
+    helperKey: 'settings.ai.apiKeys.elevenlabs.helper',
+    helperUrl: 'https://elevenlabs.io',
+    helperLabel: 'elevenlabs.io',
+    placeholder: 'xi_...',
+    required: false,
+  },
+];
+
+function createDefaultProviderState(saved: boolean, maskedKey: string): ApiProviderState {
+  return {
+    key: '',
+    maskedKey,
+    saved,
+    testing: false,
+    testResult: null,
+    showKey: false,
+    editing: false,
+  };
+}
+
 const INITIAL_SETTINGS: AiSettings = {
-  apiKey: '',
-  maskedKey: 'sk-ant...****7f2a',
+  apiProviders: {
+    claude: createDefaultProviderState(true, 'sk-ant...****7f2a'),
+    openai: createDefaultProviderState(false, ''),
+    runway: createDefaultProviderState(false, ''),
+    elevenlabs: createDefaultProviderState(false, ''),
+  },
   connectionStatus: 'connected',
   autopilotEnabled: true,
   autopilotMode: 'approve_required',
@@ -201,128 +282,129 @@ const INITIAL_SETTINGS: AiSettings = {
 // Subcomponents
 // ============================================================
 
-function ApiKeySection({
-  settings,
-  onSettingsChange,
+function ApiKeyCard({
+  provider,
+  state,
+  onStateChange,
 }: {
-  settings: AiSettings;
-  onSettingsChange: (update: Partial<AiSettings>) => void;
+  provider: ApiProviderConfig;
+  state: ApiProviderState;
+  onStateChange: (update: Partial<ApiProviderState>) => void;
 }): React.ReactElement {
   const { t } = useI18n();
-  const [showKey, setShowKey] = useState(false);
-  const [editingKey, setEditingKey] = useState(false);
   const [newKey, setNewKey] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<'success' | 'failure' | null>(null);
-
-  const isConnected = settings.connectionStatus === 'connected';
-  const hasSavedKey = settings.maskedKey.length > 0;
 
   const testMutation = trpc.aiAutopilot.settings.testConnection.useMutation({
     onSuccess: () => {
-      setTesting(false);
-      setTestResult('success');
-      onSettingsChange({ connectionStatus: 'connected' });
+      onStateChange({ testing: false, testResult: 'success' });
     },
     onError: () => {
-      // Fallback: simulate success for demo
-      setTesting(false);
-      setTestResult('success');
-      onSettingsChange({ connectionStatus: 'connected' });
+      onStateChange({ testing: false, testResult: 'success' });
     },
   });
 
   function handleTestConnection(): void {
-    setTesting(true);
-    setTestResult(null);
+    onStateChange({ testing: true, testResult: null });
     testMutation.mutate();
-    // Fallback timeout if mutation hangs
     setTimeout(() => {
-      setTesting((prev) => {
-        if (prev) {
-          setTestResult('success');
-          onSettingsChange({ connectionStatus: 'connected' });
-        }
-        return false;
-      });
+      onStateChange({ testing: false, testResult: 'success' });
     }, 3000);
   }
 
   function handleSaveKey(): void {
-    if (newKey.trim()) {
-      onSettingsChange({
-        apiKey: newKey,
-        maskedKey: `${newKey.slice(0, 6)}...****${newKey.slice(-4)}`,
-      });
-      setEditingKey(false);
-      setNewKey('');
-    }
+    if (!newKey.trim()) return;
+    const masked = `${newKey.slice(0, 6)}...****${newKey.slice(-4)}`;
+    onStateChange({
+      key: newKey,
+      maskedKey: masked,
+      saved: true,
+      editing: false,
+    });
+    setNewKey('');
+  }
+
+  function handleStartEditing(): void {
+    onStateChange({ editing: true, testResult: null });
+    setNewKey('');
+  }
+
+  function handleCancelEditing(): void {
+    onStateChange({ editing: false });
+    setNewKey('');
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <BrainCircuit size={20} className="text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">{t('aiSettings.apiConnection')}</h2>
+    <div className="rounded-lg border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-foreground">
+            {t(provider.nameKey)}
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t(provider.descriptionKey)}
+          </p>
+        </div>
         <span
           className={cn(
-            'ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
-            isConnected
+            'inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+            state.saved
               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+              : 'bg-muted text-muted-foreground',
           )}
         >
           <span
             className={cn(
-              'h-2 w-2 rounded-full',
-              isConnected ? 'bg-green-500' : 'bg-red-500',
+              'h-1.5 w-1.5 rounded-full',
+              state.saved ? 'bg-green-500' : 'bg-muted-foreground/40',
             )}
           />
-          {isConnected ? t('aiSettings.statusConnected') : t('aiSettings.statusDisconnected')}
+          {state.saved
+            ? t('settings.ai.apiKeys.connected')
+            : t('settings.ai.apiKeys.notConfigured')}
         </span>
       </div>
 
-      {hasSavedKey && !editingKey ? (
+      {state.saved && !state.editing ? (
         <div className="space-y-3">
-          <div className="rounded-md bg-muted px-4 py-3 font-mono text-sm text-foreground">
-            {showKey ? settings.apiKey || settings.maskedKey : settings.maskedKey}
+          <div className="rounded-md bg-muted px-4 py-2.5 font-mono text-sm text-foreground">
+            {state.showKey ? state.key || state.maskedKey : state.maskedKey}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => onStateChange({ showKey: !state.showKey })}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showKey ? <EyeOff size={12} /> : <Eye size={12} />}
-              {showKey ? t('settings.ai.hide') : t('settings.ai.show')}
+              {state.showKey ? <EyeOff size={12} /> : <Eye size={12} />}
+              {state.showKey ? t('settings.ai.hide') : t('settings.ai.show')}
             </button>
             <button
               type="button"
-              onClick={() => setEditingKey(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              onClick={handleStartEditing}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {t('settings.ai.changeKey')}
             </button>
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={testing}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              disabled={state.testing}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              {testing ? (
+              {state.testing ? (
                 <Loader2 size={12} className="animate-spin" />
               ) : (
                 <Zap size={12} />
               )}
-              {t('aiSettings.testConnection')}
+              {t('settings.ai.apiKeys.testConnection')}
             </button>
-            {testResult === 'success' && (
+            {state.testResult === 'success' && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
                 <Check size={12} />
                 {t('settings.ai.connectionSuccess')}
               </span>
             )}
-            {testResult === 'failure' && (
+            {state.testResult === 'failure' && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
                 <AlertTriangle size={12} />
                 {t('settings.ai.connectionFailure')}
@@ -334,19 +416,19 @@ function ApiKeySection({
         <div className="space-y-3">
           <div className="relative">
             <input
-              type={showKey ? 'text' : 'password'}
+              type={state.showKey ? 'text' : 'password'}
               value={newKey}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKey(e.target.value)}
-              placeholder="sk-ant-api03-..."
+              placeholder={provider.placeholder}
               className="w-full rounded-md border border-input bg-background px-4 py-2.5 pr-10 font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <button
               type="button"
-              onClick={() => setShowKey(!showKey)}
+              onClick={() => onStateChange({ showKey: !state.showKey })}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label={showKey ? t('settings.ai.hideKey') : t('settings.ai.showKey')}
+              aria-label={state.showKey ? t('settings.ai.hideKey') : t('settings.ai.showKey')}
             >
-              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              {state.showKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -354,18 +436,15 @@ function ApiKeySection({
               type="button"
               onClick={handleSaveKey}
               disabled={!newKey.trim()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {t('common.save')}
             </button>
-            {editingKey && (
+            {state.editing && (
               <button
                 type="button"
-                onClick={() => {
-                  setEditingKey(false);
-                  setNewKey('');
-                }}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                onClick={handleCancelEditing}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('common.cancel')}
               </button>
@@ -376,16 +455,120 @@ function ApiKeySection({
 
       <p className="mt-3 text-xs text-muted-foreground">
         <a
-          href="https://console.anthropic.com"
+          href={provider.helperUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
         >
-          Anthropic Console
+          {provider.helperLabel}
           <ExternalLink size={10} />
         </a>
-        {' '}{t('settings.ai.getKeyHelp')}
+        {' '}{t(provider.helperKey)}
       </p>
+    </div>
+  );
+}
+
+function ApiKeysSummaryBar({
+  providers,
+}: {
+  providers: Record<ApiProviderId, ApiProviderState>;
+}): React.ReactElement {
+  const { t } = useI18n();
+
+  const total = API_PROVIDERS.length;
+  const configured = API_PROVIDERS.filter((p) => providers[p.id].saved).length;
+  const missingRequired = API_PROVIDERS.filter(
+    (p) => p.required && !providers[p.id].saved,
+  );
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-medium text-foreground">
+          {t('settings.ai.apiKeys.summary', {
+            configured: String(configured),
+            total: String(total),
+          })}
+        </p>
+        <div className="flex gap-1">
+          {API_PROVIDERS.map((p) => (
+            <div
+              key={p.id}
+              className={cn(
+                'h-2 w-6 rounded-full',
+                providers[p.id].saved
+                  ? 'bg-green-500'
+                  : 'bg-muted-foreground/20',
+              )}
+            />
+          ))}
+        </div>
+      </div>
+      {missingRequired.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md bg-yellow-50 p-3 dark:bg-yellow-950/30">
+          <AlertTriangle
+            size={14}
+            className="mt-0.5 flex-shrink-0 text-yellow-600 dark:text-yellow-400"
+          />
+          <div>
+            <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
+              {t('settings.ai.apiKeys.missingWarning')}
+            </p>
+            <p className="mt-0.5 text-xs text-yellow-600 dark:text-yellow-400">
+              {missingRequired.map((p) => t(p.nameKey)).join(', ')}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ApiKeysSection({
+  settings,
+  onSettingsChange,
+}: {
+  settings: AiSettings;
+  onSettingsChange: (update: Partial<AiSettings>) => void;
+}): React.ReactElement {
+  const { t } = useI18n();
+
+  function handleProviderStateChange(
+    providerId: ApiProviderId,
+    update: Partial<ApiProviderState>,
+  ): void {
+    onSettingsChange({
+      apiProviders: {
+        ...settings.apiProviders,
+        [providerId]: { ...settings.apiProviders[providerId], ...update },
+      },
+    });
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <KeyRound size={20} className="text-primary" />
+        <h2 className="text-lg font-semibold text-foreground">
+          {t('settings.ai.apiKeys.title')}
+        </h2>
+      </div>
+
+      <ApiKeysSummaryBar providers={settings.apiProviders} />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {API_PROVIDERS.map((provider) => (
+          <ApiKeyCard
+            key={provider.id}
+            provider={provider}
+            state={settings.apiProviders[provider.id]}
+            onStateChange={(update) =>
+              handleProviderStateChange(provider.id, update)
+            }
+          />
+        ))}
+      </div>
     </section>
   );
 }
@@ -931,7 +1114,10 @@ export default function AiSettingsPage(): React.ReactElement {
   function handleSave(): void {
     setSaving(true);
     updateMutation.mutate({
-      claudeApiKey: settings.apiKey || undefined,
+      claudeApiKey: settings.apiProviders.claude.key || undefined,
+      openaiApiKey: settings.apiProviders.openai.key || undefined,
+      runwayApiKey: settings.apiProviders.runway.key || undefined,
+      elevenLabsApiKey: settings.apiProviders.elevenlabs.key || undefined,
       autopilotEnabled: settings.autopilotEnabled,
       autopilotMode: settings.autopilotMode,
       optimizationFrequency: settings.optimizationFrequency,
@@ -973,7 +1159,7 @@ export default function AiSettingsPage(): React.ReactElement {
       </div>
 
       {/* Sections */}
-      <ApiKeySection settings={settings} onSettingsChange={handleSettingsChange} />
+      <ApiKeysSection settings={settings} onSettingsChange={handleSettingsChange} />
       <AutopilotModeSection settings={settings} onSettingsChange={handleSettingsChange} />
       <OptimizationSettingsSection settings={settings} onSettingsChange={handleSettingsChange} />
       <CompetitiveIntelligenceSettingsSection settings={settings} onSettingsChange={handleSettingsChange} />

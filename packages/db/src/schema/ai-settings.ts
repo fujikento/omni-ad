@@ -76,6 +76,9 @@ export const aiSettings = pgTable('ai_settings', {
     .unique()
     .references(() => organizations.id, { onDelete: 'cascade' }),
   claudeApiKeyEncrypted: text('claude_api_key_encrypted'),
+  openaiApiKeyEncrypted: text('openai_api_key_encrypted'),
+  runwayApiKeyEncrypted: text('runway_api_key_encrypted'),
+  elevenLabsApiKeyEncrypted: text('elevenlabs_api_key_encrypted'),
   autopilotEnabled: boolean('autopilot_enabled').notNull().default(false),
   autopilotMode: autopilotModeEnum('autopilot_mode')
     .notNull()

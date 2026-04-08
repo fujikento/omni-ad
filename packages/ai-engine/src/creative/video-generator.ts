@@ -38,8 +38,11 @@ function toDurationRatio(seconds: number): number {
   return 10; // 30s maps to max; real multi-clip stitching is out of v1 scope
 }
 
-async function createRunwayTask(request: VideoGenerationRequest): Promise<string> {
-  const apiKey = process.env['RUNWAY_API_KEY'];
+async function createRunwayTask(
+  request: VideoGenerationRequest,
+  overrideApiKey?: string,
+): Promise<string> {
+  const apiKey = overrideApiKey ?? process.env['RUNWAY_API_KEY'];
   if (!apiKey) throw new Error('RUNWAY_API_KEY not configured');
 
   const firstFrame = request.imageFrameUrls[0] ?? null;
@@ -78,8 +81,11 @@ async function createRunwayTask(request: VideoGenerationRequest): Promise<string
   return body.id;
 }
 
-async function pollRunwayTask(taskId: string): Promise<string> {
-  const apiKey = process.env['RUNWAY_API_KEY'];
+async function pollRunwayTask(
+  taskId: string,
+  overrideApiKey?: string,
+): Promise<string> {
+  const apiKey = overrideApiKey ?? process.env['RUNWAY_API_KEY'];
   if (!apiKey) throw new Error('RUNWAY_API_KEY not configured');
 
   for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
@@ -123,11 +129,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export interface VideoGenerationOptions {
+  runwayApiKey?: string;
+}
+
 export async function generateAdVideo(
   request: VideoGenerationRequest,
+  options?: VideoGenerationOptions,
 ): Promise<GeneratedVideo> {
-  const taskId = await createRunwayTask(request);
-  const videoUrl = await pollRunwayTask(taskId);
+  const taskId = await createRunwayTask(request, options?.runwayApiKey);
+  const videoUrl = await pollRunwayTask(taskId, options?.runwayApiKey);
 
   return {
     url: videoUrl,

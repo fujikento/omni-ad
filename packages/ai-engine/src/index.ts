@@ -1,13 +1,13 @@
 // Creative Generation
-export { generateAdText, type TextGenerationRequest, type GeneratedText } from './creative/text-generator.js';
-export { generateAdImage, type ImageGenerationRequest, type GeneratedImage } from './creative/image-generator.js';
-export { generateAdVideo, type VideoGenerationRequest, type GeneratedVideo } from './creative/video-generator.js';
+export { generateAdText, type TextGenerationRequest, type GeneratedText, type TextGenerationOptions } from './creative/text-generator.js';
+export { generateAdImage, type ImageGenerationRequest, type GeneratedImage, type ImageGenerationOptions } from './creative/image-generator.js';
+export { generateAdVideo, type VideoGenerationRequest, type GeneratedVideo, type VideoGenerationOptions } from './creative/video-generator.js';
 export { adaptForPlatform, type PlatformAdaptationRequest, type AdaptedCreative } from './creative/platform-adapter.js';
 
 // Script-to-Video Pipeline
 export { generateVideoScript, type VideoScript, type VideoScene, type ScriptGenerationInput, ScriptValidationError } from './creative/script-generator.js';
 export { composeScenes, type SceneAsset, type CompositionResult, SceneGenerationError } from './creative/scene-compositor.js';
-export { generateVoiceover, type VoiceoverRequest, type VoiceoverResult, VoiceoverValidationError, VoiceoverGenerationError } from './creative/voiceover-generator.js';
+export { generateVoiceover, type VoiceoverRequest, type VoiceoverResult, type VoiceoverOptions, VoiceoverValidationError, VoiceoverGenerationError } from './creative/voiceover-generator.js';
 
 // Budget Optimization
 export { initializeArms, updateArm, computeAllocation, resetArm, type BanditArm, type BanditConfig, type AllocationResult } from './optimization/bandit.js';
@@ -19,7 +19,7 @@ export { computeMarkovAttribution, type TouchpointSequence, type AttributionResu
 export { computeShapleyAttribution, type ShapleyInput, type ShapleyResult } from './attribution/shapley.js';
 
 // Insights
-export { generateInsights, type InsightInput, type Insight, type InsightType, type InsightSeverity } from './insights/index.js';
+export { generateInsights, type InsightInput, type Insight, type InsightType, type InsightSeverity, type InsightOptions } from './insights/index.js';
 
 // Creative Intelligence
 export { getCreativeRecommendations, recordPerformanceFeedback, registerCreativeFeatures, type CreativeFeatures, type PerformanceFeedback, type CreativeRecommendation } from './creative-intelligence/index.js';

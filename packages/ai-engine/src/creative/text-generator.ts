@@ -194,8 +194,9 @@ function parseGptFunctionOutput(responseBody: unknown): TextVariantOutput[] {
 async function generateWithClaude(
   systemPrompt: string,
   userPrompt: string,
+  overrideApiKey?: string,
 ): Promise<TextVariantOutput[]> {
-  const apiKey = process.env['ANTHROPIC_API_KEY'];
+  const apiKey = overrideApiKey ?? process.env['ANTHROPIC_API_KEY'];
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -227,8 +228,9 @@ async function generateWithClaude(
 async function generateWithGpt(
   systemPrompt: string,
   userPrompt: string,
+  overrideApiKey?: string,
 ): Promise<TextVariantOutput[]> {
-  const apiKey = process.env['OPENAI_API_KEY'];
+  const apiKey = overrideApiKey ?? process.env['OPENAI_API_KEY'];
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -257,8 +259,14 @@ async function generateWithGpt(
   return parseGptFunctionOutput(body);
 }
 
+export interface TextGenerationOptions {
+  anthropicApiKey?: string;
+  openaiApiKey?: string;
+}
+
 export async function generateAdText(
   request: TextGenerationRequest,
+  options?: TextGenerationOptions,
 ): Promise<GeneratedText[]> {
   const currentMonth = new Date().getMonth() + 1;
   const userPrompt = buildUserPrompt(request);
@@ -268,11 +276,19 @@ export async function generateAdText(
 
   if (request.language === 'ja') {
     const systemPrompt = buildJapaneseSystemPrompt(request, currentMonth);
-    rawVariants = await generateWithClaude(systemPrompt, userPrompt);
+    rawVariants = await generateWithClaude(
+      systemPrompt,
+      userPrompt,
+      options?.anthropicApiKey,
+    );
     model = 'claude-sonnet-4-20250514';
   } else {
     const systemPrompt = buildEnglishSystemPrompt(request, currentMonth);
-    rawVariants = await generateWithGpt(systemPrompt, userPrompt);
+    rawVariants = await generateWithGpt(
+      systemPrompt,
+      userPrompt,
+      options?.openaiApiKey,
+    );
     model = 'gpt-4o';
   }
 

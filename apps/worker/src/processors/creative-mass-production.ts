@@ -4,6 +4,7 @@ import {
 } from '@omni-ad/queue';
 import { db } from '@omni-ad/db';
 import { creatives, creativeVariants } from '@omni-ad/db/schema';
+import { resolveApiKey } from '../utils/resolve-api-key.js';
 
 // ---------------------------------------------------------------------------
 // Logger
@@ -153,8 +154,9 @@ function parseMassVariants(responseBody: unknown): MassTextVariant[] {
 
 async function generateChunkVariants(
   data: MassProductionChunkJob,
+  overrideApiKey?: string,
 ): Promise<MassTextVariant[]> {
-  const apiKey = process.env['ANTHROPIC_API_KEY'];
+  const apiKey = overrideApiKey ?? process.env['ANTHROPIC_API_KEY'];
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const { system, user } = buildMassProductionPrompt(data);
@@ -326,8 +328,14 @@ export async function processCreativeMassProduction(job: {
       return;
     }
 
+    // Resolve org-specific Anthropic key (falls back to env var)
+    const anthropicKey = await resolveApiKey(
+      data.organizationId,
+      'anthropic',
+    );
+
     // Generate text variants via Claude
-    const variants = await generateChunkVariants(data);
+    const variants = await generateChunkVariants(data, anthropicKey);
 
     // Store in DB
     const creativeIds = await storeGeneratedCreatives(

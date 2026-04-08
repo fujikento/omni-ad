@@ -10,6 +10,13 @@ import {
   testApiConnection,
   updateSettings,
 } from '../../services/ai-autopilot.service.js';
+import {
+  getKeyStatus,
+  maskApiKey as maskKey,
+  testApiKey,
+  type ApiProvider,
+} from '../../services/api-keys.service.js';
+import { decryptToken } from '@omni-ad/auth';
 import { getQueue, QUEUE_NAMES } from '@omni-ad/queue';
 import type { AutopilotCycleJob } from '@omni-ad/queue';
 import { organizationProcedure, router } from '../trpc.js';
@@ -20,6 +27,9 @@ import { organizationProcedure, router } from '../trpc.js';
 
 const UpdateSettingsInput = z.object({
   claudeApiKey: z.string().min(1).optional(),
+  openaiApiKey: z.string().min(1).optional(),
+  runwayApiKey: z.string().min(1).optional(),
+  elevenLabsApiKey: z.string().min(1).optional(),
   autopilotEnabled: z.boolean().optional(),
   autopilotMode: z
     .enum(['full_auto', 'suggest_only', 'approve_required'])
@@ -36,6 +46,11 @@ const UpdateSettingsInput = z.object({
     .optional(),
   targetRoas: z.number().positive().nullable().optional(),
   monthlyBudgetCap: z.string().nullable().optional(),
+});
+
+const TestKeyInput = z.object({
+  provider: z.enum(['anthropic', 'openai', 'runway', 'elevenlabs']),
+  apiKey: z.string().min(1),
 });
 
 const ListDecisionsInput = z.object({
@@ -59,9 +74,14 @@ const DecisionIdInput = z.object({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function maskApiKey(encryptedKey: string | null): string | null {
+function decryptAndMask(encryptedKey: string | null): string | null {
   if (!encryptedKey) return null;
-  return 'sk-...****';
+  try {
+    const plaintext = decryptToken(encryptedKey);
+    return maskKey(plaintext);
+  } catch {
+    return '****';
+  }
 }
 
 function handleServiceError(error: unknown): never {
@@ -88,14 +108,36 @@ function handleServiceError(error: unknown): never {
 // Router
 // ---------------------------------------------------------------------------
 
+function maskAllKeys<T extends Record<string, unknown>>(
+  settings: T,
+): T & {
+  claudeApiKeyEncrypted: string | null;
+  openaiApiKeyEncrypted: string | null;
+  runwayApiKeyEncrypted: string | null;
+  elevenLabsApiKeyEncrypted: string | null;
+} {
+  return {
+    ...settings,
+    claudeApiKeyEncrypted: decryptAndMask(
+      settings['claudeApiKeyEncrypted'] as string | null,
+    ),
+    openaiApiKeyEncrypted: decryptAndMask(
+      settings['openaiApiKeyEncrypted'] as string | null,
+    ),
+    runwayApiKeyEncrypted: decryptAndMask(
+      settings['runwayApiKeyEncrypted'] as string | null,
+    ),
+    elevenLabsApiKeyEncrypted: decryptAndMask(
+      settings['elevenLabsApiKeyEncrypted'] as string | null,
+    ),
+  };
+}
+
 const settingsRouter = router({
   get: organizationProcedure.query(async ({ ctx }) => {
     try {
       const settings = await getSettings(ctx.organizationId);
-      return {
-        ...settings,
-        claudeApiKeyEncrypted: maskApiKey(settings.claudeApiKeyEncrypted),
-      };
+      return maskAllKeys(settings);
     } catch (error) {
       handleServiceError(error);
     }
@@ -106,10 +148,7 @@ const settingsRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         const updated = await updateSettings(ctx.organizationId, input);
-        return {
-          ...updated,
-          claudeApiKeyEncrypted: maskApiKey(updated.claudeApiKeyEncrypted),
-        };
+        return maskAllKeys(updated);
       } catch (error) {
         handleServiceError(error);
       }
@@ -118,6 +157,24 @@ const settingsRouter = router({
   testConnection: organizationProcedure.mutation(async ({ ctx }) => {
     try {
       return await testApiConnection(ctx.organizationId);
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
+
+  testKey: organizationProcedure
+    .input(TestKeyInput)
+    .mutation(async ({ input }) => {
+      try {
+        return await testApiKey(input.provider as ApiProvider, input.apiKey);
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  getKeyStatus: organizationProcedure.query(async ({ ctx }) => {
+    try {
+      return await getKeyStatus(ctx.organizationId);
     } catch (error) {
       handleServiceError(error);
     }

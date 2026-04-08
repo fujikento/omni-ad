@@ -37,6 +37,9 @@ type MetricsDailySelect = typeof metricsDaily.$inferSelect;
 
 interface UpdateSettingsInput {
   claudeApiKey?: string;
+  openaiApiKey?: string;
+  runwayApiKey?: string;
+  elevenLabsApiKey?: string;
   autopilotEnabled?: boolean;
   autopilotMode?: AiSettingsSelect['autopilotMode'];
   optimizationFrequency?: AiSettingsSelect['optimizationFrequency'];
@@ -178,6 +181,17 @@ export async function updateSettings(
 
   if (input.claudeApiKey !== undefined) {
     updateSet['claudeApiKeyEncrypted'] = encryptToken(input.claudeApiKey);
+  }
+  if (input.openaiApiKey !== undefined) {
+    updateSet['openaiApiKeyEncrypted'] = encryptToken(input.openaiApiKey);
+  }
+  if (input.runwayApiKey !== undefined) {
+    updateSet['runwayApiKeyEncrypted'] = encryptToken(input.runwayApiKey);
+  }
+  if (input.elevenLabsApiKey !== undefined) {
+    updateSet['elevenLabsApiKeyEncrypted'] = encryptToken(
+      input.elevenLabsApiKey,
+    );
   }
   if (input.autopilotEnabled !== undefined) {
     updateSet['autopilotEnabled'] = input.autopilotEnabled;

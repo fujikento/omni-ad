@@ -181,8 +181,15 @@ function parseClaudeInsights(responseBody: unknown): Insight[] {
   throw new Error('Claude response did not include output_insights tool_use block');
 }
 
-export async function generateInsights(input: InsightInput): Promise<Insight[]> {
-  const apiKey = process.env['ANTHROPIC_API_KEY'];
+export interface InsightOptions {
+  anthropicApiKey?: string;
+}
+
+export async function generateInsights(
+  input: InsightInput,
+  options?: InsightOptions,
+): Promise<Insight[]> {
+  const apiKey = options?.anthropicApiKey ?? process.env['ANTHROPIC_API_KEY'];
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const userPrompt = buildInsightPrompt(input);

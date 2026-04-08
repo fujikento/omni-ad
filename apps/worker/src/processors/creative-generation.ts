@@ -14,6 +14,7 @@ import {
   generateAdVideo,
   adaptForPlatform,
 } from '@omni-ad/ai-engine';
+import { resolveApiKey } from '../utils/resolve-api-key.js';
 
 interface ProcessorLogger {
   info(message: string, meta?: Record<string, unknown>): void;
@@ -55,20 +56,29 @@ async function tryProcessTextGeneration(job: { name: string; data: unknown }): P
   });
 
   try {
+    // Resolve org-specific API keys (falls back to env vars)
+    const [anthropicKey, openaiKey] = await Promise.all([
+      resolveApiKey(data.organizationId, 'anthropic'),
+      resolveApiKey(data.organizationId, 'openai'),
+    ]);
+
     // Generate for each platform
     for (const platform of data.platforms) {
-      const variants = await generateAdText({
-        productName: data.productInfo.name,
-        productDescription: data.productInfo.description,
-        targetAudience: data.productInfo.targetAudience,
-        usp: data.productInfo.usp,
-        platform: platform.toUpperCase(),
-        language: data.language,
-        keigoLevel: data.keigoLevel,
-        maxHeadlineLength: 60,
-        maxBodyLength: 200,
-        variantCount: data.variantCount,
-      });
+      const variants = await generateAdText(
+        {
+          productName: data.productInfo.name,
+          productDescription: data.productInfo.description,
+          targetAudience: data.productInfo.targetAudience,
+          usp: data.productInfo.usp,
+          platform: platform.toUpperCase(),
+          language: data.language,
+          keigoLevel: data.keigoLevel,
+          maxHeadlineLength: 60,
+          maxBodyLength: 200,
+          variantCount: data.variantCount,
+        },
+        { anthropicApiKey: anthropicKey, openaiApiKey: openaiKey },
+      );
 
       logger.info('Text variants generated', {
         campaignId: data.campaignId,
@@ -102,12 +112,17 @@ async function tryProcessImageGeneration(job: { name: string; data: unknown }): 
   });
 
   try {
-    const images = await generateAdImage({
-      prompt: data.prompt,
-      style: data.style ?? 'professional',
-      dimensions: data.dimensions,
-      brandColors: [],
-    });
+    const openaiKey = await resolveApiKey(data.organizationId, 'openai');
+
+    const images = await generateAdImage(
+      {
+        prompt: data.prompt,
+        style: data.style ?? 'professional',
+        dimensions: data.dimensions,
+        brandColors: [],
+      },
+      { openaiApiKey: openaiKey },
+    );
 
     logger.info('Images generated', {
       creativeId: data.creativeId,
@@ -138,6 +153,8 @@ async function tryProcessVideoGeneration(job: { name: string; data: unknown }): 
   });
 
   try {
+    const runwayKey = await resolveApiKey(data.organizationId, 'runway');
+
     const durationMap: Record<string, 6 | 15 | 30> = {
       '6': 6,
       '15': 15,
@@ -145,12 +162,15 @@ async function tryProcessVideoGeneration(job: { name: string; data: unknown }): 
     };
     const duration = durationMap[data.durationSeconds] ?? 15;
 
-    const video = await generateAdVideo({
-      prompt: data.prompt,
-      durationSeconds: duration,
-      imageFrameUrls: data.imageFrameUrls ?? [],
-      aspectRatio: '16:9',
-    });
+    const video = await generateAdVideo(
+      {
+        prompt: data.prompt,
+        durationSeconds: duration,
+        imageFrameUrls: data.imageFrameUrls ?? [],
+        aspectRatio: '16:9',
+      },
+      { runwayApiKey: runwayKey },
+    );
 
     logger.info('Video generated', {
       creativeId: data.creativeId,

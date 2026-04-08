@@ -60,10 +60,15 @@ function isTtsErrorResponse(value: unknown): value is TtsErrorResponse {
 // Public API
 // ---------------------------------------------------------------------------
 
+export interface VoiceoverOptions {
+  openaiApiKey?: string;
+}
+
 export async function generateVoiceover(
   request: VoiceoverRequest,
+  options?: VoiceoverOptions,
 ): Promise<VoiceoverResult> {
-  const apiKey = process.env['OPENAI_API_KEY'];
+  const apiKey = options?.openaiApiKey ?? process.env['OPENAI_API_KEY'];
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
   if (request.text.trim().length === 0) {

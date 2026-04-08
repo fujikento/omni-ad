@@ -45,8 +45,12 @@ function isOpenAIImageResponse(value: unknown): value is OpenAIImageResponse {
   return Array.isArray(v['data']);
 }
 
-async function callImagesApi(prompt: string, size: GptImageSize): Promise<string> {
-  const apiKey = process.env['OPENAI_API_KEY'];
+async function callImagesApi(
+  prompt: string,
+  size: GptImageSize,
+  overrideApiKey?: string,
+): Promise<string> {
+  const apiKey = overrideApiKey ?? process.env['OPENAI_API_KEY'];
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -78,8 +82,13 @@ async function callImagesApi(prompt: string, size: GptImageSize): Promise<string
   return url;
 }
 
+export interface ImageGenerationOptions {
+  openaiApiKey?: string;
+}
+
 export async function generateAdImage(
   request: ImageGenerationRequest,
+  options?: ImageGenerationOptions,
 ): Promise<GeneratedImage[]> {
   if (request.dimensions.length === 0) {
     throw new Error('At least one dimension must be specified');
@@ -89,7 +98,7 @@ export async function generateAdImage(
     request.dimensions.map(async ({ width, height }) => {
       const size = toGptImageSize(width, height);
       const prompt = buildImagePrompt(request, width, height);
-      const url = await callImagesApi(prompt, size);
+      const url = await callImagesApi(prompt, size, options?.openaiApiKey);
       return { url, width, height, model: 'gpt-image-1' };
     }),
   );
