@@ -382,21 +382,18 @@ export async function addComment(
     throw new ApprovalNotFoundError(requestId);
   }
 
-  const existingComments: ApprovalComment[] =
-    (request.comments as ApprovalComment[] | null) ?? [];
-
   const newComment: ApprovalComment = {
     userId,
     text,
     createdAt: new Date().toISOString(),
   };
 
-  const updatedComments = [...existingComments, newComment];
-
+  // Append in-DB with jsonb concatenation so concurrent commenters do not
+  // overwrite each other via last-write-wins on the client-merged array.
   const [updated] = await db
     .update(approvalRequests)
     .set({
-      comments: updatedComments,
+      comments: sql`COALESCE(${approvalRequests.comments}, '[]'::jsonb) || ${JSON.stringify([newComment])}::jsonb`,
       updatedAt: sql`now()`,
     })
     .where(
