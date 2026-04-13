@@ -118,6 +118,7 @@ export async function listNotifications(
 export async function markAsRead(
   notificationId: string,
   userId: string,
+  organizationId: string,
 ): Promise<NotificationSelect | undefined> {
   const [updated] = await db
     .update(notifications)
@@ -125,6 +126,7 @@ export async function markAsRead(
     .where(
       and(
         eq(notifications.id, notificationId),
+        eq(notifications.organizationId, organizationId),
         sql`(${notifications.userId} = ${userId} OR ${notifications.userId} IS NULL)`,
       ),
     )

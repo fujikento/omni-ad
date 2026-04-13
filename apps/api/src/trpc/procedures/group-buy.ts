@@ -160,7 +160,7 @@ export const groupBuyRouter = router({
     .input(
       z.object({
         groupId: z.string().uuid(),
-        sharerId: z.string().min(1),
+        sharerId: z.string().uuid(),
         platform: platformSchema,
         shareType: z.enum(['direct_link', 'story', 'message', 'post']),
       }),

@@ -72,7 +72,11 @@ export const notificationsRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const notification = await markAsRead(input.id, ctx.userId);
+        const notification = await markAsRead(
+          input.id,
+          ctx.userId,
+          ctx.organizationId,
+        );
         if (!notification) {
           throw new TRPCError({
             code: 'NOT_FOUND',
