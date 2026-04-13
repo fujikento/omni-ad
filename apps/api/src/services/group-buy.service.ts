@@ -181,30 +181,55 @@ export async function joinGroup(
     referralChain: input.referralChain,
   };
 
-  const newParticipantCount = group.participantCount + 1;
-  const newTier = computeCurrentTier(
-    newParticipantCount,
-    group.tiers as GroupTier[],
-  );
-
-  // Check if threshold met
-  const maxTier = (group.tiers as GroupTier[]).length;
-  const newStatus = newTier >= maxTier ? 'threshold_met' : 'open';
+  // Atomic increment: compute the new count/tier/status from the RETURNED
+  // row rather than the stale read above. Concurrent joiners are serialised
+  // by the SQL increment, so no two participants collapse to the same count.
+  const tiers = group.tiers as GroupTier[];
+  const maxTier = tiers.length;
 
   const [updated] = await db
     .update(purchaseGroups)
     .set({
-      participantCount: newParticipantCount,
+      participantCount: sql`${purchaseGroups.participantCount} + 1`,
       participants: sql`${purchaseGroups.participants} || ${JSON.stringify(newParticipant)}::jsonb`,
-      currentTier: newTier,
-      status: newStatus,
       updatedAt: new Date(),
     })
-    .where(eq(purchaseGroups.id, group.id))
+    .where(
+      and(
+        eq(purchaseGroups.id, group.id),
+        eq(purchaseGroups.organizationId, organizationId),
+        eq(purchaseGroups.status, 'open'),
+      ),
+    )
     .returning();
 
   if (!updated) {
-    throw new GroupBuyNotFoundError(input.groupId);
+    throw new GroupBuyStateError('Group is no longer open for joining');
+  }
+
+  // Recompute tier/status from the authoritative post-increment count and
+  // write back only if changed, so late joiners see the correct tier.
+  const authoritativeCount = updated.participantCount;
+  const newTier = computeCurrentTier(authoritativeCount, tiers);
+  const newStatus: 'open' | 'threshold_met' =
+    newTier >= maxTier ? 'threshold_met' : 'open';
+
+  if (newTier !== updated.currentTier || newStatus !== updated.status) {
+    const [tierUpdated] = await db
+      .update(purchaseGroups)
+      .set({
+        currentTier: newTier,
+        status: newStatus,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(purchaseGroups.id, group.id),
+          eq(purchaseGroups.organizationId, organizationId),
+        ),
+      )
+      .returning();
+    if (tierUpdated) return tierUpdated;
   }
 
   return updated;
