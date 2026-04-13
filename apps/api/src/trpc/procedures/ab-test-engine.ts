@@ -247,12 +247,13 @@ export const abTestEngineRouter = router({
         value: z.number().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
         await recordEvent(
           input.testId,
           input.variantId,
           input.eventType,
+          ctx.organizationId,
           input.value,
         );
         return { success: true };

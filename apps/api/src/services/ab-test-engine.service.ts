@@ -192,8 +192,23 @@ export async function recordEvent(
   testId: string,
   variantId: string,
   eventType: EventType,
+  organizationId: string,
   value?: number,
 ): Promise<void> {
+  // Tenancy guard: confirm the test belongs to the caller's org before
+  // buffering. Without this, any authenticated user can forge events
+  // against any other tenant's A/B tests (result manipulation).
+  const test = await db.query.abTests.findFirst({
+    where: and(
+      eq(abTests.id, testId),
+      eq(abTests.organizationId, organizationId),
+    ),
+    columns: { id: true },
+  });
+  if (!test) {
+    throw new Error('Test not found');
+  }
+
   eventBuffer.push({
     testId,
     variantId,
