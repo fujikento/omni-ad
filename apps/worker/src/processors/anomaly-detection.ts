@@ -105,7 +105,12 @@ export async function processAnomalyDetection(job: {
       await db
         .update(campaigns)
         .set({ status: 'paused', updatedAt: sql`now()` })
-        .where(eq(campaigns.id, campaignId));
+        .where(
+          and(
+            eq(campaigns.id, campaignId),
+            eq(campaigns.organizationId, organizationId),
+          ),
+        );
     }
   }
 
