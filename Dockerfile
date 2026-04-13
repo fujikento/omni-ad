@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile
 # ============================================================================
 FROM node:20-alpine AS api
 
-RUN apk add --no-cache tini wget
+RUN apk add --no-cache tini wget && npm install -g tsx
 WORKDIR /app
 
 COPY --from=deps /app .
@@ -35,14 +35,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 USER node
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["./node_modules/.bin/tsx", "apps/api/src/server.ts"]
+CMD ["tsx", "apps/api/src/server.ts"]
 
 # ============================================================================
 # Stage 2b: Worker
 # ============================================================================
 FROM node:20-alpine AS worker
 
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini && npm install -g tsx
 WORKDIR /app
 
 COPY --from=deps /app .
@@ -51,4 +51,4 @@ ENV NODE_ENV=production
 
 USER node
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["./node_modules/.bin/tsx", "apps/worker/src/worker.ts"]
+CMD ["tsx", "apps/worker/src/worker.ts"]
