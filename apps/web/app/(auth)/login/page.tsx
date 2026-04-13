@@ -72,7 +72,7 @@ function LoginForm(): React.ReactElement {
         return;
       }
 
-      window.location.href = '/home';
+      window.location.href = '/settings';
     } catch {
       setError(t('auth.networkError'));
     } finally {
