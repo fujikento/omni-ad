@@ -97,6 +97,9 @@ export const ko: TranslationDictionary = {
 
   // Dashboard
   'dashboard.title': '대시보드',
+  'dashboard.welcomeTitle': 'OMNI-AD에 오신 것을 환영합니다',
+  'dashboard.welcomeDescription': '광고 플랫폼을 연결하여 캠페인 관리를 시작하세요.',
+  'dashboard.connectPlatform': '플랫폼 연결하기',
   'dashboard.todaySpend': '오늘의 광고비',
   'dashboard.todayRevenue': '오늘의 매출',
   'dashboard.totalRoas': '총 ROAS',

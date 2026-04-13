@@ -97,6 +97,9 @@ export const ja: TranslationDictionary = {
 
   // Dashboard
   'dashboard.title': 'ダッシュボード',
+  'dashboard.welcomeTitle': 'OMNI-ADへようこそ',
+  'dashboard.welcomeDescription': '広告プラットフォームを接続して、キャンペーン管理を始めましょう。',
+  'dashboard.connectPlatform': 'プラットフォームを接続する',
   'dashboard.todaySpend': '総広告費（今日）',
   'dashboard.todayRevenue': '総収益（今日）',
   'dashboard.totalRoas': '総ROAS',

@@ -97,6 +97,9 @@ export const en: TranslationDictionary = {
 
   // Dashboard
   'dashboard.title': 'Dashboard',
+  'dashboard.welcomeTitle': 'Welcome to OMNI-AD',
+  'dashboard.welcomeDescription': 'Connect your ad platforms to start managing campaigns.',
+  'dashboard.connectPlatform': 'Connect a Platform',
   'dashboard.todaySpend': 'Today\'s Ad Spend',
   'dashboard.todayRevenue': 'Today\'s Revenue',
   'dashboard.totalRoas': 'Total ROAS',

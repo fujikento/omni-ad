@@ -97,6 +97,9 @@ export const zh: TranslationDictionary = {
 
   // Dashboard
   'dashboard.title': '仪表盘',
+  'dashboard.welcomeTitle': '欢迎使用 OMNI-AD',
+  'dashboard.welcomeDescription': '连接广告平台，开始管理广告活动。',
+  'dashboard.connectPlatform': '连接平台',
   'dashboard.todaySpend': '今日广告费',
   'dashboard.todayRevenue': '今日收入',
   'dashboard.totalRoas': '总ROAS',
