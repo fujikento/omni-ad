@@ -347,8 +347,8 @@ interface TRPCErrorResponse {
 async function trpcMutate(
   procedure: string,
   input?: Record<string, unknown>,
+  t?: (key: string) => string,
 ): Promise<void> {
-  const { t } = useI18n();
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('omni-ad-token')
     : null;
@@ -371,7 +371,7 @@ async function trpcMutate(
     const parsed = body as TRPCErrorResponse | null;
     const message = parsed?.error?.json?.message
       ?? parsed?.error?.message
-      ?? t('layout.requestFailed');
+      ?? t?.('layout.requestFailed') ?? 'Request failed';
     throw new Error(message);
   }
 }
@@ -485,7 +485,6 @@ function DashboardLayoutInner({
   const [emergencyError, setEmergencyError] = useState<string | null>(null);
 
   async function handleEmergencyStop(): Promise<void> {
-  const { t } = useI18n();
     setEmergencyStopping(true);
     setEmergencyError(null);
     try {
@@ -503,7 +502,6 @@ function DashboardLayoutInner({
   }
 
   async function handleEmergencyResume(): Promise<void> {
-    const { t } = useI18n();
     try {
       await trpcMutate('emergency.resume');
       setEmergencyStopped(false);
