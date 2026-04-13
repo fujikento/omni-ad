@@ -89,9 +89,14 @@ COPY --from=builder /app/packages/ai-engine/dist ./packages/ai-engine/dist
 COPY --from=builder /app/packages/ai-engine/package.json ./packages/ai-engine/package.json
 COPY package.json pnpm-workspace.yaml ./
 
+RUN apk add --no-cache wget
+
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost:3001/health || exit 1
 
 USER node
 ENTRYPOINT ["/sbin/tini", "--"]
