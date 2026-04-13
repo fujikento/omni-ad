@@ -7,7 +7,7 @@ import {
   getCreative,
   listCreatives,
 } from "../../services/creative.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 const CreativeType = z.enum(["text", "image", "video", "carousel"]);
 
@@ -63,7 +63,7 @@ export const creativesRouter = router({
       }
     }),
 
-  generate: organizationProcedure
+  generate: rbacProcedure("creatives:create")
     .input(
       z.object({
         prompt: z.string().min(1).max(2000),
@@ -88,7 +88,7 @@ export const creativesRouter = router({
       }
     }),
 
-  adapt: organizationProcedure
+  adapt: rbacProcedure("creatives:edit")
     .input(
       z.object({
         creativeId: z.string().uuid(),

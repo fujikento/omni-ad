@@ -9,7 +9,7 @@ import {
   PlatformNotConfiguredError,
   syncNow,
 } from "../../services/platform.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 const DbPlatform = z.enum([
   "meta",
@@ -51,7 +51,7 @@ export const platformsRouter = router({
       }
     }),
 
-  connect: organizationProcedure
+  connect: rbacProcedure("platforms:connect")
     .input(
       z.object({
         platform: DbPlatform,
@@ -69,7 +69,7 @@ export const platformsRouter = router({
       }
     }),
 
-  disconnect: organizationProcedure
+  disconnect: rbacProcedure("platforms:disconnect")
     .input(
       z.object({
         connectionId: z.string().uuid(),

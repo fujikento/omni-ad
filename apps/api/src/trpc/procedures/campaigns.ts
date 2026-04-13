@@ -11,7 +11,7 @@ import {
   resumeCampaign,
   updateCampaign,
 } from "../../services/campaign.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 const CampaignObjective = z.enum([
   "awareness",
@@ -140,7 +140,7 @@ export const campaignsRouter = router({
       }
     }),
 
-  create: organizationProcedure
+  create: rbacProcedure("campaigns:create")
     .input(CreateCampaignInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -150,7 +150,7 @@ export const campaignsRouter = router({
       }
     }),
 
-  update: organizationProcedure
+  update: rbacProcedure("campaigns:edit")
     .input(UpdateCampaignInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -161,7 +161,7 @@ export const campaignsRouter = router({
       }
     }),
 
-  deploy: organizationProcedure
+  deploy: rbacProcedure("campaigns:deploy")
     .input(DeployCampaignInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -175,7 +175,7 @@ export const campaignsRouter = router({
       }
     }),
 
-  pause: organizationProcedure
+  pause: rbacProcedure("campaigns:edit")
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -185,7 +185,7 @@ export const campaignsRouter = router({
       }
     }),
 
-  resume: organizationProcedure
+  resume: rbacProcedure("campaigns:edit")
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -195,7 +195,7 @@ export const campaignsRouter = router({
       }
     }),
 
-  delete: organizationProcedure
+  delete: rbacProcedure("campaigns:delete")
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {

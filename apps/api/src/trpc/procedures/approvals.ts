@@ -18,7 +18,7 @@ import {
   updatePolicy,
 } from '../../services/approval.service.js';
 import type { ApprovalChangeEntry, ApprovalPolicyConditions } from '@omni-ad/db/schema';
-import { organizationProcedure, router } from '../trpc.js';
+import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
 // ---------------------------------------------------------------------------
 // Input Schemas
@@ -265,7 +265,7 @@ export const approvalsRouter = router({
       }
     }),
 
-    create: organizationProcedure
+    create: rbacProcedure("org:manage")
       .input(CreatePolicyInput)
       .mutation(async ({ ctx, input }) => {
         try {
@@ -282,7 +282,7 @@ export const approvalsRouter = router({
         }
       }),
 
-    update: organizationProcedure
+    update: rbacProcedure("org:manage")
       .input(UpdatePolicyInput)
       .mutation(async ({ ctx, input }) => {
         try {

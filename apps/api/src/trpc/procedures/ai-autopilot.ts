@@ -19,7 +19,7 @@ import {
 import { decryptToken } from '@omni-ad/auth';
 import { getQueue, QUEUE_NAMES } from '@omni-ad/queue';
 import type { AutopilotCycleJob } from '@omni-ad/queue';
-import { organizationProcedure, router } from '../trpc.js';
+import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
 // ---------------------------------------------------------------------------
 // Input Schemas
@@ -163,7 +163,7 @@ const settingsRouter = router({
     }
   }),
 
-  update: organizationProcedure
+  update: rbacProcedure("settings:manage")
     .input(UpdateSettingsInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -242,7 +242,7 @@ export const aiAutopilotRouter = router({
   settings: settingsRouter,
   decisions: decisionsRouter,
 
-  trigger: organizationProcedure.mutation(async ({ ctx }) => {
+  trigger: rbacProcedure("settings:manage").mutation(async ({ ctx }) => {
     try {
       const settings = await getSettings(ctx.organizationId);
 

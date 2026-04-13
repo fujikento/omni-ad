@@ -7,7 +7,7 @@ import {
   listAudiences,
   syncAudience,
 } from "../../services/audience.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 const DbPlatform = z.enum([
   "meta",
@@ -70,7 +70,7 @@ export const audiencesRouter = router({
       }
     }),
 
-  sync: organizationProcedure
+  sync: rbacProcedure("audiences:manage")
     .input(
       z.object({
         audienceId: z.string().uuid(),

@@ -9,7 +9,7 @@ import {
   RuleNotFoundError,
   updateRule,
 } from '../../services/rules-engine.service.js';
-import { organizationProcedure, router } from '../trpc.js';
+import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
 // ---------------------------------------------------------------------------
 // Zod Schemas for Condition & Action Types
@@ -151,7 +151,7 @@ export const rulesRouter = router({
     }
   }),
 
-  create: organizationProcedure
+  create: rbacProcedure("settings:manage")
     .input(CreateRuleInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -167,7 +167,7 @@ export const rulesRouter = router({
       }
     }),
 
-  update: organizationProcedure
+  update: rbacProcedure("settings:manage")
     .input(UpdateRuleInput)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -178,7 +178,7 @@ export const rulesRouter = router({
       }
     }),
 
-  delete: organizationProcedure
+  delete: rbacProcedure("settings:manage")
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -188,7 +188,7 @@ export const rulesRouter = router({
       }
     }),
 
-  evaluate: organizationProcedure.mutation(async ({ ctx }) => {
+  evaluate: rbacProcedure("settings:manage").mutation(async ({ ctx }) => {
     try {
       return await evaluateRules(ctx.organizationId);
     } catch (error) {

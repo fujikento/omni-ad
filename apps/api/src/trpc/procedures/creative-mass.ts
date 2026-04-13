@@ -8,7 +8,7 @@ import {
   BatchNotFoundError,
   BatchCreationError,
 } from '../../services/creative-mass-production.service.js';
-import { organizationProcedure, router } from '../trpc.js';
+import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
 const DbPlatform = z.enum([
   'meta',
@@ -41,7 +41,7 @@ function handleServiceError(error: unknown): never {
 }
 
 export const creativeMassRouter = router({
-  generate: organizationProcedure
+  generate: rbacProcedure("creatives:create")
     .input(
       z.object({
         name: z.string().min(1).max(200),
@@ -114,7 +114,7 @@ export const creativeMassRouter = router({
       }
     }),
 
-  cancelBatch: organizationProcedure
+  cancelBatch: rbacProcedure("creatives:create")
     .input(z.object({ batchId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {

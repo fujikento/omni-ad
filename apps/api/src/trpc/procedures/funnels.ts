@@ -7,7 +7,7 @@ import {
   listFunnels,
   updateFunnel,
 } from "../../services/funnel.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 const FunnelStageType = z.enum([
   "awareness",
@@ -70,7 +70,7 @@ export const funnelsRouter = router({
       }
     }),
 
-  create: organizationProcedure
+  create: rbacProcedure("funnels:manage")
     .input(
       z.object({
         name: z.string().min(1).max(200),
@@ -108,7 +108,7 @@ export const funnelsRouter = router({
       }
     }),
 
-  update: organizationProcedure
+  update: rbacProcedure("funnels:manage")
     .input(
       z.object({
         id: z.string().uuid(),

@@ -11,7 +11,7 @@ import {
   getMonthlyPacing,
   autoAdjustMonthlyPacing,
 } from "../../services/pacing.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 const DbPlatform = z.enum([
   "meta",
@@ -62,7 +62,7 @@ export const budgetsRouter = router({
       }
     }),
 
-  optimize: organizationProcedure
+  optimize: rbacProcedure("budgets:manage")
     .input(
       z.object({
         totalBudget: z.number().positive(),
@@ -122,7 +122,7 @@ export const budgetsRouter = router({
     }
   }),
 
-  autoAdjustMonthlyPacing: organizationProcedure.mutation(
+  autoAdjustMonthlyPacing: rbacProcedure("budgets:manage").mutation(
     async ({ ctx }) => {
       try {
         return await autoAdjustMonthlyPacing(ctx.organizationId);

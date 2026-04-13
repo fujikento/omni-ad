@@ -7,7 +7,7 @@ import {
   getEmergencyStatus,
   EmergencyStopError,
 } from "../../services/emergency.service.js";
-import { organizationProcedure, router } from "../trpc.js";
+import { organizationProcedure, rbacProcedure, router } from "../trpc.js";
 
 function handleServiceError(error: unknown): never {
   if (error instanceof EmergencyStopError) {
@@ -24,7 +24,7 @@ function handleServiceError(error: unknown): never {
 }
 
 export const emergencyRouter = router({
-  stopAll: organizationProcedure
+  stopAll: rbacProcedure("campaigns:edit")
     .input(
       z.object({
         reason: z.string().min(1).max(500),
@@ -42,7 +42,7 @@ export const emergencyRouter = router({
       }
     }),
 
-  stopCampaign: organizationProcedure
+  stopCampaign: rbacProcedure("campaigns:edit")
     .input(
       z.object({
         campaignId: z.string().uuid(),
@@ -62,7 +62,7 @@ export const emergencyRouter = router({
       }
     }),
 
-  resume: organizationProcedure.mutation(async ({ ctx }) => {
+  resume: rbacProcedure("campaigns:edit").mutation(async ({ ctx }) => {
     try {
       return await emergencyResume(ctx.organizationId, ctx.userId);
     } catch (error) {

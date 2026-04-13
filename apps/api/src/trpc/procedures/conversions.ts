@@ -10,7 +10,7 @@ import {
   updateEndpoint,
 } from '../../services/conversion.service.js';
 import type { PlatformMappings } from '@omni-ad/db/schema';
-import { organizationProcedure, router } from '../trpc.js';
+import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
 // ---------------------------------------------------------------------------
 // Input Schemas
@@ -127,7 +127,7 @@ export const conversionsRouter = router({
       }
     }),
 
-    create: organizationProcedure
+    create: rbacProcedure("platforms:connect")
       .input(CreateEndpointInput)
       .mutation(async ({ ctx, input }) => {
         try {
@@ -149,7 +149,7 @@ export const conversionsRouter = router({
         }
       }),
 
-    update: organizationProcedure
+    update: rbacProcedure("platforms:connect")
       .input(UpdateEndpointInput)
       .mutation(async ({ ctx, input }) => {
         try {
@@ -164,7 +164,7 @@ export const conversionsRouter = router({
         }
       }),
 
-    delete: organizationProcedure
+    delete: rbacProcedure("platforms:disconnect")
       .input(z.object({ id: z.string().uuid() }))
       .mutation(async ({ ctx, input }) => {
         try {
