@@ -8,6 +8,7 @@ import {
   Crown,
   Eye,
   EyeOff,
+  Inbox,
   Key,
   Link2,
   Loader2,
@@ -96,13 +97,6 @@ function deriveConnectionStatus(
   return 'disconnected';
 }
 
-function getMockTeam(t: (key: string, params?: Record<string, string | number>) => string): TeamMember[] {
-  return [
-  { id: '1', name: t('settings.ha2aa03'), email: 'tanaka@example.com', role: 'admin', lastActive: '2026-04-02T06:00:00Z' },
-  { id: '2', name: t('settings.hcef95e'), email: 'suzuki@example.com', role: 'editor', lastActive: '2026-04-01T18:00:00Z' },
-  { id: '3', name: t('settings.h8c52a3'), email: 'sato@example.com', role: 'viewer', lastActive: '2026-03-30T12:00:00Z' },
-];
-}
 
 // -- Subcomponents --
 
@@ -340,7 +334,7 @@ function TeamTab(): React.ReactElement {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>('viewer');
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getMockTeam(t));
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   function handleInvite(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
@@ -412,6 +406,12 @@ function TeamTab(): React.ReactElement {
 
       {/* Team list */}
       <div className="space-y-2">
+        {teamMembers.length === 0 && (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-12 text-center">
+            <Inbox size={32} className="text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        )}
         {teamMembers.map((member) => (
           <div key={member.id} className="flex items-center justify-between rounded-lg border border-border p-4">
             <div className="flex items-center gap-3">
@@ -522,14 +522,22 @@ function ApiTab(): React.ReactElement {
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const API_KEY = 'omni_sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+  // API key will be loaded from API when the endpoint is available
+  const apiKey = '';
+  const hasKey = apiKey.length > 0;
 
   function handleCopy(): void {
-    navigator.clipboard.writeText(API_KEY).catch(() => {
+    if (!hasKey) return;
+    navigator.clipboard.writeText(apiKey).catch(() => {
       // clipboard access denied
     });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function maskKey(key: string): string {
+    if (key.length <= 12) return '****';
+    return `${key.slice(0, 12)}${'*'.repeat(key.length - 12)}`;
   }
 
   return (
@@ -545,27 +553,32 @@ function ApiTab(): React.ReactElement {
             <p className="text-sm font-medium text-foreground">Live API Key</p>
             <p className="text-xs text-muted-foreground">{t('settings.productionApiKey')}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="rounded p-1.5 text-muted-foreground hover:text-foreground"
-              aria-label={showKey ? t('settings.hideKey') : t('settings.showKey')}
-            >
-              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="rounded p-1.5 text-muted-foreground hover:text-foreground"
-              aria-label={t('settings.copyKey')}
-            >
-              {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-            </button>
-          </div>
+          {hasKey && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="rounded p-1.5 text-muted-foreground hover:text-foreground"
+                aria-label={showKey ? t('settings.hideKey') : t('settings.showKey')}
+              >
+                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="rounded p-1.5 text-muted-foreground hover:text-foreground"
+                aria-label={t('settings.copyKey')}
+              >
+                {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+              </button>
+            </div>
+          )}
         </div>
-        <div className="mt-3 rounded-md bg-muted px-3 py-2 font-mono text-sm text-foreground">
-          {showKey ? API_KEY : 'omni_sk_live_************************************'}
+        <div className="mt-3 rounded-md bg-muted px-3 py-2 font-mono text-sm text-muted-foreground">
+          {hasKey
+            ? (showKey ? apiKey : maskKey(apiKey))
+            : t('common.noData')
+          }
         </div>
       </div>
 
@@ -593,20 +606,20 @@ function ApiTab(): React.ReactElement {
         </div>
       </div>
 
-      {/* API usage */}
+      {/* API usage -- show placeholder until real data is available */}
       <div className="rounded-lg border border-border p-4">
         <p className="text-sm font-medium text-foreground">{t('settings.apiUsageThisMonth')}</p>
         <div className="mt-3 grid grid-cols-3 gap-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">45,230</p>
+            <p className="text-2xl font-bold text-foreground">--</p>
             <p className="text-xs text-muted-foreground">{t('settings.requestCount')}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">142ms</p>
+            <p className="text-2xl font-bold text-foreground">--</p>
             <p className="text-xs text-muted-foreground">{t('settings.avgResponse')}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">99.8%</p>
+            <p className="text-2xl font-bold text-foreground">--</p>
             <p className="text-xs text-muted-foreground">{t('settings.uptime')}</p>
           </div>
         </div>

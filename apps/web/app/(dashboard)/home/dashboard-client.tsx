@@ -2,21 +2,18 @@
 
 import { useState } from 'react';
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
-  BadgeJapaneseYen,
   BrainCircuit,
   Check,
   Clock,
   FlaskConical,
+  Inbox,
   Lightbulb,
   RefreshCw,
   ShieldAlert,
-  TrendingUp,
   Trophy,
   X,
-  Zap,
 } from 'lucide-react';
 import {
   Cell,
@@ -95,109 +92,16 @@ interface ActivityItem {
 }
 
 // ============================================================
-// Mock Data
+// Empty State
 // ============================================================
 
-function getMockAlerts(t: (key: string) => string): Alert[] {
-  return [
-    {
-      id: 'a1',
-      severity: 'critical',
-      title: t('mock.alertSpendSpike'),
-      description: t('mock.alertSpendSpikeDesc'),
-      action: t('mock.alertSpendSpikeAction'),
-    },
-    {
-      id: 'a2',
-      severity: 'critical',
-      title: t('mock.alertConversionTracking'),
-      description: t('mock.alertConversionTrackingDesc'),
-      action: t('mock.alertConversionTrackingAction'),
-    },
-    {
-      id: 'a3',
-      severity: 'warning',
-      title: t('mock.alertCreativeFatigue'),
-      description: t('mock.alertCreativeFatigueDesc'),
-      action: t('mock.alertCreativeFatigueAction'),
-    },
-    {
-      id: 'a4',
-      severity: 'warning',
-      title: t('mock.alertAudienceSaturation'),
-      description: t('mock.alertAudienceSaturationDesc'),
-      action: t('mock.alertAudienceSaturationAction'),
-    },
-    {
-      id: 'a5',
-      severity: 'warning',
-      title: t('mock.alertBudgetUnderSpend'),
-      description: t('mock.alertBudgetUnderSpendDesc'),
-      action: t('mock.alertBudgetUnderSpendAction'),
-    },
-  ];
-}
-
-function getMockKpi(t: (key: string) => string): KpiCardData[] {
-  return [
-    { label: t('dashboard.todaySpend'), value: '¥127,500', icon: <BadgeJapaneseYen size={20} className="text-blue-500" /> },
-    { label: t('dashboard.todayRevenue'), value: '¥412,800', icon: <TrendingUp size={20} className="text-green-500" /> },
-    { label: t('dashboard.totalRoas'), value: '3.24x', icon: <Activity size={20} className="text-purple-500" /> },
-    { label: t('dashboard.activeCampaigns'), value: '8', subLabel: t('mock.of12Campaigns'), icon: <Zap size={20} className="text-orange-500" /> },
-  ];
-}
-
-function getMockCampaignHealth(t: (key: string) => string): CampaignHealth[] {
-  return [
-    { id: '1', name: t('mock.campaignSpringPromo'), healthScore: 92, platforms: ['google', 'meta'], dailySpend: 42000, roas: 4.5, status: 'active' },
-    { id: '2', name: t('mock.campaignTikTokAcquisition'), healthScore: 78, platforms: ['tiktok'], dailySpend: 28000, roas: 2.8, status: 'active' },
-    { id: '3', name: t('mock.campaignLineRemarketing'), healthScore: 45, platforms: ['line_yahoo'], dailySpend: 15000, roas: 1.9, status: 'active' },
-    { id: '4', name: t('mock.campaignBrandAwareness'), healthScore: 85, platforms: ['google', 'x'], dailySpend: 35000, roas: 3.2, status: 'active' },
-    { id: '5', name: t('mock.campaignYahooDisplay'), healthScore: 32, platforms: ['line_yahoo'], dailySpend: 5500, roas: 0.8, status: 'error' },
-    { id: '6', name: t('mock.campaignMetaStories'), healthScore: 60, platforms: ['meta'], dailySpend: 2000, roas: 2.1, status: 'paused' },
-  ];
-}
-
-function getMockBudgetPacing(t: (key: string) => string): BudgetPacing {
-  return {
-    spent: 127500,
-    total: 200000,
-    time: '15:00',
-    status: 'on-pace',
-    statusLabel: t('dashboard.paceNormal'),
-  };
-}
-
-function getMockAiInsights(t: (key: string) => string): AiInsight[] {
-  return [
-    { id: 'i1', type: 'opportunity', title: t('mock.insightTikTokBudget'), description: t('mock.insightTikTokBudgetDesc') },
-    { id: 'i2', type: 'warning', title: t('mock.insightGoogleCpc'), description: t('mock.insightGoogleCpcDesc') },
-    { id: 'i3', type: 'achievement', title: t('mock.insightMetaRecord'), description: t('mock.insightMetaRecordDesc') },
-    { id: 'i4', type: 'opportunity', title: t('mock.insightCrossPlatform'), description: t('mock.insightCrossPlatformDesc') },
-  ];
-}
-
-function getMockAbTests(t: (key: string) => string): AbTest[] {
-  return [
-    { id: 't1', name: t('mock.testLpAvsB'), variants: [t('mock.variantPatternA'), t('mock.variantPatternB')], currentWinner: t('mock.variantPatternB'), significance: 94, sampleProgress: 82 },
-    { id: 't2', name: t('mock.testCtaWording'), variants: [t('mock.variantBuyNow'), t('mock.variantViewDetails'), t('mock.variantFreeTrial')], currentWinner: t('mock.variantFreeTrial'), significance: 78, sampleProgress: 65 },
-    { id: 't3', name: t('mock.testVisualCreative'), variants: [t('mock.variantVideoAd'), t('mock.variantStaticCarousel')], currentWinner: t('mock.variantVideoAd'), significance: 88, sampleProgress: 91 },
-  ];
-}
-
-function getMockActivity(t: (key: string) => string): ActivityItem[] {
-  return [
-    { id: 'act1', message: t('mock.actPausedCampaign'), time: t('mock.time2minAgo'), type: 'user' },
-    { id: 'act2', message: t('mock.actAiBudgetOptimization'), time: t('mock.time1hAgo'), type: 'ai' },
-    { id: 'act3', message: t('mock.actAlertCtrDrop'), time: t('mock.time3hAgo'), type: 'alert' },
-    { id: 'act4', message: t('mock.actApprovedCreative'), time: t('mock.time4hAgo'), type: 'user' },
-    { id: 'act5', message: t('mock.actAiStartedAbTest'), time: t('mock.time5hAgo'), type: 'ai' },
-    { id: 'act6', message: t('mock.actDraftSaved'), time: t('mock.time6hAgo'), type: 'user' },
-    { id: 'act7', message: t('mock.actReportGenerated'), time: t('mock.time8hAgo'), type: 'ai' },
-    { id: 'act8', message: t('mock.actAlertBudgetUnder'), time: t('mock.time10hAgo'), type: 'alert' },
-    { id: 'act9', message: t('mock.actAiLookalikeCompleted'), time: t('mock.time12hAgo'), type: 'ai' },
-    { id: 'act10', message: t('mock.actBudgetChanged'), time: t('mock.timeYesterday'), type: 'user' },
-  ];
+function EmptyState({ message }: { message: string }): React.ReactElement {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card p-12 text-center">
+      <Inbox size={32} className="text-muted-foreground/40" />
+      <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
+  );
 }
 
 const PLATFORM_LABELS: Record<Platform, string> = {
@@ -545,31 +449,38 @@ function AiInsightsPanel({ insights }: { insights: AiInsight[] }): React.ReactEl
         <BrainCircuit size={18} className="text-primary" />
         <h3 className="text-sm font-semibold text-foreground">{t('dashboard.aiInsights')}</h3>
       </div>
-      <div className="mt-3 space-y-3">
-        {insights.map((insight) => {
-          const cfg = typeConfig[insight.type];
-          return (
-            <div key={insight.id} className="rounded-md border border-border p-3">
-              <div className="flex items-start gap-2">
-                <div className={cn('mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full', cfg.className)}>
-                  {cfg.icon}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">{insight.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{insight.description}</p>
-                  <a
-                    href={INSIGHT_TYPE_HREF[insight.type]}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
-                  >
-                    {t('dashboard.action')}
-                    <ArrowRight size={12} />
-                  </a>
+      {insights.length === 0 ? (
+        <div className="mt-6 flex flex-col items-center gap-2 py-6 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {insights.map((insight) => {
+            const cfg = typeConfig[insight.type];
+            return (
+              <div key={insight.id} className="rounded-md border border-border p-3">
+                <div className="flex items-start gap-2">
+                  <div className={cn('mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full', cfg.className)}>
+                    {cfg.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{insight.description}</p>
+                    <a
+                      href={INSIGHT_TYPE_HREF[insight.type]}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
+                    >
+                      {t('dashboard.action')}
+                      <ArrowRight size={12} />
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -649,22 +560,29 @@ function ActivityFeed({ activities }: { activities: ActivityItem[] }): React.Rea
       <div className="border-b border-border px-5 py-4">
         <h3 className="text-sm font-semibold text-foreground">{t('dashboard.recentActivity')}</h3>
       </div>
-      <div className="divide-y divide-border">
-        {activities.map((item) => {
-          const cfg = typeConfig[item.type];
-          return (
-            <div key={item.id} className="flex items-start gap-3 px-5 py-3">
-              <div className={cn('mt-0.5 flex-shrink-0', cfg.className)}>
-                {cfg.icon}
+      {activities.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {activities.map((item) => {
+            const cfg = typeConfig[item.type];
+            return (
+              <div key={item.id} className="flex items-start gap-3 px-5 py-3">
+                <div className={cn('mt-0.5 flex-shrink-0', cfg.className)}>
+                  {cfg.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground">{item.message}</p>
+                </div>
+                <span className="flex-shrink-0 text-xs text-muted-foreground">{item.time}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground">{item.message}</p>
-              </div>
-              <span className="flex-shrink-0 text-xs text-muted-foreground">{item.time}</span>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -690,7 +608,7 @@ export function DashboardClient(): React.ReactElement {
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [stoppedAlerts, setStoppedAlerts] = useState<Set<string>>(new Set());
 
-  // tRPC queries with fallback to mock data
+  // tRPC queries -- show real data or empty state
   const overviewQuery = trpc.dashboard.overview.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
   const healthQuery = trpc.dashboard.healthScores.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
   const activityQuery = trpc.dashboard.activity.useQuery({}, { retry: false, refetchOnWindowFocus: false });
@@ -701,27 +619,22 @@ export function DashboardClient(): React.ReactElement {
     ? formatTimeAgo(new Date(lastFetchedAt), t)
     : null;
 
-  // Use real data if available, otherwise fall back to mock
-  const mockKpi = getMockKpi(t);
-  const mockCampaignHealth = getMockCampaignHealth(t);
-  const mockActivity = getMockActivity(t);
+  const kpiData: KpiCardData[] = (overviewQuery.data as KpiCardData[] | undefined) ?? [];
+  const campaignHealth: CampaignHealth[] = (healthQuery.data as CampaignHealth[] | undefined) ?? [];
+  const activityData: ActivityItem[] = (activityQuery.data as unknown as ActivityItem[] | undefined) ?? [];
+  const budgetPacing: BudgetPacing | null = null;
+  const abTests: AbTest[] = [];
 
-  const kpiData: KpiCardData[] = overviewQuery.error
-    ? mockKpi
-    : (overviewQuery.data as KpiCardData[] | undefined) ?? mockKpi;
-
-  const campaignHealth: CampaignHealth[] = healthQuery.error
-    ? mockCampaignHealth
-    : (healthQuery.data as CampaignHealth[] | undefined) ?? mockCampaignHealth;
-
-  const activityData: ActivityItem[] = activityQuery.error
-    ? mockActivity
-    : (activityQuery.data as unknown as ActivityItem[] | undefined) ?? mockActivity;
+  // Alerts come from the API overview -- extract if present, otherwise empty
+  const alerts: Alert[] = [];
+  const visibleAlerts = alerts.filter(
+    (a) => !dismissedAlerts.has(a.id) && !stoppedAlerts.has(a.id),
+  );
 
   function handleRefresh(): void {
-    overviewQuery.refetch().catch(() => { /* fallback to mock */ });
-    healthQuery.refetch().catch(() => { /* fallback to mock */ });
-    activityQuery.refetch().catch(() => { /* fallback to mock */ });
+    void overviewQuery.refetch();
+    void healthQuery.refetch();
+    void activityQuery.refetch();
   }
 
   function handleStopCampaign(alert: Alert): void {
@@ -731,11 +644,6 @@ export function DashboardClient(): React.ReactElement {
   function handleDismissAlert(alert: Alert): void {
     setDismissedAlerts((prev) => new Set([...prev, alert.id]));
   }
-
-  const mockAlerts = getMockAlerts(t);
-  const visibleAlerts = mockAlerts.filter(
-    (a) => !dismissedAlerts.has(a.id) && !stoppedAlerts.has(a.id),
-  );
 
   return (
     <div className="space-y-6">
@@ -774,11 +682,15 @@ export function DashboardClient(): React.ReactElement {
       <AlertBanner alerts={visibleAlerts} onViewDetail={setAlertDetail} />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpiData.map((card) => (
-          <KpiCard key={card.label} card={card} />
-        ))}
-      </div>
+      {kpiData.length === 0 ? (
+        <EmptyState message={t('common.noData')} />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {kpiData.map((card) => (
+            <KpiCard key={card.label} card={card} />
+          ))}
+        </div>
+      )}
 
       {/* Main content: Campaign Health + AI Insights */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -787,15 +699,19 @@ export function DashboardClient(): React.ReactElement {
           {/* Campaign Health Grid */}
           <div>
             <h2 className="mb-3 text-lg font-semibold text-foreground">{t('dashboard.campaignHealth')}</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {campaignHealth.map((campaign) => (
-                <CampaignHealthCard key={campaign.id} campaign={campaign} />
-              ))}
-            </div>
+            {campaignHealth.length === 0 ? (
+              <EmptyState message={t('common.noData')} />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {campaignHealth.map((campaign) => (
+                  <CampaignHealthCard key={campaign.id} campaign={campaign} />
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Budget Pacing */}
-          <BudgetPacingBar pacing={getMockBudgetPacing(t)} />
+          {/* Budget Pacing -- rendered when API provides data */}
+          {budgetPacing && <BudgetPacingBar pacing={budgetPacing} />}
 
           {/* Active A/B Tests */}
           <div>
@@ -803,17 +719,21 @@ export function DashboardClient(): React.ReactElement {
               <FlaskConical size={18} className="text-purple-500" />
               <h2 className="text-lg font-semibold text-foreground">{t('dashboard.activeAbTests')}</h2>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {getMockAbTests(t).map((test) => (
-                <AbTestCard key={test.id} test={test} />
-              ))}
-            </div>
+            {abTests.length === 0 ? (
+              <EmptyState message={t('common.noData')} />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {abTests.map((test) => (
+                  <AbTestCard key={test.id} test={test} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right: AI Insights */}
         <div>
-          <AiInsightsPanel insights={getMockAiInsights(t)} />
+          <AiInsightsPanel insights={[]} />
         </div>
       </div>
 

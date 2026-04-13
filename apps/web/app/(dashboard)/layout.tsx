@@ -119,17 +119,6 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-function getMockNotifications(t: (key: string, params?: Record<string, string | number>) => string): Notification[] {
-  return [
-  { id: 'n1', severity: 'critical', message: t('mock.notifSpendSpike'), time: t('mock.time5minAgo'), read: false, href: '/campaigns/1' },
-  { id: 'n2', severity: 'critical', message: t('mock.notifConvPixelDown'), time: t('mock.time30minAgo'), read: false, href: '/settings' },
-  { id: 'n3', severity: 'warning', message: t('mock.notifTikTokCtrDrop'), time: t('mock.time1hAgo'), read: false, href: '/analytics' },
-  { id: 'n4', severity: 'warning', message: t('mock.notifAudienceSaturation'), time: t('mock.time2hAgo'), read: true, href: '/audiences' },
-  { id: 'n5', severity: 'info', message: t('mock.notifReportCompleted'), time: t('mock.time3hAgo'), read: true, href: '/reports' },
-  { id: 'n6', severity: 'info', message: t('mock.notifAbTestResult'), time: t('mock.time5hAgo'), read: true, href: '/ab-tests' },
-  { id: 'n7', severity: 'info', message: t('mock.notifBudgetOptDone'), time: t('mock.time6hAgo'), read: true, href: '/budgets' },
-];
-}
 
 const SEVERITY_DOT_CLASS: Record<NotificationSeverity, string> = {
   critical: 'bg-red-500',
@@ -436,7 +425,7 @@ function DashboardLayoutInner({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(getMockNotifications(t));
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
   const [emergencyStopModalOpen, setEmergencyStopModalOpen] = useState(false);
   const [emergencyStopped, setEmergencyStopped] = useState(false);
@@ -457,16 +446,14 @@ function DashboardLayoutInner({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Fetch real notifications with fallback to mock data
+  // Fetch real notifications from API
   const loadNotifications = useCallback(async (): Promise<void> => {
     try {
       const data = await fetchNotifications();
-      if (data.length > 0) {
-        setNotifications(data);
-      }
-      setNotificationsLoaded(true);
+      setNotifications(data);
     } catch {
-      // Keep mock data as fallback
+      // API unavailable -- keep empty state
+    } finally {
       setNotificationsLoaded(true);
     }
   }, []);
