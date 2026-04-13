@@ -248,14 +248,19 @@ function compareValues(
 async function executeAction(
   action: RuleAction,
   campaignId: string,
-  _organizationId: string,
+  organizationId: string,
 ): Promise<void> {
+  const scoped = and(
+    eq(campaigns.id, campaignId),
+    eq(campaigns.organizationId, organizationId),
+  );
+
   switch (action.type) {
     case 'pause_campaign':
       await db
         .update(campaigns)
         .set({ status: 'paused', updatedAt: sql`now()` })
-        .where(eq(campaigns.id, campaignId));
+        .where(scoped);
       logger.info('Campaign paused by rule', { campaignId });
       return;
 
@@ -263,13 +268,16 @@ async function executeAction(
       await db
         .update(campaigns)
         .set({ status: 'active', updatedAt: sql`now()` })
-        .where(eq(campaigns.id, campaignId));
+        .where(scoped);
       logger.info('Campaign resumed by rule', { campaignId });
       return;
 
     case 'adjust_budget': {
       const campaign = await db.query.campaigns.findFirst({
-        where: eq(campaigns.id, campaignId),
+        where: and(
+          eq(campaigns.id, campaignId),
+          eq(campaigns.organizationId, organizationId),
+        ),
       });
       if (!campaign) return;
 
@@ -290,7 +298,7 @@ async function executeAction(
       await db
         .update(campaigns)
         .set({ dailyBudget: newBudget.toFixed(2), updatedAt: sql`now()` })
-        .where(eq(campaigns.id, campaignId));
+        .where(scoped);
       logger.info('Budget adjusted by rule', {
         campaignId,
         previous: current,
