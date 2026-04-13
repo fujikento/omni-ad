@@ -1169,6 +1169,8 @@ export const en: TranslationDictionary = {
   'settings.syncNow': 'Sync',
   'settings.syncStarted': 'Sync started',
   'settings.reconnect': 'Reconnect',
+  'settings.loadError': 'Failed to load platform connections',
+  'settings.retry': 'Retry',
   'settings.invite': 'Invite',
   'settings.lastActive': 'Last Active',
   'settings.removeMember': 'Remove Member',

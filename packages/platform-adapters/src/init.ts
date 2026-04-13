@@ -1,4 +1,5 @@
 import { Platform } from '@omni-ad/shared';
+import type { PlatformAdapter } from './types.js';
 import { adapterRegistry } from './adapter-registry.js';
 import { MetaAdapter } from './meta/index.js';
 import { GoogleAdsAdapter } from './google/index.js';
@@ -79,7 +80,7 @@ interface PlatformCredentials {
   developerToken?: string;
 }
 
-function createAdapter(platform: Platform, creds: PlatformCredentials) {
+function createAdapter(platform: Platform, creds: PlatformCredentials): PlatformAdapter {
   switch (platform) {
     case Platform.META:
       return new MetaAdapter(creds.clientId, creds.clientSecret);

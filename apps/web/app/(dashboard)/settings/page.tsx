@@ -118,7 +118,7 @@ function PlatformsTab(): React.ReactElement {
   const [analyzing, setAnalyzing] = useState<Platform | null>(null);
 
   // Live data from API
-  const { data: dbConnections, isLoading, refetch } = trpc.platforms.list.useQuery();
+  const { data: dbConnections, isLoading, isError, refetch } = trpc.platforms.list.useQuery();
 
   const connectMutation = trpc.platforms.connect.useMutation({
     onSuccess: (data) => {
@@ -185,8 +185,7 @@ function PlatformsTab(): React.ReactElement {
   });
 
   function handleConnect(platform: Platform): void {
-    const redirectUrl = `${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'}/auth/callback`;
-    connectMutation.mutate({ platform, redirectUrl });
+    connectMutation.mutate({ platform });
   }
 
   function handleDisconnect(conn: PlatformConnection & { connectionId?: string }): void {
@@ -206,6 +205,25 @@ function PlatformsTab(): React.ReactElement {
     setTimeout(() => {
       window.location.href = `/account-analysis/${platform}`;
     }, 500);
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">{t('settings.platformDescription')}</p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-8 text-center">
+          <p className="text-sm text-destructive">{t('settings.loadError')}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <RefreshCw size={14} />
+            {t('settings.retry')}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) {

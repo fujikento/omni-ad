@@ -60,6 +60,40 @@ function verifyWebhookSignature(
   return timingSafeEqual(sigBuf, expectedBuf);
 }
 
+function detectWebhookEventType(
+  platform: string,
+  body: Record<string, unknown> | null,
+): string {
+  if (!body) return 'unknown';
+
+  // Meta: field-based detection
+  if (platform === 'meta') {
+    if (body['object'] === 'ad_account') return 'status_change';
+    if (body['object'] === 'page') return 'conversion';
+    return 'status_change';
+  }
+
+  // Google: detect from resource change type
+  if (platform === 'google') {
+    const changeType = body['changeResourceType'] ?? body['resourceType'];
+    if (changeType === 'CAMPAIGN' || changeType === 'AD_GROUP') return 'status_change';
+    return 'status_change';
+  }
+
+  // Generic: look for common fields
+  if ('status' in body || 'effective_status' in body || 'configured_status' in body) {
+    return 'status_change';
+  }
+  if ('daily_budget' in body || 'budget' in body) {
+    return 'budget_change';
+  }
+  if ('revoke' in body || 'deauthorize' in body) {
+    return 'token_revocation';
+  }
+
+  return 'conversion';
+}
+
 function buildServer(): ReturnType<typeof Fastify> {
   const server = Fastify({
     logger: {
@@ -219,11 +253,30 @@ function buildServer(): ReturnType<typeof Fastify> {
       });
     }
 
-    // TODO: Route to platform-specific webhook handler service
-    server.log.info(
-      { platform, contentType: request.headers["content-type"] },
-      `Received verified webhook from ${platform}`,
-    );
+    // Queue webhook for async processing
+    const body = request.body as Record<string, unknown> | null;
+    const eventType = detectWebhookEventType(platform, body);
+
+    try {
+      const { getQueue, QUEUE_NAMES } = await import("@omni-ad/queue");
+      const queue = getQueue(QUEUE_NAMES.PLATFORM_WEBHOOKS);
+      await queue.add(`webhook-${platform}-${Date.now()}`, {
+        platform,
+        eventType,
+        payload: body ?? {},
+        receivedAt: new Date().toISOString(),
+      });
+
+      server.log.info(
+        { platform, eventType },
+        `Webhook queued for processing`,
+      );
+    } catch (queueErr: unknown) {
+      server.log.error(
+        { platform, err: queueErr },
+        "Failed to queue webhook — processing synchronously",
+      );
+    }
 
     return reply.status(200).send({ received: true });
   });

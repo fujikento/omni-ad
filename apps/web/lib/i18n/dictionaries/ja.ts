@@ -1169,6 +1169,8 @@ export const ja: TranslationDictionary = {
   'settings.syncNow': '同期',
   'settings.syncStarted': '同期を開始しました',
   'settings.reconnect': '再接続',
+  'settings.loadError': 'プラットフォーム情報の読み込みに失敗しました',
+  'settings.retry': '再試行',
   'settings.invite': '招待',
   'settings.lastActive': '最終アクティブ',
   'settings.removeMember': 'メンバーを削除',

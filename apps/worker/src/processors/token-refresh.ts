@@ -86,9 +86,29 @@ async function refreshConnection(
   }
 }
 
+const MAX_CONCURRENCY = 10;
+
+async function processBatch(
+  connections: PlatformConnectionSelect[],
+): Promise<void> {
+  const results = await Promise.allSettled(
+    connections.map((c) => refreshConnection(c)),
+  );
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]!;
+    if (result.status === 'rejected') {
+      console.error(
+        `[token-refresh] Unexpected error for connection ${connections[i]!.id}: ${result.reason}`,
+      );
+    }
+  }
+}
+
 /**
  * Scans all active platform connections and refreshes tokens that
  * are approaching expiry. Scheduled to run every 30 minutes.
+ * Processes connections in parallel batches of MAX_CONCURRENCY.
  */
 export async function processTokenRefresh(): Promise<void> {
   const activeConnections = await db.query.platformConnections.findMany({
@@ -103,7 +123,9 @@ export async function processTokenRefresh(): Promise<void> {
     `[token-refresh] Checking ${activeConnections.length} active connections`,
   );
 
-  for (const connection of activeConnections) {
-    await refreshConnection(connection);
+  // Process in batches to avoid overwhelming platform APIs
+  for (let i = 0; i < activeConnections.length; i += MAX_CONCURRENCY) {
+    const batch = activeConnections.slice(i, i + MAX_CONCURRENCY);
+    await processBatch(batch);
   }
 }

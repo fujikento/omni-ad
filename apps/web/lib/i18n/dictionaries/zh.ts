@@ -1169,6 +1169,8 @@ export const zh: TranslationDictionary = {
   'settings.syncNow': '同步',
   'settings.syncStarted': '已开始同步',
   'settings.reconnect': '重新连接',
+  'settings.loadError': '加载平台连接失败',
+  'settings.retry': '重试',
   'settings.invite': '邀请',
   'settings.lastActive': '最后活跃',
   'settings.removeMember': '移除成员',

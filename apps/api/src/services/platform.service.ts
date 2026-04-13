@@ -4,6 +4,7 @@ import { getQueue, QUEUE_NAMES } from '@omni-ad/queue';
 import type { SyncCampaignJob } from '@omni-ad/queue';
 import { adapterRegistry } from '@omni-ad/platform-adapters';
 import { DB_PLATFORM_TO_ENUM } from '@omni-ad/shared';
+import { createOAuthState, getRedirectUri } from '../utils/oauth-state.js';
 import { and, eq, sql } from 'drizzle-orm';
 
 type PlatformConnectionSelect = typeof platformConnections.$inferSelect;
@@ -25,7 +26,7 @@ export async function listConnections(
 export async function connectPlatform(
   platform: Platform,
   organizationId: string,
-  _redirectUrl: string,
+  userId: string,
 ): Promise<{ oauthUrl: string }> {
   const adapterPlatform = DB_PLATFORM_TO_ENUM[platform];
   if (!adapterPlatform || !adapterRegistry.has(adapterPlatform)) {
@@ -33,8 +34,8 @@ export async function connectPlatform(
   }
 
   const adapter = adapterRegistry.get(adapterPlatform);
-  const redirectUri = `${process.env['OAUTH_REDIRECT_BASE_URL'] ?? 'http://localhost:3001'}/auth/callback`;
-  const state = `${organizationId}:${platform}`;
+  const redirectUri = getRedirectUri();
+  const state = createOAuthState(organizationId, platform, userId);
   const oauthUrl = adapter.getAuthUrl(redirectUri, state);
 
   return { oauthUrl };

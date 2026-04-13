@@ -55,7 +55,6 @@ export const platformsRouter = router({
     .input(
       z.object({
         platform: DbPlatform,
-        redirectUrl: z.string().url(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -63,7 +62,7 @@ export const platformsRouter = router({
         return await connectPlatform(
           input.platform,
           ctx.organizationId,
-          input.redirectUrl,
+          ctx.userId,
         );
       } catch (error) {
         handleServiceError(error);

@@ -30,12 +30,27 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: Dockerfile
+      target: api
     environment:
       DATABASE_URL: postgresql://omni_ad:${POSTGRES_PASSWORD}@postgres:5432/omni_ad
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://omni-ad-deploy.vercel.app}
+      OAUTH_REDIRECT_BASE_URL: ${OAUTH_REDIRECT_BASE_URL}
+      FRONTEND_URL: ${FRONTEND_URL:-https://omni-ad-deploy.vercel.app}
+      META_CLIENT_ID: ${META_CLIENT_ID}
+      META_CLIENT_SECRET: ${META_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_DEVELOPER_TOKEN: ${GOOGLE_DEVELOPER_TOKEN}
+      TIKTOK_APP_ID: ${TIKTOK_APP_ID}
+      TIKTOK_APP_SECRET: ${TIKTOK_APP_SECRET}
+      LINE_YAHOO_CLIENT_ID: ${LINE_YAHOO_CLIENT_ID}
+      LINE_YAHOO_CLIENT_SECRET: ${LINE_YAHOO_CLIENT_SECRET}
+      AMAZON_CLIENT_ID: ${AMAZON_CLIENT_ID}
+      AMAZON_CLIENT_SECRET: ${AMAZON_CLIENT_SECRET}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PORT: 3001
@@ -64,12 +79,23 @@ services:
   worker:
     build:
       context: .
-      dockerfile: apps/worker/Dockerfile
+      dockerfile: Dockerfile
+      target: worker
     environment:
       DATABASE_URL: postgresql://omni_ad:${POSTGRES_PASSWORD}@postgres:5432/omni_ad
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
+      META_CLIENT_ID: ${META_CLIENT_ID}
+      META_CLIENT_SECRET: ${META_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_DEVELOPER_TOKEN: ${GOOGLE_DEVELOPER_TOKEN}
+      TIKTOK_APP_ID: ${TIKTOK_APP_ID}
+      TIKTOK_APP_SECRET: ${TIKTOK_APP_SECRET}
+      LINE_YAHOO_CLIENT_ID: ${LINE_YAHOO_CLIENT_ID}
+      LINE_YAHOO_CLIENT_SECRET: ${LINE_YAHOO_CLIENT_SECRET}
+      AMAZON_CLIENT_ID: ${AMAZON_CLIENT_ID}
+      AMAZON_CLIENT_SECRET: ${AMAZON_CLIENT_SECRET}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       RUNWAY_API_KEY: ${RUNWAY_API_KEY}

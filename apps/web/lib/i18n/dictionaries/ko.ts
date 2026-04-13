@@ -1169,6 +1169,8 @@ export const ko: TranslationDictionary = {
   'settings.syncNow': '동기화',
   'settings.syncStarted': '동기화가 시작되었습니다',
   'settings.reconnect': '재연결',
+  'settings.loadError': '플랫폼 연결 정보를 불러오지 못했습니다',
+  'settings.retry': '다시 시도',
   'settings.invite': '초대',
   'settings.lastActive': '마지막 활동',
   'settings.removeMember': '멤버 삭제',

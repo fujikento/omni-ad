@@ -5,18 +5,10 @@ import { encryptTokenPair } from '@omni-ad/auth';
 import { db } from '@omni-ad/db';
 import { platformConnections } from '@omni-ad/db/schema';
 import { onConnectionActivated } from '../services/platform.service.js';
+import { verifyOAuthState, getRedirectUri, getFrontendUrl } from '../utils/oauth-state.js';
 import { sql } from 'drizzle-orm';
 
 type DbPlatform = typeof platformConnections.$inferInsert.platform;
-
-function getFrontendUrl(): string {
-  return process.env['FRONTEND_URL'] ?? 'http://localhost:3000';
-}
-
-function getRedirectUri(): string {
-  const base = process.env['OAUTH_REDIRECT_BASE_URL'] ?? 'http://localhost:3001';
-  return `${base}/auth/callback`;
-}
 
 /**
  * Registers the GET /auth/callback route that handles OAuth redirects
@@ -54,16 +46,14 @@ export function registerOAuthCallbackRoutes(server: FastifyInstance): void {
       return reply.redirect(`${frontendUrl}/settings?tab=platforms&error=missing_params`);
     }
 
-    // 2. Parse state: "organizationId:platform"
-    // Use lastIndexOf because UUIDs contain hyphens, not colons
-    const colonIdx = state.lastIndexOf(':');
-    if (colonIdx === -1) {
-      server.log.error({ state }, 'OAuth callback: invalid state format');
+    // 2. Verify HMAC-signed state (prevents CSRF / token injection)
+    const parsed = verifyOAuthState(state);
+    if (!parsed) {
+      server.log.error('OAuth callback: state verification failed (invalid signature or expired)');
       return reply.redirect(`${frontendUrl}/settings?tab=platforms&error=invalid_state`);
     }
 
-    const organizationId = state.substring(0, colonIdx);
-    const platformStr = state.substring(colonIdx + 1);
+    const { organizationId, platform: platformStr } = parsed;
 
     // 3. Resolve adapter
     const adapterPlatform = DB_PLATFORM_TO_ENUM[platformStr];
