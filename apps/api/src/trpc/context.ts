@@ -6,6 +6,7 @@ export interface Context {
   organizationId: string | null;
   userId: string | null;
   userRole: string | null;
+  ip: string;
 }
 
 function extractBearerPayload(
@@ -38,5 +39,6 @@ export function createContext({
     organizationId: payload?.organizationId ?? null,
     userId: payload?.userId ?? null,
     userRole: payload?.userRole ?? null,
+    ip: req.ip,
   };
 }

@@ -79,13 +79,76 @@ function buildTokenResponse(
 }
 
 // ---------------------------------------------------------------------------
+// Auth rate limiter
+//
+// register / login are public and password-based, so without an endpoint-
+// specific limit they are the obvious targets for credential stuffing and
+// mass-signup abuse. The global rate-limit plugin caps per-IP at 20/min
+// across ALL unauth tRPC calls, which is too loose: an attacker still gets
+// 20 login attempts per minute per IP, and can spread across thousands of
+// IPs while staying under the global cap.
+//
+// Token buckets below are per-key, in-memory (single-process). For multi-
+// instance deployments this should be backed by Redis; flagged for infra.
+// ---------------------------------------------------------------------------
+
+const AUTH_BUCKET_CLEANUP_THRESHOLD = 10_000;
+
+interface TokenBucket {
+  count: number;
+  resetAt: number;
+}
+
+function makeLimiter(windowMs: number, max: number) {
+  const buckets = new Map<string, TokenBucket>();
+
+  return function consume(key: string): void {
+    const now = Date.now();
+
+    // Opportunistic cleanup to bound memory under abuse.
+    if (buckets.size > AUTH_BUCKET_CLEANUP_THRESHOLD) {
+      for (const [k, b] of buckets) {
+        if (b.resetAt <= now) buckets.delete(k);
+      }
+    }
+
+    const bucket = buckets.get(key);
+    if (!bucket || bucket.resetAt <= now) {
+      buckets.set(key, { count: 1, resetAt: now + windowMs });
+      return;
+    }
+    if (bucket.count >= max) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Too many attempts, please try again later",
+      });
+    }
+    bucket.count += 1;
+  };
+}
+
+// register: mass-signup protection — 5 new accounts / hour per IP.
+const consumeRegister = makeLimiter(60 * 60_000, 5);
+
+// login per (IP, email): tight guard against targeted credential stuffing —
+// 5 failed attempts / 15min per (ip, email). Only failures count so a
+// legitimate user whose password works is unaffected.
+const consumeLoginTargeted = makeLimiter(15 * 60_000, 5);
+
+// login per IP (all emails): broader guard against distributed guessing from
+// one host — 20 attempts / 15min per IP regardless of email.
+const consumeLoginPerIp = makeLimiter(15 * 60_000, 20);
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
 export const authRouter = router({
   register: publicProcedure
     .input(RegisterInput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      consumeRegister(ctx.ip);
+
       // Check for existing user with same email
       const existing = await db.query.users.findFirst({
         where: eq(users.email, input.email),
@@ -160,7 +223,13 @@ export const authRouter = router({
 
   login: publicProcedure
     .input(LoginInput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Throttle *before* any DB work so abuse can't amplify into load.
+      // Normalise email so case variants don't defeat the per-account bucket.
+      const emailKey = input.email.trim().toLowerCase();
+      consumeLoginPerIp(ctx.ip);
+      consumeLoginTargeted(`${ctx.ip}|${emailKey}`);
+
       const user = await db.query.users.findFirst({
         where: eq(users.email, input.email),
         with: { organization: true },
