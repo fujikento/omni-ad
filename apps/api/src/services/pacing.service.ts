@@ -416,13 +416,17 @@ export async function autoAdjustMonthlyPacing(
 
     if (newDailyBudget === null) continue;
 
-    // Skip if adjustment is negligible (< 1% difference)
-    if (
-      Math.abs(newDailyBudget - currentDailyBudget) /
-        currentDailyBudget <
-      0.01
-    ) {
-      continue;
+    // Skip if adjustment is negligible (< 1% difference). If the current
+    // daily budget is 0 we have no baseline to compute a relative delta —
+    // any non-zero new budget is by definition meaningful, so apply it.
+    if (currentDailyBudget !== 0) {
+      if (
+        Math.abs(newDailyBudget - currentDailyBudget) /
+          currentDailyBudget <
+        0.01
+      ) {
+        continue;
+      }
     }
 
     // Apply budget adjustment

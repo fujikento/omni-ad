@@ -186,6 +186,10 @@ export async function deployCampaign(
     throw new CampaignNotFoundError(id);
   }
 
+  if (platforms.length === 0) {
+    throw new Error('deployCampaign requires at least one platform');
+  }
+
   // Calculate per-platform budget (equal split for now)
   const totalBudget = Number(campaign.totalBudget);
   const perPlatformBudget = (totalBudget / platforms.length).toFixed(2);

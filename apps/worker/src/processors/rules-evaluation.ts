@@ -132,6 +132,13 @@ export async function processRulesEvaluation(job: {
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Unknown error';
           errors.push(`${action.type}: ${msg}`);
+          // Stop the action chain on a failed pause/resume so we don't
+          // follow up with a budget increase on a campaign that was supposed
+          // to be paused (runaway spend) or resume a campaign that never
+          // paused.
+          if (action.type === 'pause_campaign' || action.type === 'resume_campaign') {
+            break;
+          }
         }
       }
 

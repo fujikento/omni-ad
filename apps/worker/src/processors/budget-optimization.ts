@@ -93,12 +93,17 @@ export async function processBudgetOptimization(job: {
 
     // Store allocation result in database
     const today = new Date().toISOString().slice(0, 10);
+    const roasValues = Object.values(result.expectedRoas);
+    const predictedRoas =
+      roasValues.length > 0
+        ? roasValues.reduce((a, b) => a + b, 0) / roasValues.length
+        : 0;
     await db.insert(budgetAllocations).values({
       organizationId,
       date: today,
       totalBudget: totalBudget.toString(),
       allocations: result.allocations,
-      predictedRoas: Object.values(result.expectedRoas).reduce((a, b) => a + b, 0) / Object.keys(result.expectedRoas).length,
+      predictedRoas,
       algorithmVersion: 'thompson-sampling-v1',
     });
 
