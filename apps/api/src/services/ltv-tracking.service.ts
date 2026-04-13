@@ -81,20 +81,26 @@ export async function recordCustomerConversion(
   });
 
   if (existing) {
-    // Update existing profile
-    const newTotalRevenue = (Number(existing.totalRevenue) + revenue).toFixed(2);
-    const newConversions = existing.totalConversions + 1;
-
+    // Atomic increment in SQL: avoids the read-modify-write race where two
+    // concurrent conversions for the same customer each see the pre-write
+    // value and the second overwrites the first (lost revenue). Also keeps
+    // the arithmetic in the DB's NUMERIC type so we don't drift through
+    // JS float precision on large totals.
     const [updated] = await db
       .update(customerProfiles)
       .set({
         lastConversionAt: now,
-        totalConversions: newConversions,
-        totalRevenue: newTotalRevenue,
-        ltv: newTotalRevenue,
+        totalConversions: sql`${customerProfiles.totalConversions} + 1`,
+        totalRevenue: sql`${customerProfiles.totalRevenue} + ${revenueStr}::numeric`,
+        ltv: sql`${customerProfiles.totalRevenue} + ${revenueStr}::numeric`,
         updatedAt: sql`now()`,
       })
-      .where(eq(customerProfiles.id, existing.id))
+      .where(
+        and(
+          eq(customerProfiles.id, existing.id),
+          eq(customerProfiles.organizationId, organizationId),
+        ),
+      )
       .returning();
 
     if (!updated) {
