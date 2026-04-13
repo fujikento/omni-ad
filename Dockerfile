@@ -36,8 +36,8 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Build shared packages first, then apps
 RUN pnpm turbo run build --filter=@omni-ad/shared --filter=@omni-ad/auth --filter=@omni-ad/db --filter=@omni-ad/queue --filter=@omni-ad/platform-adapters --filter=@omni-ad/ai-engine && \
