@@ -390,7 +390,6 @@ interface TRPCQueryResult {
 }
 
 async function fetchNotifications(): Promise<Notification[]> {
-  const { t } = useI18n();
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('omni-ad-token')
     : null;
@@ -402,7 +401,7 @@ async function fetchNotifications(): Promise<Notification[]> {
 
   const response = await fetch(`${API_URL}/notifications.list`, { headers });
   if (!response.ok) {
-    throw new Error(t('layout.fetchNotificationsFailed'));
+    throw new Error('Failed to fetch notifications');
   }
 
   const data: unknown = await response.json();
