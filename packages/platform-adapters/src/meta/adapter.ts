@@ -45,7 +45,7 @@ import type {
   MetaApiResponse,
 } from './types.js';
 
-const AUTH_BASE = 'https://www.facebook.com/v24.0/dialog/oauth';
+const AUTH_BASE = 'https://www.facebook.com/v25.0/dialog/oauth';
 const TOKEN_ENDPOINT = 'oauth/access_token';
 
 const CAMPAIGN_FIELDS =

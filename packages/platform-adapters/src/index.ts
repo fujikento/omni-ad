@@ -33,6 +33,7 @@ export type {
 
 export { BaseAdapter } from './base-adapter.js';
 export { AdapterRegistry, adapterRegistry } from './adapter-registry.js';
+export { initializeAdapters } from './init.js';
 
 // Platform adapters
 export { MetaAdapter } from './meta/index.js';

@@ -46,8 +46,8 @@ import type {
   AmazonProfile,
 } from './types.js';
 
-const AUTH_URL = 'https://www.amazon.com/ap/oa';
-const TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
+const AUTH_URL = 'https://apac.account.amazon.com/ap/oa';
+const TOKEN_URL = 'https://api.amazon.co.jp/auth/o2/token';
 
 export class AmazonAdsAdapter extends BaseAdapter {
   private readonly client: AmazonAdsClient;

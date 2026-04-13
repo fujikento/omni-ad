@@ -11,6 +11,8 @@ import type { AppRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
 import { registerConversionTrackingRoutes } from "./routes/conversion-tracking.js";
 import { registerUploadRoutes } from "./routes/upload.js";
+import { registerOAuthCallbackRoutes } from "./routes/oauth-callback.js";
+import { initializeAdapters } from "@omni-ad/platform-adapters";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 
@@ -157,6 +159,10 @@ function buildServer(): ReturnType<typeof Fastify> {
 
   registerUploadRoutes(server);
 
+  // --- OAuth Callback Routes ---
+
+  registerOAuthCallbackRoutes(server);
+
   // --- Webhook Routes ---
 
   // Capture raw body for webhook signature verification
@@ -247,6 +253,13 @@ function checkWebhookSecrets(logger: ReturnType<typeof Fastify>["log"]): void {
 
 async function main(): Promise<void> {
   const server = buildServer();
+
+  // --- Platform Adapter Initialization ---
+  const { registered, skipped } = initializeAdapters();
+  server.log.info(
+    { registered, skipped: skipped.map((s) => `${s.platform}: ${s.reason}`) },
+    `Platform adapters initialized: ${registered.length} registered, ${skipped.length} skipped`,
+  );
 
   // --- Webhook Secret Validation ---
   checkWebhookSecrets(server.log);

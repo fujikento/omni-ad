@@ -2,7 +2,7 @@ import { PlatformErrorCode } from '@omni-ad/shared';
 import type { PlatformError } from '@omni-ad/shared';
 import type { AmazonApiError } from './types.js';
 
-const BASE_URL = 'https://advertising-api.amazon.com/v3';
+const BASE_URL = 'https://advertising-api-fe.amazon.com/v3';
 
 function isAmazonApiError(value: unknown): value is AmazonApiError {
   return (

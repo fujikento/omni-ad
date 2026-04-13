@@ -6,6 +6,7 @@ import {
   getConnectionStatus,
   listConnections,
   PlatformConnectionNotFoundError,
+  PlatformNotConfiguredError,
   syncNow,
 } from "../../services/platform.service.js";
 import { organizationProcedure, router } from "../trpc.js";
@@ -24,6 +25,12 @@ function handleServiceError(error: unknown): never {
   if (error instanceof PlatformConnectionNotFoundError) {
     throw new TRPCError({
       code: "NOT_FOUND",
+      message: error.message,
+    });
+  }
+  if (error instanceof PlatformNotConfiguredError) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
       message: error.message,
     });
   }

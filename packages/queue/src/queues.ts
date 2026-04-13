@@ -15,6 +15,7 @@ export const QUEUE_NAMES = {
   CREATIVE_MASS_PRODUCTION: 'creative-mass-production',
   AB_TEST_EVALUATION: 'ab-test-evaluation',
   CREATIVE_OPTIMIZATION: 'creative-optimization',
+  TOKEN_REFRESH: 'token-refresh',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -186,6 +187,17 @@ export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
       attempts: 2,
       backoff: { type: 'exponential', delay: 60_000 },
       removeOnComplete: { count: 200 },
+      removeOnFail: { count: 500 },
+    },
+  },
+  [QUEUE_NAMES.TOKEN_REFRESH]: {
+    name: QUEUE_NAMES.TOKEN_REFRESH,
+    options: {},
+    concurrency: 1,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5_000 },
+      removeOnComplete: { count: 100 },
       removeOnFail: { count: 500 },
     },
   },

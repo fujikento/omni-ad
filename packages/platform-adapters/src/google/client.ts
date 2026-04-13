@@ -2,7 +2,7 @@ import { PlatformErrorCode } from '@omni-ad/shared';
 import type { PlatformError } from '@omni-ad/shared';
 import type { GoogleApiError } from './types.js';
 
-const BASE_URL = 'https://googleads.googleapis.com/v17';
+const BASE_URL = 'https://googleads.googleapis.com/v18';
 
 function isGoogleApiError(value: unknown): value is GoogleApiError {
   return (

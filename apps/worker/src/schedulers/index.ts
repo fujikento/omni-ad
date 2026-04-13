@@ -49,5 +49,13 @@ export async function registerSchedulers(): Promise<void> {
     { name: 'scheduled-creative-optimization', data: {} },
   );
 
-  console.log('Registered 5 job schedulers');
+  // Token refresh: every 30 minutes
+  const tokenRefreshQueue = new Queue(QUEUE_NAMES.TOKEN_REFRESH, { connection });
+  await tokenRefreshQueue.upsertJobScheduler(
+    'token-refresh-scheduler',
+    { every: 30 * 60 * 1000 },
+    { name: 'scheduled-token-refresh', data: {} },
+  );
+
+  console.log('Registered 6 job schedulers');
 }

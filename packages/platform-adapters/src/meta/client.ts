@@ -2,7 +2,7 @@ import { PlatformErrorCode } from '@omni-ad/shared';
 import type { PlatformError } from '@omni-ad/shared';
 import type { MetaApiError, MetaBusinessUsage } from './types.js';
 
-const BASE_URL = 'https://graph.facebook.com/v24.0';
+const BASE_URL = 'https://graph.facebook.com/v25.0';
 
 interface RateLimitInfo {
   callCount: number;

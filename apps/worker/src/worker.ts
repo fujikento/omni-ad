@@ -14,6 +14,7 @@ import { processCompetitorMonitor } from './processors/competitor-monitor.js';
 import { processCreativeMassProduction } from './processors/creative-mass-production.js';
 import { processAbTestEvaluation } from './processors/ab-test-evaluation.js';
 import { processCreativeOptimization } from './processors/creative-optimization.js';
+import { processTokenRefresh } from './processors/token-refresh.js';
 import { registerSchedulers } from './schedulers/index.js';
 
 const workers: Worker[] = [];
@@ -45,6 +46,14 @@ function createWorker(
 
 async function startWorkers(): Promise<void> {
   console.log('Starting OMNI-AD workers...');
+
+  // Initialize platform adapters from environment variables
+  const { initializeAdapters } = await import('@omni-ad/platform-adapters');
+  const { registered, skipped } = initializeAdapters();
+  console.log(
+    `Platform adapters initialized: ${registered.join(', ') || 'none'}` +
+    (skipped.length > 0 ? ` | Skipped: ${skipped.map((s) => s.platform).join(', ')}` : ''),
+  );
 
   // Register recurring job schedulers
   await registerSchedulers();
@@ -119,6 +128,11 @@ async function startWorkers(): Promise<void> {
       QUEUE_NAMES.CREATIVE_OPTIMIZATION,
       processCreativeOptimization,
       QUEUE_CONFIGS[QUEUE_NAMES.CREATIVE_OPTIMIZATION].concurrency
+    ),
+    createWorker(
+      QUEUE_NAMES.TOKEN_REFRESH,
+      processTokenRefresh,
+      QUEUE_CONFIGS[QUEUE_NAMES.TOKEN_REFRESH].concurrency
     )
   );
 

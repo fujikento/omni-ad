@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   Check,
@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
+import { trpc } from '@/lib/trpc';
 
 // -- Types --
 
@@ -72,15 +73,28 @@ const ROLE_LABEL_KEYS: Record<UserRole, string> = {
   viewer: 'settings.role.viewer',
 };
 
-const MOCK_CONNECTIONS: PlatformConnection[] = [
-  { platform: 'meta', label: 'Meta Ads', status: 'connected', accountName: 'OMNI-AD Meta', lastSync: '2026-04-02T05:00:00Z', icon: 'M' },
-  { platform: 'google', label: 'Google Ads', status: 'connected', accountName: 'OMNI-AD Google', lastSync: '2026-04-02T05:30:00Z', icon: 'G' },
-  { platform: 'x', label: 'X Ads', status: 'expired', accountName: 'OMNI-AD X', icon: 'X' },
-  { platform: 'tiktok', label: 'TikTok Ads', status: 'disconnected', icon: 'T' },
-  { platform: 'line_yahoo', label: 'LINE/Yahoo Ads', status: 'connected', accountName: 'OMNI-AD LINE/Yahoo', lastSync: '2026-04-01T22:00:00Z', icon: 'L' },
-  { platform: 'amazon', label: 'Amazon Ads', status: 'disconnected', icon: 'A' },
-  { platform: 'microsoft', label: 'Microsoft Ads', status: 'disconnected', icon: 'MS' },
+const PLATFORM_DEFAULTS: { platform: Platform; label: string; icon: string }[] = [
+  { platform: 'meta', label: 'Meta Ads', icon: 'M' },
+  { platform: 'google', label: 'Google Ads', icon: 'G' },
+  { platform: 'x', label: 'X Ads', icon: 'X' },
+  { platform: 'tiktok', label: 'TikTok Ads', icon: 'T' },
+  { platform: 'line_yahoo', label: 'LINE/Yahoo Ads', icon: 'L' },
+  { platform: 'amazon', label: 'Amazon Ads', icon: 'A' },
+  { platform: 'microsoft', label: 'Microsoft Ads', icon: 'MS' },
 ];
+
+function deriveConnectionStatus(
+  dbStatus: string,
+  tokenExpiresAt: string | Date | null,
+): ConnectionStatus {
+  if (dbStatus === 'revoked') return 'disconnected';
+  if (dbStatus === 'error') return 'error';
+  if (dbStatus === 'expired') return 'expired';
+  if (dbStatus === 'active' && tokenExpiresAt) {
+    return new Date(tokenExpiresAt) > new Date() ? 'connected' : 'expired';
+  }
+  return 'disconnected';
+}
 
 function getMockTeam(t: (key: string, params?: Record<string, string | number>) => string): TeamMember[] {
   return [
@@ -92,23 +106,128 @@ function getMockTeam(t: (key: string, params?: Record<string, string | number>) 
 
 // -- Subcomponents --
 
+const LOCALE_TO_INTL: Record<string, string> = {
+  ja: 'ja-JP',
+  en: 'en-US',
+  zh: 'zh-CN',
+  ko: 'ko-KR',
+};
+
 function PlatformsTab(): React.ReactElement {
-  const { t } = useI18n();
-  const [connecting, setConnecting] = useState<Platform | null>(null);
-  const [disconnecting, setDisconnecting] = useState<Platform | null>(null);
+  const { t, locale } = useI18n();
   const [analyzing, setAnalyzing] = useState<Platform | null>(null);
 
+  // Live data from API
+  const { data: dbConnections, isLoading, refetch } = trpc.platforms.list.useQuery();
+
+  const connectMutation = trpc.platforms.connect.useMutation({
+    onSuccess: (data) => {
+      // Redirect to the platform's OAuth page
+      window.location.href = data.oauthUrl;
+    },
+    onError: (err) => {
+      showToast(err.message);
+    },
+  });
+
+  const [disconnectLabel, setDisconnectLabel] = useState('');
+  const disconnectMutation = trpc.platforms.disconnect.useMutation({
+    onSuccess: () => {
+      void refetch();
+      showToast(t('settings.disconnectSuccess', { name: disconnectLabel }));
+    },
+    onError: (err) => {
+      showToast(err.message);
+    },
+  });
+
+  const syncMutation = trpc.platforms.syncNow.useMutation({
+    onSuccess: () => {
+      showToast(t('settings.syncStarted'));
+    },
+    onError: (err) => {
+      showToast(err.message);
+    },
+  });
+
+  // Handle OAuth return params (?connected=meta or ?error=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const error = params.get('error');
+
+    if (connected) {
+      const label = PLATFORM_DEFAULTS.find((p) => p.platform === connected)?.label ?? connected;
+      showToast(t('settings.connectSuccess', { name: label }));
+      window.history.replaceState({}, '', '/settings');
+      void refetch();
+    }
+    if (error) {
+      showToast(t('settings.connectError'));
+      window.history.replaceState({}, '', '/settings');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Build display list: merge DB connections with platform defaults
+  const connections: PlatformConnection[] = PLATFORM_DEFAULTS.map((def) => {
+    const dbConn = dbConnections?.find((c) => c.platform === def.platform);
+    if (!dbConn) {
+      return { ...def, status: 'disconnected' as ConnectionStatus };
+    }
+    return {
+      ...def,
+      status: deriveConnectionStatus(dbConn.status, dbConn.tokenExpiresAt),
+      accountName: dbConn.platformAccountName,
+      lastSync: dbConn.lastSyncAt ? new Date(dbConn.lastSyncAt).toISOString() : undefined,
+      connectionId: dbConn.id,
+    };
+  });
+
   function handleConnect(platform: Platform): void {
-    setConnecting(platform);
-    setTimeout(() => setConnecting(null), 2000);
+    const redirectUrl = `${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'}/auth/callback`;
+    connectMutation.mutate({ platform, redirectUrl });
+  }
+
+  function handleDisconnect(conn: PlatformConnection & { connectionId?: string }): void {
+    if (!conn.connectionId) return;
+    if (!window.confirm(t('settings.disconnectConfirm', { name: conn.label }))) return;
+    setDisconnectLabel(conn.label);
+    disconnectMutation.mutate({ connectionId: conn.connectionId });
+  }
+
+  function handleSyncNow(conn: PlatformConnection & { connectionId?: string }): void {
+    if (!conn.connectionId) return;
+    syncMutation.mutate({ connectionId: conn.connectionId });
   }
 
   function handleAnalyze(platform: Platform): void {
     setAnalyzing(platform);
-    // Navigate after a brief loading state
     setTimeout(() => {
       window.location.href = `/account-analysis/${platform}`;
     }, 500);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">{t('settings.platformDescription')}</p>
+        <div className="space-y-3">
+          {PLATFORM_DEFAULTS.map((def) => (
+            <div key={def.platform} className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
+                <div className="space-y-1.5">
+                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+              <div className="h-7 w-20 animate-pulse rounded-full bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -117,8 +236,12 @@ function PlatformsTab(): React.ReactElement {
         {t('settings.platformDescription')}
       </p>
       <div className="space-y-3">
-        {MOCK_CONNECTIONS.map((conn) => {
+        {connections.map((conn) => {
           const statusConfig = STATUS_CONFIG_KEYS[conn.status];
+          const connWithId = conn as PlatformConnection & { connectionId?: string };
+          const isConnected = conn.status === 'connected';
+          const isExpired = conn.status === 'expired';
+
           return (
             <div key={conn.platform} className="flex items-center justify-between rounded-lg border border-border p-4">
               <div className="flex items-center gap-4">
@@ -132,7 +255,7 @@ function PlatformsTab(): React.ReactElement {
                   )}
                   {conn.lastSync && (
                     <p className="text-[10px] text-muted-foreground/60">
-                      {t('settings.lastSync')}: {new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(conn.lastSync))}
+                      {t('settings.lastSync')}: {new Intl.DateTimeFormat(LOCALE_TO_INTL[locale] ?? 'ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(conn.lastSync))}
                     </p>
                   )}
                 </div>
@@ -141,44 +264,48 @@ function PlatformsTab(): React.ReactElement {
                 <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusConfig.className)}>
                   {t(statusConfig.labelKey)}
                 </span>
-                {conn.status === 'connected' && (
-                  <button
-                    type="button"
-                    onClick={() => handleAnalyze(conn.platform)}
-                    disabled={analyzing === conn.platform}
-                    className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
-                  >
-                    {analyzing === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <ScanSearch size={12} />}
-                    {analyzing === conn.platform ? t('settings.analyzingStatus') : t('settings.analyze')}
-                  </button>
+                {isConnected && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSyncNow(connWithId)}
+                      disabled={syncMutation.isPending}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    >
+                      <RefreshCw size={12} className={syncMutation.isPending ? 'animate-spin' : ''} />
+                      {t('settings.syncNow')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAnalyze(conn.platform)}
+                      disabled={analyzing === conn.platform}
+                      className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+                    >
+                      {analyzing === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <ScanSearch size={12} />}
+                      {analyzing === conn.platform ? t('settings.analyzingStatus') : t('settings.analyze')}
+                    </button>
+                  </>
                 )}
-                {conn.status === 'connected' ? (
+                {(isConnected || isExpired) && (
                   <button
                     type="button"
-                    disabled={disconnecting === conn.platform}
-                    onClick={() => {
-                      if (window.confirm(t('settings.disconnectConfirm', { name: conn.label }))) {
-                        setDisconnecting(conn.platform);
-                        setTimeout(() => {
-                          setDisconnecting(null);
-                          showToast(t('settings.disconnectSuccess', { name: conn.label }));
-                        }, 1500);
-                      }
-                    }}
+                    disabled={disconnectMutation.isPending}
+                    onClick={() => handleDisconnect(connWithId)}
                     className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive disabled:opacity-50"
                   >
-                    {disconnecting === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
+                    {disconnectMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
                     {t('settings.disconnect')}
                   </button>
-                ) : (
+                )}
+                {(!isConnected) && (
                   <button
                     type="button"
                     onClick={() => handleConnect(conn.platform)}
-                    disabled={connecting === conn.platform}
+                    disabled={connectMutation.isPending && connectMutation.variables?.platform === conn.platform}
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {connecting === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
-                    {t('settings.connect')}
+                    {connectMutation.isPending && connectMutation.variables?.platform === conn.platform ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+                    {isExpired ? t('settings.reconnect') : t('settings.connect')}
                   </button>
                 )}
               </div>

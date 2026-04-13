@@ -8,6 +8,26 @@ export enum Platform {
   MICROSOFT = 'MICROSOFT',
 }
 
+/** Maps lowercase DB platform strings to Platform enum values. */
+export const DB_PLATFORM_TO_ENUM: Record<string, Platform> = {
+  meta: Platform.META,
+  google: Platform.GOOGLE,
+  x: Platform.X,
+  tiktok: Platform.TIKTOK,
+  line_yahoo: Platform.LINE_YAHOO,
+  amazon: Platform.AMAZON,
+  microsoft: Platform.MICROSOFT,
+};
+
+export function isPlatformError(value: unknown): value is PlatformError {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'code' in value &&
+    'retryable' in value
+  );
+}
+
 export enum PlatformErrorCode {
   AUTH_EXPIRED = 'AUTH_EXPIRED',
   RATE_LIMITED = 'RATE_LIMITED',

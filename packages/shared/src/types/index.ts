@@ -1,4 +1,4 @@
-export { Platform, PlatformErrorCode } from './platform.js';
+export { Platform, PlatformErrorCode, DB_PLATFORM_TO_ENUM, isPlatformError } from './platform.js';
 export type {
   PlatformStatus,
   ConnectionStatus,

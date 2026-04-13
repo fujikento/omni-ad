@@ -1,5 +1,5 @@
 // Types
-export { Platform, PlatformErrorCode } from './types/index.js';
+export { Platform, PlatformErrorCode, DB_PLATFORM_TO_ENUM, isPlatformError } from './types/index.js';
 export type {
   PlatformStatus,
   ConnectionStatus,

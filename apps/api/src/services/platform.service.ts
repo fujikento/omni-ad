@@ -2,6 +2,8 @@ import { db } from '@omni-ad/db';
 import { platformConnections } from '@omni-ad/db/schema';
 import { getQueue, QUEUE_NAMES } from '@omni-ad/queue';
 import type { SyncCampaignJob } from '@omni-ad/queue';
+import { adapterRegistry } from '@omni-ad/platform-adapters';
+import { DB_PLATFORM_TO_ENUM } from '@omni-ad/shared';
 import { and, eq, sql } from 'drizzle-orm';
 
 type PlatformConnectionSelect = typeof platformConnections.$inferSelect;
@@ -23,28 +25,19 @@ export async function listConnections(
 export async function connectPlatform(
   platform: Platform,
   organizationId: string,
-  redirectUrl: string,
+  _redirectUrl: string,
 ): Promise<{ oauthUrl: string }> {
-  // Generate OAuth URL based on platform
-  // In production this would delegate to a platform-specific adapter
-  const baseUrls: Record<Platform, string> = {
-    meta: 'https://www.facebook.com/v19.0/dialog/oauth',
-    google: 'https://accounts.google.com/o/oauth2/v2/auth',
-    x: 'https://twitter.com/i/oauth2/authorize',
-    tiktok: 'https://ads.tiktok.com/marketing_api/auth',
-    line_yahoo: 'https://access.line.me/oauth2/v2.1/authorize',
-    amazon: 'https://www.amazon.com/ap/oa',
-    microsoft: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-  };
+  const adapterPlatform = DB_PLATFORM_TO_ENUM[platform];
+  if (!adapterPlatform || !adapterRegistry.has(adapterPlatform)) {
+    throw new PlatformNotConfiguredError(platform);
+  }
 
-  const baseUrl = baseUrls[platform];
-  const params = new URLSearchParams({
-    redirect_uri: redirectUrl,
-    state: `${organizationId}:${platform}`,
-    response_type: 'code',
-  });
+  const adapter = adapterRegistry.get(adapterPlatform);
+  const redirectUri = `${process.env['OAUTH_REDIRECT_BASE_URL'] ?? 'http://localhost:3001'}/auth/callback`;
+  const state = `${organizationId}:${platform}`;
+  const oauthUrl = adapter.getAuthUrl(redirectUri, state);
 
-  return { oauthUrl: `${baseUrl}?${params.toString()}` };
+  return { oauthUrl };
 }
 
 export async function disconnectPlatform(
@@ -131,21 +124,6 @@ export async function syncNow(
   return { jobId: job.id ?? connectionId };
 }
 
-// ---------------------------------------------------------------------------
-// Auto-analysis hook
-// ---------------------------------------------------------------------------
-// When the OAuth callback stores tokens and sets status to 'active',
-// call this function to trigger automatic account analysis.
-// Usage (in the future OAuth callback handler):
-//
-//   import { onConnectionActivated } from './platform.service.js';
-//   await onConnectionActivated(organizationId, connectionId);
-//
-// For now, the settings UI can call the accountAnalysis.analyze tRPC
-// procedure with { connectionId, analyzeOnConnect: true } immediately
-// after a platform is connected.
-// ---------------------------------------------------------------------------
-
 export async function onConnectionActivated(
   organizationId: string,
   connectionId: string,
@@ -171,3 +149,11 @@ export class PlatformConnectionNotFoundError extends Error {
     this.name = 'PlatformConnectionNotFoundError';
   }
 }
+
+export class PlatformNotConfiguredError extends Error {
+  constructor(platform: string) {
+    super(`Platform "${platform}" is not configured. Check environment variables.`);
+    this.name = 'PlatformNotConfiguredError';
+  }
+}
+
