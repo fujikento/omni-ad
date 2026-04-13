@@ -2,5 +2,15 @@
   "installCommand": "corepack enable && pnpm install",
   "buildCommand": "cd apps/web && npx next build",
   "outputDirectory": "apps/web/.next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/api/trpc/:path*",
+      "destination": "http://108.160.138.236/trpc/:path*"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "http://108.160.138.236/auth/callback"
+    }
+  ]
 }
