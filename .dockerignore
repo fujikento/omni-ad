@@ -1,0 +1,14 @@
+node_modules
+.git
+.next
+dist
+*.md
+.claude
+.env
+.env.*
+playwright-report
+test-results
+apps/web
+apps/ml-service
+infrastructure
+tooling

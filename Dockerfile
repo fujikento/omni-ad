@@ -4,31 +4,7 @@
 #   docker build --target worker -t omni-ad-worker .
 
 # ============================================================================
-# Stage 1: Install dependencies
-# ============================================================================
-FROM node:20-alpine AS deps
-
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
-
-WORKDIR /app
-
-# Copy workspace config files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-
-# Copy all package.json files to leverage Docker layer caching
-COPY apps/api/package.json apps/api/package.json
-COPY apps/worker/package.json apps/worker/package.json
-COPY packages/auth/package.json packages/auth/package.json
-COPY packages/db/package.json packages/db/package.json
-COPY packages/platform-adapters/package.json packages/platform-adapters/package.json
-COPY packages/queue/package.json packages/queue/package.json
-COPY packages/shared/package.json packages/shared/package.json
-COPY packages/ai-engine/package.json packages/ai-engine/package.json
-
-RUN pnpm install --frozen-lockfile --prod=false
-
-# ============================================================================
-# Stage 2: Build all packages
+# Stage 1: Build all packages
 # ============================================================================
 FROM node:20-alpine AS builder
 
@@ -37,41 +13,29 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
 COPY . .
-RUN pnpm install --frozen-lockfile --prod=false
+RUN pnpm install --frozen-lockfile
 
 # Build shared packages first, then apps
 RUN pnpm turbo run build --filter=@omni-ad/shared --filter=@omni-ad/auth --filter=@omni-ad/db --filter=@omni-ad/queue --filter=@omni-ad/platform-adapters --filter=@omni-ad/ai-engine && \
     pnpm turbo run build --filter=@omni-ad/api --filter=@omni-ad/worker
 
-# Note: Stage 3 (prod-deps) removed — pnpm workspaces require full node_modules
-# for symlink resolution. We copy from the builder stage instead.
+# Prune dev dependencies after build
+RUN pnpm prune --prod
 
 # ============================================================================
-# Stage 4a: API server
+# Stage 2a: API server
 # ============================================================================
 FROM node:20-alpine AS api
 
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini wget
 WORKDIR /app
 
+# Copy the entire workspace with pruned node_modules + built dist
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=builder /app/packages/auth/dist ./packages/auth/dist
-COPY --from=builder /app/packages/auth/package.json ./packages/auth/package.json
-COPY --from=builder /app/packages/db/dist ./packages/db/dist
-COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
-COPY --from=builder /app/packages/queue/dist ./packages/queue/dist
-COPY --from=builder /app/packages/queue/package.json ./packages/queue/package.json
-COPY --from=builder /app/packages/platform-adapters/dist ./packages/platform-adapters/dist
-COPY --from=builder /app/packages/platform-adapters/package.json ./packages/platform-adapters/package.json
-COPY --from=builder /app/packages/ai-engine/dist ./packages/ai-engine/dist
-COPY --from=builder /app/packages/ai-engine/package.json ./packages/ai-engine/package.json
-COPY package.json pnpm-workspace.yaml ./
-
-RUN apk add --no-cache wget
+COPY --from=builder /app/apps/api ./apps/api
+COPY --from=builder /app/packages ./packages
 
 ENV NODE_ENV=production
 ENV PORT=3001
@@ -85,29 +49,18 @@ ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/api/dist/server.js"]
 
 # ============================================================================
-# Stage 4b: Worker
+# Stage 2b: Worker
 # ============================================================================
 FROM node:20-alpine AS worker
 
 RUN apk add --no-cache tini
 WORKDIR /app
 
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
-COPY --from=builder /app/apps/worker/package.json ./apps/worker/package.json
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=builder /app/packages/auth/dist ./packages/auth/dist
-COPY --from=builder /app/packages/auth/package.json ./packages/auth/package.json
-COPY --from=builder /app/packages/db/dist ./packages/db/dist
-COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
-COPY --from=builder /app/packages/queue/dist ./packages/queue/dist
-COPY --from=builder /app/packages/queue/package.json ./packages/queue/package.json
-COPY --from=builder /app/packages/platform-adapters/dist ./packages/platform-adapters/dist
-COPY --from=builder /app/packages/platform-adapters/package.json ./packages/platform-adapters/package.json
-COPY --from=builder /app/packages/ai-engine/dist ./packages/ai-engine/dist
-COPY --from=builder /app/packages/ai-engine/package.json ./packages/ai-engine/package.json
-COPY package.json pnpm-workspace.yaml ./
+COPY --from=builder /app/apps/worker ./apps/worker
+COPY --from=builder /app/packages ./packages
 
 ENV NODE_ENV=production
 
