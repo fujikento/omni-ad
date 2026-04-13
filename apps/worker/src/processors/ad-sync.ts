@@ -85,30 +85,44 @@ async function handlePush(data: SyncCampaignJob): Promise<void> {
   const adapter = adapterRegistry.get(P2E[data.platform] ?? PlatformEnum.META);
   const accessToken = await ensureValidToken(connection, adapter);
 
-  // Find pending deployments for this platform
-  const pendingDeployments = await db.query.campaignPlatformDeployments.findMany({
-    where: and(
-      eq(campaignPlatformDeployments.platform, data.platform),
-      eq(campaignPlatformDeployments.platformStatus, 'pending'),
-    ),
-  });
+  // Find pending deployments for this platform, scoped to this org
+  const pendingDeployments = await db
+    .select({
+      id: campaignPlatformDeployments.id,
+      externalCampaignId: campaignPlatformDeployments.externalCampaignId,
+      platformBudget: campaignPlatformDeployments.platformBudget,
+      campaignName: campaigns.name,
+      campaignObjective: campaigns.objective,
+      campaignStartDate: campaigns.startDate,
+      campaignEndDate: campaigns.endDate,
+      campaignTotalBudget: campaigns.totalBudget,
+    })
+    .from(campaignPlatformDeployments)
+    .innerJoin(
+      campaigns,
+      eq(campaignPlatformDeployments.campaignId, campaigns.id),
+    )
+    .where(
+      and(
+        eq(campaigns.organizationId, data.organizationId),
+        eq(campaignPlatformDeployments.platform, data.platform),
+        eq(campaignPlatformDeployments.platformStatus, 'pending'),
+      ),
+    );
 
   for (const deployment of pendingDeployments) {
     try {
       if (!deployment.externalCampaignId) {
-        const campaign = await db.query.campaigns.findFirst({
-          where: eq(campaigns.id, deployment.campaignId),
-        });
-        if (!campaign) continue;
-
         const result = await adapter.createCampaign(
           connection.platformAccountId,
           {
-            name: campaign.name,
-            objective: campaign.objective,
-            startDate: new Date(campaign.startDate),
-            endDate: campaign.endDate ? new Date(campaign.endDate) : undefined,
-            totalBudget: Number(campaign.totalBudget),
+            name: deployment.campaignName,
+            objective: deployment.campaignObjective,
+            startDate: new Date(deployment.campaignStartDate),
+            endDate: deployment.campaignEndDate
+              ? new Date(deployment.campaignEndDate)
+              : undefined,
+            totalBudget: Number(deployment.campaignTotalBudget),
             dailyBudget: Number(deployment.platformBudget),
           },
           accessToken,
@@ -136,13 +150,24 @@ async function handlePush(data: SyncCampaignJob): Promise<void> {
     }
   }
 
-  // Handle pausing
-  const pausingDeployments = await db.query.campaignPlatformDeployments.findMany({
-    where: and(
-      eq(campaignPlatformDeployments.platform, data.platform),
-      eq(campaignPlatformDeployments.platformStatus, 'paused'),
-    ),
-  });
+  // Handle pausing, scoped to this org
+  const pausingDeployments = await db
+    .select({
+      id: campaignPlatformDeployments.id,
+      externalCampaignId: campaignPlatformDeployments.externalCampaignId,
+    })
+    .from(campaignPlatformDeployments)
+    .innerJoin(
+      campaigns,
+      eq(campaignPlatformDeployments.campaignId, campaigns.id),
+    )
+    .where(
+      and(
+        eq(campaigns.organizationId, data.organizationId),
+        eq(campaignPlatformDeployments.platform, data.platform),
+        eq(campaignPlatformDeployments.platformStatus, 'paused'),
+      ),
+    );
 
   for (const deployment of pausingDeployments) {
     if (!deployment.externalCampaignId) continue;
