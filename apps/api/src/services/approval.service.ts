@@ -211,6 +211,9 @@ export async function approveRequest(
     throw new UnauthorizedApproverError(approverId, requestId);
   }
 
+  // Atomic conditional update: include status='pending' in WHERE so that
+  // two concurrent approvers cannot both succeed. The first UPDATE wins,
+  // the second returns no rows and throws InvalidApprovalStateError.
   const [updated] = await db
     .update(approvalRequests)
     .set({
@@ -223,12 +226,15 @@ export async function approveRequest(
       and(
         eq(approvalRequests.id, requestId),
         eq(approvalRequests.organizationId, organizationId),
+        eq(approvalRequests.status, 'pending'),
       ),
     )
     .returning();
 
   if (!updated) {
-    throw new ApprovalNotFoundError(requestId);
+    throw new InvalidApprovalStateError(
+      `Request ${requestId} is no longer pending`,
+    );
   }
 
   // Execute the approved change
@@ -290,12 +296,15 @@ export async function rejectRequest(
       and(
         eq(approvalRequests.id, requestId),
         eq(approvalRequests.organizationId, organizationId),
+        eq(approvalRequests.status, 'pending'),
       ),
     )
     .returning();
 
   if (!updated) {
-    throw new ApprovalNotFoundError(requestId);
+    throw new InvalidApprovalStateError(
+      `Request ${requestId} is no longer pending`,
+    );
   }
 
   // Notify requester of rejection
@@ -347,12 +356,15 @@ export async function cancelRequest(
       and(
         eq(approvalRequests.id, requestId),
         eq(approvalRequests.organizationId, organizationId),
+        eq(approvalRequests.status, 'pending'),
       ),
     )
     .returning();
 
   if (!updated) {
-    throw new ApprovalNotFoundError(requestId);
+    throw new InvalidApprovalStateError(
+      `Request ${requestId} is no longer pending`,
+    );
   }
 
   return updated;
