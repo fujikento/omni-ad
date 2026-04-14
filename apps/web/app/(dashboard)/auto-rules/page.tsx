@@ -10,7 +10,6 @@ import {
   Clock,
   Copy,
   Gauge,
-  Loader2,
   Minus,
   Pause,
   Play,
@@ -22,6 +21,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { Button, EmptyState, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
@@ -1303,36 +1303,31 @@ export default function AutoRulesPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('autoRules.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('autoRules.description')}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleEvaluateAll}
-            disabled={evaluating}
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-          >
-            {evaluating ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            {t('autoRules.evaluateAll')}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setEditingRuleId(null); setModalOpen(true); }}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Plus size={16} />
-            {t('autoRules.createRule')}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="AI Ops"
+        title={t('autoRules.title')}
+        description={t('autoRules.description')}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleEvaluateAll}
+              loading={evaluating}
+              leadingIcon={!evaluating ? <RefreshCw size={14} /> : undefined}
+            >
+              {t('autoRules.evaluateAll')}
+            </Button>
+            <Button
+              size="sm"
+              leadingIcon={<Plus size={14} />}
+              onClick={() => { setEditingRuleId(null); setModalOpen(true); }}
+            >
+              {t('autoRules.createRule')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Rules list */}
       {rules.length > 0 ? (
@@ -1349,13 +1344,12 @@ export default function AutoRulesPage(): React.ReactElement {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-16">
-          <Workflow size={48} className="text-muted-foreground/30" />
-          <p className="text-muted-foreground">{t('autoRules.empty')}</p>
-          <p className="text-sm text-muted-foreground/70">
-            {t('autoRules.emptyHint')}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Workflow size={18} />}
+          title={t('autoRules.empty')}
+          description={t('autoRules.emptyHint')}
+          className="py-16"
+        />
       )}
 
       {/* Execution history */}

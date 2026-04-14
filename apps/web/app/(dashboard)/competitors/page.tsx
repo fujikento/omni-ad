@@ -39,6 +39,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Badge, Button, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
@@ -1693,57 +1694,41 @@ export default function CompetitorsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('competitors.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('competitors.description')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
-              monitoringEnabled
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-            )}
-          >
-            <span
-              className={cn(
-                'h-2 w-2 rounded-full',
-                monitoringEnabled
-                  ? 'bg-green-500'
-                  : 'bg-gray-500'
-              )}
-            />
-            {t('competitors.autoMonitoring')}: {monitoringEnabled ? t('competitors.monitoringOn') : t('competitors.monitoringOff')}
-          </span>
-          <button
-            type="button"
-            onClick={handleScan}
-            disabled={scanning}
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
-          >
-            <RefreshCw
-              size={14}
-              className={cn(scanning && 'animate-spin')}
-            />
-            {t('competitors.scan')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAddModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus size={14} />
-            {t('competitors.addCompetitor')}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="AI Ops"
+        title={t('competitors.title')}
+        description={t('competitors.description')}
+        actions={
+          <>
+            <Badge
+              variant={monitoringEnabled ? 'success' : 'neutral'}
+              size="md"
+              dot={monitoringEnabled}
+              dotClassName={monitoringEnabled ? 'animate-pulse' : undefined}
+            >
+              {t('competitors.autoMonitoring')}: {monitoringEnabled ? t('competitors.monitoringOn') : t('competitors.monitoringOff')}
+            </Badge>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleScan}
+              disabled={scanning}
+              leadingIcon={
+                <RefreshCw size={14} className={cn(scanning && 'animate-spin')} />
+              }
+            >
+              {t('competitors.scan')}
+            </Button>
+            <Button
+              size="sm"
+              leadingIcon={<Plus size={14} />}
+              onClick={() => setAddModalOpen(true)}
+            >
+              {t('competitors.addCompetitor')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Alert banner */}
       <AlertBanner

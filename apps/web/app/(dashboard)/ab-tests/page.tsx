@@ -29,6 +29,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Button, PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -293,16 +294,13 @@ interface KPICardProps {
 
 function KPICard({ label, value, icon, trend }: KPICardProps): React.ReactElement {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="text-muted-foreground/50">{icon}</span>
-      </div>
-      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
-      {trend && (
-        <p className="mt-1 text-xs text-muted-foreground">{trend}</p>
-      )}
-    </div>
+    <StatCard
+      label={label}
+      value={value}
+      icon={<span className="text-muted-foreground/70">{icon}</span>}
+    >
+      {trend ? <p className="text-xs text-muted-foreground">{trend}</p> : null}
+    </StatCard>
   );
 }
 
@@ -1047,44 +1045,39 @@ export default function ABTestsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('abTests.title')}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-            <span className="text-muted-foreground">
-              {t('abTests.running')}: <span className="font-semibold text-green-600">{runningCount}{t('abTests.totalRunning')}</span>
+      <PageHeader
+        eyebrow="Analysis & Optimization"
+        title={t('abTests.title')}
+        description={
+          <span className="inline-flex flex-wrap items-center gap-3">
+            <span>
+              {t('abTests.running')}: <span className="font-semibold text-success tabular-nums">{runningCount}{t('abTests.totalRunning')}</span>
             </span>
             <span className="text-muted-foreground/30">|</span>
-            <span className="text-muted-foreground">
-              {t('abTests.completed')}: <span className="font-semibold text-blue-600">{completedCount}{t('abTests.totalCompleted')}</span>
+            <span>
+              {t('abTests.completed')}: <span className="font-semibold text-info tabular-nums">{completedCount}{t('abTests.totalCompleted')}</span>
             </span>
             <span className="text-muted-foreground/30">|</span>
-            <span className="text-muted-foreground">
-              {t('abTests.winRate')}: <span className="font-semibold text-foreground">78%</span>
+            <span>
+              {t('abTests.winRate')}: <span className="font-semibold tabular-nums text-foreground">78%</span>
             </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="/creatives/mass-production"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            <Zap size={16} />
-            {t('abTests.batchCreate')}
-          </a>
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Plus size={16} />
-            {t('abTests.create')}
-          </button>
-        </div>
-      </div>
+          </span>
+        }
+        actions={
+          <>
+            <a
+              href="/creatives/mass-production"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+            >
+              <Zap size={14} />
+              {t('abTests.batchCreate')}
+            </a>
+            <Button size="sm" leadingIcon={<Plus size={14} />} onClick={() => setModalOpen(true)}>
+              {t('abTests.create')}
+            </Button>
+          </>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
