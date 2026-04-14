@@ -8,7 +8,6 @@ import {
   Clock,
   Filter,
   Lightbulb,
-  Loader2,
   Pause,
   Play,
   Plus,
@@ -28,6 +27,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Badge, Button, EmptyState, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
@@ -826,70 +826,69 @@ export default function AiPilotPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {t('aiPilot.title')}
-            </h1>
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
-                isActive
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-              )}
+      <PageHeader
+        eyebrow={
+          <span className="inline-flex items-center gap-1.5">
+            <Sparkles size={12} className="text-primary" />
+            AI Autopilot
+          </span>
+        }
+        title={
+          <span className="inline-flex items-center gap-3">
+            {t('aiPilot.title')}
+            <Badge
+              variant={isActive ? 'success' : 'destructive'}
+              dot
+              dotClassName={cn(isActive && 'animate-pulse')}
             >
-              <span
-                className={cn(
-                  'h-2 w-2 rounded-full',
-                  isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500',
-                )}
-              />
               {isActive ? t('aiPilot.running') : t('aiPilot.stopped')}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleManualTrigger}
-            disabled={triggering}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {triggering ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Zap size={14} />
-            )}
-            {t('aiPilot.manualRun')}
-          </button>
-          <a
-            href="/settings/ai"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <Settings size={14} />
-            {t('aiPilot.settings')}
-          </a>
-        </div>
-      </div>
+            </Badge>
+          </span>
+        }
+        description="Claude がキャンペーンを監視し、予算・一時停止・最適化判断を自律実行します。"
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleManualTrigger}
+              disabled={triggering}
+              loading={triggering}
+              leadingIcon={!triggering ? <Zap size={14} /> : undefined}
+            >
+              {t('aiPilot.manualRun')}
+            </Button>
+            <a
+              href="/settings/ai"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+            >
+              <Settings size={14} />
+              {t('aiPilot.settings')}
+            </a>
+          </>
+        }
+      />
 
       {/* Pending approval banner */}
       {pendingCount > 0 && (
-        <div className="flex items-center gap-3 rounded-lg bg-yellow-50 p-4 dark:bg-yellow-950/30">
-          <Clock size={18} className="flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
-          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-            {t('aiPilot.pendingApprovalBanner', { count: pendingCount })}
-          </p>
-          <button
-            type="button"
+        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warning/20 text-warning">
+            <Clock size={16} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {t('aiPilot.pendingApprovalBanner', { count: pendingCount })}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setStatusFilter('pending_approval')}
-            className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-yellow-700 hover:text-yellow-800 dark:text-yellow-400"
+            trailingIcon={<ArrowRight size={12} />}
+            className="text-warning hover:bg-warning/10 hover:text-warning"
           >
             {t('aiPilot.reviewPending')}
-            <ArrowRight size={12} />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -919,14 +918,13 @@ export default function AiPilotPage(): React.ReactElement {
       </div>
 
       {/* Decision timeline */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filteredDecisions.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card p-12 text-center">
-            <Lightbulb size={32} className="mx-auto text-muted-foreground/50" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              {t('aiPilot.noDecisions')}
-            </p>
-          </div>
+          <EmptyState
+            icon={<Lightbulb size={18} />}
+            title={t('aiPilot.noDecisions')}
+            description="条件にマッチする AI 判断はありません。フィルタを変更するか Autopilot を手動実行してください。"
+          />
         ) : (
           filteredDecisions.map((decision) => (
             <DecisionCard

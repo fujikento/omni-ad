@@ -27,6 +27,8 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { Badge, Button, PageHeader, PlatformBadge, PlatformIcon } from '@omni-ad/ui';
+import { Platform as PlatformEnum } from '@omni-ad/shared';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
@@ -62,15 +64,31 @@ interface Campaign {
 // Constants
 // ============================================================
 
-const STATUS_CONFIG: Record<CampaignStatus, { labelKey: string; className: string }> = {
-  draft: { labelKey: 'campaigns.status.draft', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-  active: { labelKey: 'campaigns.status.active', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  paused: { labelKey: 'campaigns.status.paused', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  completed: { labelKey: 'campaigns.status.completed', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  archived: { labelKey: 'campaigns.status.archived', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+type StatusVariant = 'neutral' | 'success' | 'warning' | 'info' | 'destructive';
+
+const STATUS_CONFIG: Record<CampaignStatus, { labelKey: string; variant: StatusVariant }> = {
+  draft: { labelKey: 'campaigns.status.draft', variant: 'neutral' },
+  active: { labelKey: 'campaigns.status.active', variant: 'success' },
+  paused: { labelKey: 'campaigns.status.paused', variant: 'warning' },
+  completed: { labelKey: 'campaigns.status.completed', variant: 'info' },
+  archived: { labelKey: 'campaigns.status.archived', variant: 'destructive' },
 };
 
+
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'active', 'paused', 'completed', 'archived'];
+
+// Local map strictly typed against this file's lowercase Platform union.
+// Shared has DB_PLATFORM_TO_ENUM but its key is `string` (for parsing untrusted
+// input), which defeats index-access narrowing under noUncheckedIndexedAccess.
+const PLATFORM_TO_ENUM: Record<Platform, PlatformEnum> = {
+  meta: PlatformEnum.META,
+  google: PlatformEnum.GOOGLE,
+  x: PlatformEnum.X,
+  tiktok: PlatformEnum.TIKTOK,
+  line_yahoo: PlatformEnum.LINE_YAHOO,
+  amazon: PlatformEnum.AMAZON,
+  microsoft: PlatformEnum.MICROSOFT,
+};
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
   meta: { label: 'Meta', color: 'bg-indigo-500' },
@@ -222,24 +240,45 @@ function StatusBadge({ status }: { status: CampaignStatus }): React.ReactElement
   const { t } = useI18n();
   const config = STATUS_CONFIG[status];
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
+    <Badge variant={config.variant} size="md" dot={status === 'active'}>
       {t(config.labelKey)}
-    </span>
+    </Badge>
   );
 }
 
 function PlatformBadges({ platforms }: { platforms: Platform[] }): React.ReactElement {
+  if (platforms.length <= 3) {
+    return (
+      <div className="flex flex-wrap gap-1">
+        {platforms.map((p) => (
+          <PlatformBadge
+            key={p}
+            platform={PLATFORM_TO_ENUM[p]}
+            size="sm"
+            showLabel={false}
+          />
+        ))}
+      </div>
+    );
+  }
+  // When many platforms are active, fall back to a stacked group of icons
+  // with a count chip to keep the row height tight.
   return (
-    <div className="flex gap-1">
-      {platforms.map((p) => (
-        <span
-          key={p}
-          className={cn('inline-flex h-6 items-center rounded px-1.5 text-[10px] font-medium text-white', PLATFORM_CONFIG[p].color)}
-          title={PLATFORM_CONFIG[p].label}
-        >
-          {PLATFORM_CONFIG[p].label}
-        </span>
-      ))}
+    <div className="flex items-center gap-1">
+      <div className="flex -space-x-1.5">
+        {platforms.slice(0, 3).map((p) => (
+          <div
+            key={p}
+            className="grid h-5 w-5 place-items-center rounded-full border-2 border-card bg-card shadow-xs"
+            title={PLATFORM_CONFIG[p].label}
+          >
+            <PlatformIcon platform={PLATFORM_TO_ENUM[p]} size={11} />
+          </div>
+        ))}
+      </div>
+      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        +{platforms.length - 3}
+      </span>
     </div>
   );
 }
@@ -1422,21 +1461,22 @@ function FilterBar({
           <ChevronDown size={14} className={cn('transition-transform', platformDropdownOpen && 'rotate-180')} />
         </button>
         {platformDropdownOpen && (
-          <div className="absolute left-0 z-50 mt-1 w-48 overflow-hidden rounded-md border border-border bg-card shadow-lg">
+          <div className="absolute left-0 z-50 mt-1 w-56 overflow-hidden rounded-md border border-border bg-card shadow-lg animate-slide-up">
             {ALL_PLATFORMS.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => onPlatformToggle(p)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
               >
                 <div className={cn(
                   'flex h-4 w-4 items-center justify-center rounded border',
                   platformFilter.has(p) ? 'border-primary bg-primary text-primary-foreground' : 'border-input',
                 )}>
-                  {platformFilter.has(p) && <span className="text-[10px]">&#10003;</span>}
+                  {platformFilter.has(p) && <Check size={10} strokeWidth={3} />}
                 </div>
-                {PLATFORM_CONFIG[p].label}
+                <PlatformIcon platform={PLATFORM_TO_ENUM[p]} size={14} />
+                <span className="flex-1 text-left text-xs font-medium">{PLATFORM_CONFIG[p].label}</span>
               </button>
             ))}
           </div>
@@ -1493,16 +1533,21 @@ function BulkActionBar({
 }: BulkActionBarProps): React.ReactElement {
   const { t } = useI18n();
   return (
-    <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center">
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-3 shadow-xl">
-        <span className="text-sm font-semibold text-foreground">
-          {t('campaigns.selectedBulkCount', { count: selectedCount })}
-        </span>
+    <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+      <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2 shadow-lg animate-slide-up">
+        <div className="flex items-center gap-2 pr-2">
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground tabular-nums">
+            {selectedCount}
+          </span>
+          <span className="text-xs font-medium text-foreground">
+            {t('campaigns.selectedBulkCount', { count: selectedCount })}
+          </span>
+        </div>
         <div className="h-5 w-px bg-border" />
         <button
           type="button"
           onClick={onPause}
-          className="inline-flex items-center gap-1.5 rounded-md bg-yellow-100 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
+          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-warning transition-colors hover:bg-warning/10"
         >
           <Pause size={12} />
           {t('campaigns.bulkPause')}
@@ -1510,7 +1555,7 @@ function BulkActionBar({
         <button
           type="button"
           onClick={onResume}
-          className="inline-flex items-center gap-1.5 rounded-md bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-success transition-colors hover:bg-success/10"
         >
           <Play size={12} />
           {t('campaigns.bulkResume')}
@@ -1518,7 +1563,7 @@ function BulkActionBar({
         <button
           type="button"
           onClick={onDelete}
-          className="inline-flex items-center gap-1.5 rounded-md bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
         >
           <Trash2 size={12} />
           {t('campaigns.bulkDelete')}
@@ -1527,7 +1572,7 @@ function BulkActionBar({
         <button
           type="button"
           onClick={onDeselect}
-          className="text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           {t('campaigns.deselect')}
         </button>
@@ -1659,32 +1704,30 @@ export default function CampaignsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('campaigns.title')}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <ExportButton
-            data={sortedCampaigns}
-            columns={EXPORT_COLUMN_DEFS.map((col) => ({
-              ...col,
-              label: t(col.labelKey),
-            }))}
-            filename="campaigns"
-          />
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Plus size={16} />
-            {t('campaigns.create')}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Ad Management"
+        title={t('campaigns.title')}
+        description={`${sortedCampaigns.length} 件 / 全 ${campaigns.length} 件`}
+        actions={
+          <>
+            <ExportButton
+              data={sortedCampaigns}
+              columns={EXPORT_COLUMN_DEFS.map((col) => ({
+                ...col,
+                label: t(col.labelKey),
+              }))}
+              filename="campaigns"
+            />
+            <Button
+              size="sm"
+              leadingIcon={<Plus size={14} />}
+              onClick={() => setModalOpen(true)}
+            >
+              {t('campaigns.create')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Filter bar */}
       <FilterBar
@@ -1701,11 +1744,11 @@ export default function CampaignsPage(): React.ReactElement {
       />
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b border-border bg-muted/40">
                 {/* Checkbox column */}
                 <th className="w-10 px-4 py-3">
                   <input
@@ -1788,18 +1831,18 @@ export default function CampaignsPage(): React.ReactElement {
                     </td>
                     <td className="px-4 py-3 text-foreground">{formatCurrency(campaign.budget.total)}</td>
                     <td className="px-4 py-3">
-                      <span className={cn('font-medium', campaign.roas >= 3 ? 'text-green-600' : campaign.roas >= 1 ? 'text-yellow-600' : 'text-muted-foreground')}>
-                        {campaign.roas > 0 ? `${campaign.roas.toFixed(1)}x` : '--'}
+                      <span className={cn('font-semibold tabular-nums', campaign.roas >= 3 ? 'text-success' : campaign.roas >= 1 ? 'text-warning' : 'text-muted-foreground')}>
+                        {campaign.roas > 0 ? `${campaign.roas.toFixed(1)}x` : '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(campaign.updatedAt)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         {campaign.status === 'active' ? (
                           <button
                             type="button"
                             onClick={() => pauseMutation.mutate({ id: campaign.id })}
-                            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-yellow-100 hover:text-yellow-700"
+                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-warning/10 hover:text-warning"
                             title={t('campaigns.hb57e4b')}
                             aria-label={t('campaigns.ariaPauseCampaign', { name: campaign.name })}
                           >
@@ -1809,7 +1852,7 @@ export default function CampaignsPage(): React.ReactElement {
                           <button
                             type="button"
                             onClick={() => resumeMutation.mutate({ id: campaign.id })}
-                            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-green-100 hover:text-green-700"
+                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-success/10 hover:text-success"
                             title={t('campaigns.h3fade1')}
                             aria-label={t('campaigns.ariaResumeCampaign', { name: campaign.name })}
                           >
@@ -1818,7 +1861,7 @@ export default function CampaignsPage(): React.ReactElement {
                         ) : null}
                         <button
                           type="button"
-                          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                           title={t('campaigns.h757886')}
                           aria-label={t('campaigns.ariaEditCampaign', { name: campaign.name })}
                         >
@@ -1826,7 +1869,7 @@ export default function CampaignsPage(): React.ReactElement {
                         </button>
                         <button
                           type="button"
-                          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-100 hover:text-red-700"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                           title={t('campaigns.hc6577c')}
                           aria-label={t('campaigns.ariaDeleteCampaign', { name: campaign.name })}
                         >

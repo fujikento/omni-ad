@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   Bell,
@@ -32,6 +33,7 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react';
+import { Button } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { TRPCProvider } from '@/lib/trpc-provider';
 import { CommandPalette, CommandPaletteTrigger } from '@/app/components/command-palette';
@@ -74,61 +76,72 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titleKey: '',
     items: [
-      { labelKey: 'nav.dashboard', href: '/home', icon: <Home size={20} /> },
+      { labelKey: 'nav.dashboard', href: '/home', icon: <Home size={18} /> },
     ],
   },
   {
     titleKey: 'nav.aiOps',
     items: [
-      { labelKey: 'nav.aiAutopilot', href: '/ai-pilot', icon: <Sparkles size={20} />, activeIndicator: true },
-      { labelKey: 'nav.competitors', href: '/competitors', icon: <Swords size={20} />, badge: 3 },
-      { labelKey: 'nav.autoRules', href: '/auto-rules', icon: <Workflow size={20} /> },
+      { labelKey: 'nav.aiAutopilot', href: '/ai-pilot', icon: <Sparkles size={18} />, activeIndicator: true },
+      { labelKey: 'nav.competitors', href: '/competitors', icon: <Swords size={18} />, badge: 3 },
+      { labelKey: 'nav.autoRules', href: '/auto-rules', icon: <Workflow size={18} /> },
     ],
   },
   {
     titleKey: 'nav.adManagement',
     items: [
-      { labelKey: 'nav.campaigns', href: '/campaigns', icon: <LayoutDashboard size={20} /> },
-      { labelKey: 'nav.groupBuy', href: '/campaigns/group-buy', icon: <ShoppingCart size={20} /> },
-      { labelKey: 'nav.creatives', href: '/creatives', icon: <BrainCircuit size={20} /> },
-      { labelKey: 'nav.videoStudio', href: '/creatives/video-studio', icon: <Film size={20} /> },
-      { labelKey: 'nav.creativeOptimization', href: '/creatives/optimization', icon: <RefreshCw size={20} /> },
-      { labelKey: 'nav.audiences', href: '/audiences', icon: <Users size={20} /> },
-      { labelKey: 'nav.identityGraph', href: '/audiences/identity-graph', icon: <Fingerprint size={20} /> },
-      { labelKey: 'nav.funnels', href: '/funnels', icon: <GitFork size={20} /> },
+      { labelKey: 'nav.campaigns', href: '/campaigns', icon: <LayoutDashboard size={18} /> },
+      { labelKey: 'nav.groupBuy', href: '/campaigns/group-buy', icon: <ShoppingCart size={18} /> },
+      { labelKey: 'nav.creatives', href: '/creatives', icon: <BrainCircuit size={18} /> },
+      { labelKey: 'nav.videoStudio', href: '/creatives/video-studio', icon: <Film size={18} /> },
+      { labelKey: 'nav.creativeOptimization', href: '/creatives/optimization', icon: <RefreshCw size={18} /> },
+      { labelKey: 'nav.audiences', href: '/audiences', icon: <Users size={18} /> },
+      { labelKey: 'nav.identityGraph', href: '/audiences/identity-graph', icon: <Fingerprint size={18} /> },
+      { labelKey: 'nav.funnels', href: '/funnels', icon: <GitFork size={18} /> },
     ],
   },
   {
     titleKey: 'nav.analysisOptimization',
     items: [
-      { labelKey: 'nav.analytics', href: '/analytics', icon: <BarChart3 size={20} /> },
-      { labelKey: 'nav.budgets', href: '/budgets', icon: <Gauge size={20} /> },
-      { labelKey: 'nav.abTests', href: '/ab-tests', icon: <FlaskConical size={20} />, badge: 847 },
-      { labelKey: 'nav.ltv', href: '/ltv', icon: <TrendingUp size={20} /> },
-      { labelKey: 'nav.reports', href: '/reports', icon: <ScrollText size={20} /> },
+      { labelKey: 'nav.analytics', href: '/analytics', icon: <BarChart3 size={18} /> },
+      { labelKey: 'nav.budgets', href: '/budgets', icon: <Gauge size={18} /> },
+      { labelKey: 'nav.abTests', href: '/ab-tests', icon: <FlaskConical size={18} />, badge: 847 },
+      { labelKey: 'nav.ltv', href: '/ltv', icon: <TrendingUp size={18} /> },
+      { labelKey: 'nav.reports', href: '/reports', icon: <ScrollText size={18} /> },
     ],
   },
   {
     titleKey: 'nav.management',
     items: [
-      { labelKey: 'nav.accountAnalysis', href: '/account-analysis', icon: <ScanSearch size={20} /> },
-      { labelKey: 'nav.clients', href: '/clients', icon: <Building2 size={20} /> },
-      { labelKey: 'nav.approvals', href: '/approvals', icon: <CheckSquare size={20} />, badge: 5 },
-      { labelKey: 'nav.settings', href: '/settings', icon: <Settings size={20} /> },
+      { labelKey: 'nav.accountAnalysis', href: '/account-analysis', icon: <ScanSearch size={18} /> },
+      { labelKey: 'nav.clients', href: '/clients', icon: <Building2 size={18} /> },
+      { labelKey: 'nav.approvals', href: '/approvals', icon: <CheckSquare size={18} />, badge: 5 },
+      { labelKey: 'nav.settings', href: '/settings', icon: <Settings size={18} /> },
     ],
   },
 ];
 
-
 const SEVERITY_DOT_CLASS: Record<NotificationSeverity, string> = {
-  critical: 'bg-red-500',
-  warning: 'bg-yellow-500',
-  info: 'bg-blue-500',
+  critical: 'bg-destructive',
+  warning: 'bg-warning',
+  info: 'bg-info',
 };
 
 // ============================================================
 // Subcomponents
 // ============================================================
+
+function isRouteActive(pathname: string, href: string): boolean {
+  if (pathname === href) return true;
+  // Treat nested routes as active except when href is a parent of multiple
+  // siblings (e.g. /campaigns should not match /campaigns/group-buy).
+  if (href === '/campaigns') return pathname === '/campaigns';
+  if (href === '/creatives') return pathname === '/creatives';
+  if (href === '/audiences') return pathname === '/audiences';
+  if (href === '/settings') return pathname === '/settings' || pathname.startsWith('/settings/');
+  if (href === '/account-analysis') return pathname.startsWith('/account-analysis');
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 function NotificationPanel({
   notifications,
@@ -153,7 +166,6 @@ function NotificationPanel({
       }
     }
 
-    // Delay to avoid immediate close from the same click
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
     }, 0);
@@ -169,7 +181,7 @@ function NotificationPanel({
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-lg sm:w-96"
+      className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-lg sm:w-96 animate-slide-up"
       role="dialog"
       aria-label={t('header.notificationPanel')}
     >
@@ -178,7 +190,7 @@ function NotificationPanel({
         <button
           type="button"
           onClick={onMarkAllRead}
-          className="text-xs font-medium text-primary hover:text-primary/80"
+          className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
         >
           {t('header.markAllRead')}
         </button>
@@ -253,7 +265,7 @@ function UserDropdown({
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+      className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-border bg-card shadow-lg animate-slide-up"
       role="menu"
       aria-label={t('header.userMenu')}
     >
@@ -265,7 +277,7 @@ function UserDropdown({
         <a
           key={item.labelKey}
           href={item.href}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
           role="menuitem"
         >
           <span className="text-muted-foreground">{item.icon}</span>
@@ -280,7 +292,7 @@ function UserDropdown({
             localStorage.removeItem('omni-ad-refresh-token');
             window.location.href = '/login';
           }}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
           role="menuitem"
         >
           <LogOut size={14} />
@@ -301,13 +313,13 @@ function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactEleme
     <div className="space-y-2">
       {sidebarOpen ? (
         <>
-          <div className="flex items-center justify-between text-xs text-sidebar-foreground/60">
+          <div className="flex items-center justify-between text-[11px] text-sidebar-foreground/60">
             <span>{t('common.creativeGeneration')}</span>
-            <span>{used}/{total}</span>
+            <span className="tabular-nums font-medium text-sidebar-foreground/90">{used}/{total}</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-sidebar-accent">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-sidebar-accent">
             <div
-              className="h-full rounded-full bg-primary"
+              className="h-full rounded-full bg-gradient-to-r from-primary to-info transition-all"
               style={{ width: `${percentage}%` }}
             />
           </div>
@@ -317,6 +329,27 @@ function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactEleme
           <div className="h-6 w-6 rounded-full border-2 border-primary/30 p-0.5">
             <div className="h-full w-full rounded-full bg-primary" style={{ clipPath: `inset(${100 - percentage}% 0 0 0)` }} />
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BrandMark({ collapsed }: { collapsed: boolean }): React.ReactElement {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-bold text-primary-foreground shadow-sm"
+        aria-hidden="true"
+      >
+        OA
+      </div>
+      {!collapsed && (
+        <div className="flex flex-col leading-none">
+          <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">OMNI-AD</span>
+          <span className="mt-0.5 text-[10px] uppercase tracking-widest text-sidebar-foreground/40">
+            Operator Console
+          </span>
         </div>
       )}
     </div>
@@ -420,6 +453,7 @@ function DashboardLayoutInner({
   children: React.ReactNode;
 }): React.ReactElement {
   const { t } = useI18n();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -504,7 +538,7 @@ function DashboardLayoutInner({
       {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
           onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
             if (e.key === 'Escape') setMobileMenuOpen(false);
@@ -515,118 +549,127 @@ function DashboardLayoutInner({
         />
       )}
 
-      {/* Sidebar -- hidden on mobile by default, shown via mobileMenuOpen overlay */}
+      {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 lg:relative lg:z-auto',
-          sidebarOpen ? 'w-60' : 'w-16',
+          'fixed inset-y-0 left-0 z-50 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 lg:relative lg:z-auto',
+          sidebarOpen ? 'w-[248px]' : 'w-16',
           mobileMenuOpen
             ? 'flex translate-x-0'
             : 'hidden lg:flex lg:translate-x-0',
         )}
       >
         {/* Sidebar header */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-accent px-4">
-          {sidebarOpen && (
-            <span className="text-lg font-bold tracking-tight">OMNI-AD</span>
-          )}
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+          <BrandMark collapsed={!sidebarOpen} />
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:block"
+            className="hidden rounded-md p-1.5 text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:block"
             aria-label={sidebarOpen ? t('header.closeSidebar') : t('header.openSidebar')}
           >
             <ChevronLeft
-              size={18}
-              className={cn(
-                'transition-transform',
-                !sidebarOpen && 'rotate-180',
-              )}
+              size={16}
+              className={cn('transition-transform', !sidebarOpen && 'rotate-180')}
             />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3" aria-label={t('header.mainNav')}>
+        <nav className="flex-1 overflow-y-auto py-3 px-2" aria-label={t('header.mainNav')}>
           {NAV_GROUPS.map((group) => (
-            <div key={group.titleKey || '_top'} className={cn(group.titleKey && 'mt-4 first:mt-0')}>
+            <div key={group.titleKey || '_top'} className={cn(group.titleKey && 'mt-5 first:mt-0')}>
               {group.titleKey && sidebarOpen && (
-                <div className="mb-1.5 px-3 pt-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                <div className="mb-1.5 px-3 pt-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35">
                     {t(group.titleKey)}
                   </span>
                 </div>
               )}
               {group.titleKey && !sidebarOpen && (
-                <div className="my-2 mx-2 border-t border-sidebar-accent" />
+                <div className="my-3 mx-2 border-t border-sidebar-border/60" />
               )}
               <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                      'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                      !sidebarOpen && 'justify-center px-2',
-                    )}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span className="relative flex-shrink-0">
-                      {item.icon}
-                      {!sidebarOpen && item.badge !== undefined && item.badge > 0 && (
-                        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-                          {item.badge}
-                        </span>
+                {group.items.map((item) => {
+                  const active = isRouteActive(pathname, item.href);
+                  return (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+                        !sidebarOpen && 'justify-center px-2',
                       )}
-                      {item.activeIndicator && (
-                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5">
-                          <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
-                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-                        </span>
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {active && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-y-1.5 left-0 w-0.5 rounded-r bg-primary"
+                        />
                       )}
-                    </span>
-                    {sidebarOpen && (
-                      <span className="flex flex-1 items-center justify-between">
-                        <span>{t(item.labelKey)}</span>
-                        {item.badge !== undefined && item.badge > 0 && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      <span className="relative flex-shrink-0">
+                        <span className={cn('transition-colors', active && 'text-primary')}>
+                          {item.icon}
+                        </span>
+                        {!sidebarOpen && item.badge !== undefined && item.badge > 0 && (
+                          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold text-destructive-foreground">
                             {item.badge}
                           </span>
                         )}
                         {item.activeIndicator && (
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-75" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2">
+                            <span className="absolute inset-0 animate-ping rounded-full bg-success/75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
                           </span>
                         )}
                       </span>
-                    )}
-                  </a>
-                ))}
+                      {sidebarOpen && (
+                        <span className="flex flex-1 items-center justify-between">
+                          <span className="truncate">{t(item.labelKey)}</span>
+                          {item.badge !== undefined && item.badge > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive/90 px-1.5 text-[10px] font-semibold text-destructive-foreground">
+                              {item.badge}
+                            </span>
+                          )}
+                          {item.activeIndicator && (
+                            <span className="relative flex h-2 w-2">
+                              <span className="absolute inset-0 animate-ping rounded-full bg-success/75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </a>
+                  );
+                })}
               </div>
             </div>
           ))}
         </nav>
 
         {/* Sidebar footer */}
-        <div className="border-t border-sidebar-accent p-3 space-y-3">
-          {/* Usage meter */}
+        <div className="space-y-3 border-t border-sidebar-border p-3">
           <UsageMeter sidebarOpen={sidebarOpen} />
 
-          {/* Plan badge */}
           {sidebarOpen ? (
-            <div className="rounded-md bg-sidebar-accent/50 px-3 py-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-sidebar-foreground/60">{t('common.plan')}</p>
-                  <p className="text-sm font-medium text-sidebar-foreground">
+            <div className="rounded-md border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
+                    {t('common.plan')}
+                  </p>
+                  <p className="truncate text-sm font-semibold text-sidebar-foreground">
                     {t('common.professional')}
                   </p>
                 </div>
                 <a
                   href="/settings"
-                  className="rounded-md bg-primary/20 px-2 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/30"
+                  className="shrink-0 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/25"
                 >
                   {t('common.upgrade')}
                 </a>
@@ -636,7 +679,7 @@ function DashboardLayoutInner({
             <div className="flex justify-center">
               <a
                 href="/settings"
-                className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent"
+                className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 title={t('common.upgrade')}
                 aria-label={t('common.upgrade')}
               >
@@ -650,7 +693,7 @@ function DashboardLayoutInner({
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top header */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
+        <header className="flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-sm lg:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -665,23 +708,18 @@ function DashboardLayoutInner({
             <CommandPaletteTrigger onClick={() => setCommandPaletteOpen(true)} label={t('header.search')} />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Emergency stop button */}
-            <button
-              type="button"
+            <Button
+              variant={emergencyStopped ? 'outline' : 'destructive'}
+              size="sm"
               onClick={() => setEmergencyStopModalOpen(true)}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                emergencyStopped
-                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  : 'bg-red-600 text-white hover:bg-red-700',
-              )}
               disabled={emergencyStopped}
               aria-label={t('header.emergencyStop')}
+              leadingIcon={<ShieldAlert size={14} />}
             >
-              <ShieldAlert size={16} />
               <span className="hidden sm:inline">{t('header.emergencyStop')}</span>
-            </button>
+            </Button>
 
             {/* Language switcher */}
             <LanguageSwitcher />
@@ -698,9 +736,9 @@ function DashboardLayoutInner({
                 aria-label={t('header.showNotifications')}
                 aria-expanded={notificationsOpen}
               >
-                <Bell size={20} />
+                <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground ring-2 ring-card">
                     {unreadCount}
                   </span>
                 )}
@@ -722,21 +760,21 @@ function DashboardLayoutInner({
                   setUserDropdownOpen((prev) => !prev);
                   setNotificationsOpen(false);
                 }}
-                className="flex items-center gap-2 rounded-md p-1.5 transition-colors hover:bg-accent"
+                className="flex items-center gap-2 rounded-md p-1 pr-2 transition-colors hover:bg-accent"
                 aria-label={t('header.userMenu')}
                 aria-expanded={userDropdownOpen}
                 aria-haspopup="true"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary to-info text-xs font-semibold text-primary-foreground shadow-xs">
                   U
                 </div>
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-foreground">
+                <div className="hidden text-left sm:block">
+                  <p className="text-xs font-medium leading-tight text-foreground">
                     {t('common.username')}
                   </p>
-                  <p className="text-xs text-muted-foreground">{t('common.admin')}</p>
+                  <p className="text-[10px] leading-tight text-muted-foreground">{t('common.admin')}</p>
                 </div>
-                <ChevronDown size={14} className="hidden text-muted-foreground sm:block" />
+                <ChevronDown size={12} className="hidden text-muted-foreground sm:block" />
               </button>
 
               <UserDropdown
@@ -749,25 +787,26 @@ function DashboardLayoutInner({
 
         {/* Emergency stop banner */}
         {emergencyStopped && (
-          <div className="flex items-center justify-between bg-red-600 px-4 py-2 text-white">
+          <div className="flex items-center justify-between bg-destructive px-4 py-2.5 text-destructive-foreground">
             <div className="flex items-center gap-2">
               <ShieldAlert size={16} />
               <span className="text-sm font-semibold">
                 {t('header.emergencyStopped')}
               </span>
             </div>
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleEmergencyResume}
-              className="rounded-md bg-white/20 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-white/30"
+              className="border-white/30 bg-white/10 text-destructive-foreground hover:bg-white/20"
             >
               {t('header.resume')}
-            </button>
+            </Button>
           </div>
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6">
           <TRPCProvider>{children}</TRPCProvider>
         </main>
       </div>
@@ -780,13 +819,13 @@ function DashboardLayoutInner({
 
       {/* Emergency stop confirmation modal */}
       {emergencyStopModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg animate-slide-up">
             <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-                <ShieldAlert size={20} className="text-red-600 dark:text-red-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <ShieldAlert size={20} className="text-destructive" />
               </div>
-              <h2 className="text-lg font-semibold text-foreground">{t('common.confirmEmergencyStop')}</h2>
+              <h2 className="text-base font-semibold text-foreground">{t('common.confirmEmergencyStop')}</h2>
             </div>
             <p className="text-sm text-foreground">
               {t('common.emergencyStopBody')}
@@ -795,30 +834,25 @@ function DashboardLayoutInner({
               {t('common.emergencyStopDetail')}
             </p>
             {emergencyError && (
-              <div className="mt-3 rounded-md bg-destructive/10 px-3 py-2">
+              <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2">
                 <p className="text-sm text-destructive">{emergencyError}</p>
               </div>
             )}
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="outline"
                 onClick={() => setEmergencyStopModalOpen(false)}
                 disabled={emergencyStopping}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
               >
                 {t('common.cancel')}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={handleEmergencyStop}
-                disabled={emergencyStopping}
-                className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                loading={emergencyStopping}
               >
-                {emergencyStopping && (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                )}
                 {t('common.allStop')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
