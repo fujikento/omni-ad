@@ -25,6 +25,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -128,16 +129,15 @@ function KpiCard({
 }): React.ReactElement {
   const { t } = useI18n();
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center gap-2">
-        <span className={color}>{icon}</span>
-        <span className="text-xs font-medium text-muted-foreground">{t(labelKey)}</span>
-      </div>
-      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
-      {subValue && (
-        <p className="mt-0.5 text-xs text-muted-foreground">{subValue}</p>
-      )}
-    </div>
+    <StatCard
+      label={t(labelKey)}
+      value={value}
+      icon={<span className={color}>{icon}</span>}
+    >
+      {subValue ? (
+        <p className="text-xs tabular-nums text-muted-foreground">{subValue}</p>
+      ) : null}
+    </StatCard>
   );
 }
 
@@ -400,24 +400,19 @@ export default function IdentityGraphPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/audiences"
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          aria-label={t('common.back')}
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('identityGraph.title')}
-          </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {t('identityGraph.description')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link
+            href="/audiences"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
+            Audiences
+          </Link>
+        }
+        title={t('identityGraph.title')}
+        description={t('identityGraph.description')}
+      />
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

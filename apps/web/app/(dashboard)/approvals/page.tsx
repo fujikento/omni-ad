@@ -15,6 +15,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { EmptyState, PageHeader, Tabs } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
@@ -904,55 +905,37 @@ export default function ApprovalsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {t('approvals.title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('approvals.description')}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Management"
+        title={t('approvals.title')}
+        description={t('approvals.description')}
+      />
 
-      {/* Tabs */}
-      <div className="border-b border-border">
-        <nav className="-mb-px flex gap-6" aria-label={t('approvals.tabNav')}>
-          {TAB_KEYS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'relative border-b-2 pb-3 text-sm font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground',
-              )}
-              aria-selected={activeTab === tab.id}
-              role="tab"
-            >
-              {t(tab.labelKey)}
-              {tab.id === 'pending' && pendingCount > 0 && (
-                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <Tabs
+        value={activeTab}
+        onValueChange={(k) => setActiveTab(k as ApprovalTab)}
+        items={TAB_KEYS.map((tab) => ({
+          key: tab.id,
+          label: t(tab.labelKey),
+          badge:
+            tab.id === 'pending' && pendingCount > 0 ? (
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground">
+                {pendingCount}
+              </span>
+            ) : null,
+        }))}
+      />
 
       {/* Tab Content */}
       {activeTab === 'pending' && (
         <div className="space-y-4">
           {pendingRequests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
-              <CheckSquare size={40} className="mb-3 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">{t('approvals.emptyPending')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t('approvals.emptyPendingDetail')}
-              </p>
-            </div>
+            <EmptyState
+              icon={<CheckSquare size={18} />}
+              title={t('approvals.emptyPending')}
+              description={t('approvals.emptyPendingDetail')}
+              className="py-16"
+            />
           ) : (
             pendingRequests.map((request) => (
               <PendingRequestCard
@@ -969,10 +952,11 @@ export default function ApprovalsPage(): React.ReactElement {
       {activeTab === 'my-requests' && (
         <div className="space-y-3">
           {myRequests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
-              <AlertCircle size={40} className="mb-3 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">{t('approvals.emptyMyRequests')}</p>
-            </div>
+            <EmptyState
+              icon={<AlertCircle size={18} />}
+              title={t('approvals.emptyMyRequests')}
+              className="py-16"
+            />
           ) : (
             myRequests.map((request) => (
               <MyRequestCard

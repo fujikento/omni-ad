@@ -21,6 +21,7 @@ import {
   LineChart,
   ResponsiveContainer,
 } from 'recharts';
+import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -431,40 +432,34 @@ export default function CreativeOptimizationPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/creatives"
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          aria-label={t('common.back')}
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('creativeOptimization.title')}
-          </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {t('creativeOptimization.description')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link
+            href="/creatives"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
+            Creatives
+          </Link>
+        }
+        title={t('creativeOptimization.title')}
+        description={t('creativeOptimization.description')}
+      />
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { labelKey: 'creativeOptimization.kpiTotalVariants', value: '156', icon: <Target size={16} />, color: 'text-primary' },
-          { labelKey: 'creativeOptimization.kpiActiveTests', value: '36', icon: <FlaskConical size={16} />, color: 'text-blue-500' },
-          { labelKey: 'creativeOptimization.kpiWinners', value: '9', icon: <Trophy size={16} />, color: 'text-yellow-500' },
-          { labelKey: 'creativeOptimization.kpiPatterns', value: '8', icon: <Lightbulb size={16} />, color: 'text-green-500' },
+          { labelKey: 'creativeOptimization.kpiActiveTests', value: '36', icon: <FlaskConical size={16} />, color: 'text-info' },
+          { labelKey: 'creativeOptimization.kpiWinners', value: '9', icon: <Trophy size={16} />, color: 'text-warning' },
+          { labelKey: 'creativeOptimization.kpiPatterns', value: '8', icon: <Lightbulb size={16} />, color: 'text-success' },
         ].map((kpi) => (
-          <div key={kpi.labelKey} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2">
-              <span className={kpi.color}>{kpi.icon}</span>
-              <span className="text-xs font-medium text-muted-foreground">{t(kpi.labelKey)}</span>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-foreground">{kpi.value}</p>
-          </div>
+          <StatCard
+            key={kpi.labelKey}
+            label={t(kpi.labelKey)}
+            value={kpi.value}
+            icon={<span className={kpi.color}>{kpi.icon}</span>}
+          />
         ))}
       </div>
 

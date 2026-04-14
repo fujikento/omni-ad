@@ -25,6 +25,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Button, PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -170,13 +171,11 @@ function KpiCard({
 }): React.ReactElement {
   const { t } = useI18n();
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center gap-2">
-        <span className={color}>{icon}</span>
-        <span className="text-xs font-medium text-muted-foreground">{t(labelKey)}</span>
-      </div>
-      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
-    </div>
+    <StatCard
+      label={t(labelKey)}
+      value={value}
+      icon={<span className={color}>{icon}</span>}
+    />
   );
 }
 
@@ -655,34 +654,28 @@ export default function GroupBuyPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
+      <PageHeader
+        eyebrow={
           <Link
             href="/campaigns"
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            aria-label={t('common.back')}
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={12} />
+            Campaigns
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {t('groupBuy.title')}
-            </h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {t('groupBuy.description')}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCreateModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Plus size={16} />
-          {t('groupBuy.createNew')}
-        </button>
-      </div>
+        }
+        title={t('groupBuy.title')}
+        description={t('groupBuy.description')}
+        actions={
+          <Button
+            size="sm"
+            leadingIcon={<Plus size={14} />}
+            onClick={() => setCreateModalOpen(true)}
+          >
+            {t('groupBuy.createNew')}
+          </Button>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
