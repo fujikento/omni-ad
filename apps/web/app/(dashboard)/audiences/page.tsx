@@ -11,6 +11,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { Button, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
@@ -278,38 +279,33 @@ export default function AudiencesPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('audiences.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('audiences.description')}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ExportButton
-            data={segments}
-            columns={[
-              { key: 'name' as const, label: t('audiences.export.name') },
-              { key: 'platform' as const, label: t('audiences.export.platform'), format: (v: AudienceSegment[keyof AudienceSegment]) => PLATFORM_LABELS[v as Platform] ?? String(v) },
-              { key: 'size' as const, label: t('audiences.export.size'), format: (v: AudienceSegment[keyof AudienceSegment]) => String(v) },
-              { key: 'fatigueScore' as const, label: t('audiences.export.fatigue'), format: (v: AudienceSegment[keyof AudienceSegment]) => `${v}%` },
-              { key: 'description' as const, label: t('audiences.export.description') },
-            ]}
-            filename="audiences"
-          />
-          <button
-            type="button"
-            onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Plus size={16} />
-            {t('audiences.createSegment')}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Ad Management"
+        title={t('audiences.title')}
+        description={t('audiences.description')}
+        actions={
+          <>
+            <ExportButton
+              data={segments}
+              columns={[
+                { key: 'name' as const, label: t('audiences.export.name') },
+                { key: 'platform' as const, label: t('audiences.export.platform'), format: (v: AudienceSegment[keyof AudienceSegment]) => PLATFORM_LABELS[v as Platform] ?? String(v) },
+                { key: 'size' as const, label: t('audiences.export.size'), format: (v: AudienceSegment[keyof AudienceSegment]) => String(v) },
+                { key: 'fatigueScore' as const, label: t('audiences.export.fatigue'), format: (v: AudienceSegment[keyof AudienceSegment]) => `${v}%` },
+                { key: 'description' as const, label: t('audiences.export.description') },
+              ]}
+              filename="audiences"
+            />
+            <Button
+              size="sm"
+              leadingIcon={<Plus size={14} />}
+              onClick={() => setCreateOpen(true)}
+            >
+              {t('audiences.createSegment')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Search */}
       <div className="relative">

@@ -5,7 +5,6 @@ import {
   Eye,
   MousePointerClick,
   ShoppingCart,
-  TrendingDown,
   TrendingUp,
 } from 'lucide-react';
 import {
@@ -20,6 +19,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Card, PageHeader, StatCard, Tabs } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
@@ -120,26 +120,14 @@ function getMockTopCampaigns(t: (key: string, params?: Record<string, string | n
 
 function KpiCardComponent({ card }: { card: KpiCard }): React.ReactElement {
   const { t } = useI18n();
-  const isPositive = card.change >= 0;
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-        {card.icon}
-      </div>
-      <p className="mt-3 text-3xl font-bold text-foreground">{card.value}</p>
-      <div className="mt-1 flex items-center gap-1">
-        {isPositive ? (
-          <TrendingUp size={14} className="text-green-500" />
-        ) : (
-          <TrendingDown size={14} className="text-red-500" />
-        )}
-        <span className={cn('text-xs font-medium', isPositive ? 'text-green-600' : 'text-red-600')}>
-          {isPositive ? '+' : ''}{card.change.toFixed(1)}%
-        </span>
-        <span className="text-xs text-muted-foreground">{t('analytics.comparedToPrevious')}</span>
-      </div>
-    </div>
+    <StatCard
+      label={card.label}
+      value={card.value}
+      delta={card.change}
+      deltaLabel={t('analytics.comparedToPrevious')}
+      icon={card.icon}
+    />
   );
 }
 
@@ -232,52 +220,33 @@ export default function AnalyticsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('analytics.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('analytics.description')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-        {/* Export button */}
-        <ExportButton
-          data={topCampaigns}
-          columns={[
-            { key: 'name' as const, label: t('analytics.campaignName') },
-            { key: 'platform' as const, label: t('analytics.platformLabel') },
-            { key: 'impressions' as const, label: t('metrics.impressions'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
-            { key: 'clicks' as const, label: t('metrics.clicks'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
-            { key: 'conversions' as const, label: t('analytics.cv'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
-            { key: 'roas' as const, label: t('metrics.roas'), format: (v: TopCampaign[keyof TopCampaign]) => `${Number(v).toFixed(1)}x` },
-          ]}
-          filename="analytics"
-        />
-
-        {/* Date range selector */}
-        <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
-          {DATE_RANGE_KEYS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setDateRange(option.value)}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                dateRange === option.value
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {t(option.key)}
-            </button>
-          ))}
-        </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Analysis & Optimization"
+        title={t('analytics.title')}
+        description={t('analytics.description')}
+        actions={
+          <>
+            <ExportButton
+              data={topCampaigns}
+              columns={[
+                { key: 'name' as const, label: t('analytics.campaignName') },
+                { key: 'platform' as const, label: t('analytics.platformLabel') },
+                { key: 'impressions' as const, label: t('metrics.impressions'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+                { key: 'clicks' as const, label: t('metrics.clicks'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+                { key: 'conversions' as const, label: t('analytics.cv'), format: (v: TopCampaign[keyof TopCampaign]) => String(v) },
+                { key: 'roas' as const, label: t('metrics.roas'), format: (v: TopCampaign[keyof TopCampaign]) => `${Number(v).toFixed(1)}x` },
+              ]}
+              filename="analytics"
+            />
+            <Tabs
+              variant="pill"
+              value={dateRange}
+              onValueChange={(k) => setDateRange(k as DateRange)}
+              items={DATE_RANGE_KEYS.map((o) => ({ key: o.value, label: t(o.key) }))}
+            />
+          </>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -289,8 +258,8 @@ export default function AnalyticsPage(): React.ReactElement {
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Platform comparison bar chart */}
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
+        <Card className="p-6">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             {t('analytics.platformPerformance')}
           </h2>
           {isLoading ? (
@@ -311,17 +280,17 @@ export default function AnalyticsPage(): React.ReactElement {
                   formatter={(value: number) => value.toLocaleString('ja-JP')}
                 />
                 <Legend />
-                <Bar dataKey="impressions" name={t('metrics.impressions')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="clicks" name={t('metrics.clicks')} fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="conversions" name={t('metrics.conversions')} fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="impressions" name={t('metrics.impressions')} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="clicks" name={t('metrics.clicks')} fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="conversions" name={t('metrics.conversions')} fill="hsl(var(--info))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </Card>
 
         {/* ROAS trend line chart */}
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
+        <Card className="p-6">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             {t('analytics.roasTrend')}
           </h2>
           {isLoading ? (
@@ -345,7 +314,7 @@ export default function AnalyticsPage(): React.ReactElement {
                   type="monotone"
                   dataKey="roas"
                   name="ROAS"
-                  stroke="hsl(25, 95%, 53%)"
+                  stroke="hsl(var(--warning))"
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -353,21 +322,21 @@ export default function AnalyticsPage(): React.ReactElement {
               </LineChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Top campaigns table */}
-      <div className="rounded-lg border border-border bg-card">
+      <Card>
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-sm font-semibold text-foreground">
             {t('analytics.topCampaigns')}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t('analytics.sortedByRoas')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('analytics.sortedByRoas')}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b border-border bg-muted/40">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">#</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('analytics.campaignName')}</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('analytics.platformLabel')}</th>
@@ -395,7 +364,7 @@ export default function AnalyticsPage(): React.ReactElement {
                       <td className="px-4 py-3 text-right text-foreground">{c.clicks.toLocaleString('ja-JP')}</td>
                       <td className="px-4 py-3 text-right text-foreground">{c.conversions.toLocaleString('ja-JP')}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className={cn('font-semibold', c.roas >= 3 ? 'text-green-600' : c.roas >= 2 ? 'text-yellow-600' : 'text-red-600')}>
+                        <span className={cn('font-semibold tabular-nums', c.roas >= 3 ? 'text-success' : c.roas >= 2 ? 'text-warning' : 'text-destructive')}>
                           {c.roas.toFixed(1)}x
                         </span>
                       </td>
@@ -404,7 +373,7 @@ export default function AnalyticsPage(): React.ReactElement {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

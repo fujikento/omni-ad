@@ -25,6 +25,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Button, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
@@ -373,26 +374,21 @@ export default function BudgetsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('budgets.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('budgets.description')}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleOptimize}
-          disabled={isOptimizing}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          {isOptimizing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {t('budgets.runOptimization')}
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Analysis & Optimization"
+        title={t('budgets.title')}
+        description={t('budgets.description')}
+        actions={
+          <Button
+            size="sm"
+            onClick={handleOptimize}
+            loading={isOptimizing}
+            leadingIcon={!isOptimizing ? <Sparkles size={14} /> : undefined}
+          >
+            {t('budgets.runOptimization')}
+          </Button>
+        }
+      />
 
       {/* Monthly pacing */}
       <MonthlyPacingSection pacing={MOCK_MONTHLY_PACING} />
@@ -400,7 +396,7 @@ export default function BudgetsPage(): React.ReactElement {
       {/* Current allocation + AI recommendation */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Current allocation donut */}
-        <div className="rounded-lg border border-border bg-card p-6">
+        <div className="rounded-lg border border-border bg-card shadow-xs p-6">
           <h2 className="text-lg font-semibold text-foreground">{t('budgets.currentAllocation')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t('budgets.channelAllocationStatus')}</p>
           {isLoading ? (
@@ -415,7 +411,7 @@ export default function BudgetsPage(): React.ReactElement {
         </div>
 
         {/* AI recommendation panel */}
-        <div className="rounded-lg border border-border bg-card p-6">
+        <div className="rounded-lg border border-border bg-card shadow-xs p-6">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-primary" />
             <h2 className="text-lg font-semibold text-foreground">{t('budgets.aiRecommendation')}</h2>
