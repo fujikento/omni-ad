@@ -21,6 +21,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -1005,24 +1006,19 @@ export default function VideoStudioPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/creatives"
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          aria-label={t('common.back')}
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('videoStudio.title')}
-          </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {t('videoStudio.description')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link
+            href="/creatives"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
+            {t('nav.creatives')}
+          </Link>
+        }
+        title={t('videoStudio.title')}
+        description={t('videoStudio.description')}
+      />
 
       {/* Steps */}
       <StepIndicator currentStep={currentStep} />

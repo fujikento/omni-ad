@@ -661,7 +661,7 @@ export default function GroupBuyPage(): React.ReactElement {
             className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft size={12} />
-            Campaigns
+            {t('nav.campaigns')}
           </Link>
         }
         title={t('groupBuy.title')}

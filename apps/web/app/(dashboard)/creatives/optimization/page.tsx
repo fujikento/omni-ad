@@ -439,7 +439,7 @@ export default function CreativeOptimizationPage(): React.ReactElement {
             className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft size={12} />
-            Creatives
+            {t('nav.creatives')}
           </Link>
         }
         title={t('creativeOptimization.title')}

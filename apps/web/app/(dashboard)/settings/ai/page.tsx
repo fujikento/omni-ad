@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   Eye,
   EyeOff,
@@ -15,6 +16,7 @@ import {
   Swords,
   Zap,
 } from 'lucide-react';
+import { Button, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
@@ -1143,20 +1145,19 @@ export default function AiSettingsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <a href="/settings" className="text-sm text-muted-foreground hover:text-foreground">
+      <PageHeader
+        eyebrow={
+          <a
+            href="/settings"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
             {t('nav.settings')}
           </a>
-          <span className="text-sm text-muted-foreground">/</span>
-          <span className="text-sm font-medium text-foreground">{t('aiSettings.title')}</span>
-        </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{t('aiSettings.title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('settings.ai.pageDescription')}
-        </p>
-      </div>
+        }
+        title={t('aiSettings.title')}
+        description={t('settings.ai.pageDescription')}
+      />
 
       {/* Sections */}
       <ApiKeysSection settings={settings} onSettingsChange={handleSettingsChange} />
@@ -1168,31 +1169,26 @@ export default function AiSettingsPage(): React.ReactElement {
       <div className="sticky bottom-4 flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-lg">
         <div className="flex items-center gap-2">
           {hasChanges && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
+            <span className="flex items-center gap-1.5 text-xs font-medium text-warning">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-warning" />
               {t('settings.ai.unsavedChanges')}
             </span>
           )}
           {saved && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-success">
               <Check size={12} />
               {t('settings.ai.saved')}
             </span>
           )}
         </div>
-        <button
-          type="button"
+        <Button
           onClick={handleSave}
-          disabled={saving || !hasChanges}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          disabled={!hasChanges}
+          loading={saving}
+          leadingIcon={!saving ? <Save size={14} /> : undefined}
         >
-          {saving ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <Save size={16} />
-          )}
           {t('aiSettings.saveSettings')}
-        </button>
+        </Button>
       </div>
     </div>
   );

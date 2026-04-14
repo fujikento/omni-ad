@@ -14,6 +14,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -549,24 +550,19 @@ export default function MassProductionPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/creatives"
-          className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label={t('massProduction.backToCreatives')}
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('massProduction.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('massProduction.description')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link
+            href="/creatives"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
+            {t('nav.creatives')}
+          </Link>
+        }
+        title={t('massProduction.title')}
+        description={t('massProduction.description')}
+      />
 
       {/* Step indicator */}
       <div className="flex items-center gap-2">
@@ -586,7 +582,7 @@ export default function MassProductionPage(): React.ReactElement {
                 currentStep === s.step
                   ? 'bg-primary text-primary-foreground'
                   : s.step < currentStep
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    ? 'bg-success/15 text-success'
                     : 'bg-muted text-muted-foreground',
               )}
             >

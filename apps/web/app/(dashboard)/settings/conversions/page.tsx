@@ -4,6 +4,7 @@ import { useI18n } from '@/lib/i18n';
 
 import { useState } from 'react';
 import {
+  ArrowLeft,
   Check,
   Clipboard,
   Code2,
@@ -14,6 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { Button, EmptyState, PageHeader } from '@omni-ad/ui';
 import {
   Bar,
   BarChart,
@@ -829,44 +831,39 @@ export default function ConversionsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('settings.conversions.h631116')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('conversions.serverSideDesc')}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Plus size={16} />
-          {t('settings.conversions.h413501')}
-        </button>
-      </div>
+      <PageHeader
+        eyebrow={
+          <a
+            href="/settings"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
+            {t('nav.settings')}
+          </a>
+        }
+        title={t('settings.conversions.h631116')}
+        description={t('conversions.serverSideDesc')}
+        actions={
+          <Button size="sm" leadingIcon={<Plus size={14} />} onClick={handleOpenCreate}>
+            {t('settings.conversions.h413501')}
+          </Button>
+        }
+      />
 
       {/* Endpoint cards */}
       <div className="space-y-4">
         {endpoints.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16 text-center">
-            <Code2 size={40} className="mb-3 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-foreground">{t('conversions.noEndpoints')}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t('settings.conversions.h79dcf4')}
-            </p>
-            <button
-              type="button"
-              onClick={handleOpenCreate}
-              className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus size={16} />
-              {t('settings.conversions.h413501')}
-            </button>
-          </div>
+          <EmptyState
+            icon={<Code2 size={18} />}
+            title={t('conversions.noEndpoints')}
+            description={t('settings.conversions.h79dcf4')}
+            action={
+              <Button size="sm" leadingIcon={<Plus size={14} />} onClick={handleOpenCreate}>
+                {t('settings.conversions.h413501')}
+              </Button>
+            }
+            className="py-16"
+          />
         ) : (
           endpoints.map((ep) => (
             <EndpointCard
