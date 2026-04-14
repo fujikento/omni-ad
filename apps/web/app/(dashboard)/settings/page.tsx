@@ -22,6 +22,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { PageHeader, Tabs } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
@@ -695,34 +696,25 @@ export default function SettingsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('settings.title')}</h1>
-      </div>
+      <PageHeader
+        eyebrow="Management"
+        title={t('settings.title')}
+      />
 
-      {/* Tabs */}
-      <div className="border-b border-border">
-        <nav className="-mb-px flex gap-4" aria-label={t('settings.h0ddc22')}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors',
-                activeTab === tab.key
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground',
-              )}
-            >
+      <Tabs
+        value={activeTab}
+        onValueChange={(k) => setActiveTab(k as SettingsTab)}
+        items={TABS.map((tab) => ({
+          key: tab.key,
+          label: (
+            <span className="inline-flex items-center gap-2">
               {tab.icon}
               {t(tab.labelKey)}
-            </button>
-          ))}
-        </nav>
-      </div>
+            </span>
+          ),
+        }))}
+      />
 
-      {/* Tab content */}
       <div>{TAB_CONTENT[activeTab]}</div>
     </div>
   );

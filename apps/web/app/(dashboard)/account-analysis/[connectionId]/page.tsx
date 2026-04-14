@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Info,
   Lightbulb,
-  Loader2,
   RefreshCw,
   ShieldAlert,
   Sparkles,
@@ -27,6 +26,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Button, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -303,13 +303,11 @@ function KpiCard({
   subLabel?: string;
 }): React.ReactElement {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
-      {subLabel && (
-        <p className="mt-1 text-xs text-muted-foreground">{subLabel}</p>
-      )}
-    </div>
+    <StatCard label={label} value={value}>
+      {subLabel ? (
+        <p className="text-xs text-muted-foreground">{subLabel}</p>
+      ) : null}
+    </StatCard>
   );
 }
 
@@ -494,16 +492,21 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground" aria-label={t('accountAnalysis.breadcrumbLabel')}>
-        <a href="/settings" className="hover:text-foreground transition-colors">{t('accountAnalysis.breadcrumbSettings')}</a>
-        <ChevronRight size={14} />
-        <span className="text-foreground font-medium">{t('accountAnalysis.breadcrumbAnalysis')}</span>
-        <ChevronRight size={14} />
-        <span className="text-foreground font-medium">{data.platformLabel}</span>
+      <nav
+        className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+        aria-label={t('accountAnalysis.breadcrumbLabel')}
+      >
+        <a href="/settings" className="transition-colors hover:text-foreground">
+          {t('accountAnalysis.breadcrumbSettings')}
+        </a>
+        <ChevronRight size={12} />
+        <a href="/account-analysis" className="transition-colors hover:text-foreground">
+          {t('accountAnalysis.breadcrumbAnalysis')}
+        </a>
+        <ChevronRight size={12} />
+        <span className="text-foreground">{data.platformLabel}</span>
       </nav>
 
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-5">
           <ScoreIndicator score={data.overallScore} />
@@ -524,19 +527,14 @@ export default function AccountAnalysisPage(): React.ReactElement {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{t('accountAnalysis.analysisDate')} {data.analysisDate}</span>
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={handleReanalyze}
-            disabled={isReanalyzing}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            loading={isReanalyzing}
+            leadingIcon={!isReanalyzing ? <RefreshCw size={14} /> : undefined}
           >
-            {isReanalyzing ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <RefreshCw size={14} />
-            )}
             {isReanalyzing ? t('accountAnalysis.reanalyzing') : t('accountAnalysis.reanalyze')}
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
-  ChevronRight,
   Copy,
   Edit3,
   Eye,
@@ -37,6 +36,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Badge, Button, PageHeader, Tabs } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 
 // ============================================================
@@ -150,13 +150,15 @@ const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
   microsoft: { label: 'Microsoft', color: 'bg-teal-500' },
 };
 
-function getStatusConfig(t: (key: string, params?: Record<string, string | number>) => string): Record<CampaignStatus, { label: string; className: string }> {
+type StatusVariant = 'success' | 'warning' | 'neutral' | 'info';
+
+function getStatusConfig(t: (key: string, params?: Record<string, string | number>) => string): Record<CampaignStatus, { label: string; variant: StatusVariant }> {
   return {
-  active: { label: t('campaigns.id.h3e1111'), className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  paused: { label: t('campaigns.id.hb57e4b'), className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  draft: { label: t('campaigns.id.h228b8f'), className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-  completed: { label: t('campaigns.id.h6b2dfe'), className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-};
+    active: { label: t('campaigns.id.h3e1111'), variant: 'success' },
+    paused: { label: t('campaigns.id.hb57e4b'), variant: 'warning' },
+    draft: { label: t('campaigns.id.h228b8f'), variant: 'neutral' },
+    completed: { label: t('campaigns.id.h6b2dfe'), variant: 'info' },
+  };
 }
 
 function getObjectiveLabels(t: (key: string, params?: Record<string, string | number>) => string): Record<string, string> {
@@ -863,90 +865,63 @@ export default function CampaignDetailPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground" aria-label={t('campaigns.id.h983134')}>
-        <a href="/campaigns" className="flex items-center gap-1 transition-colors hover:text-foreground">
-          <ArrowLeft size={14} />
-          {t('campaigns.id.h36486b')}
-        </a>
-        <ChevronRight size={14} />
-        <span className="font-medium text-foreground">{campaign.name}</span>
-      </nav>
-
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+      <PageHeader
+        eyebrow={
+          <a
+            href="/campaigns"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={12} />
+            {t('campaigns.id.h36486b')}
+          </a>
+        }
+        title={
+          <span className="inline-flex items-center gap-3">
             {campaign.name}
-          </h1>
-          <div className="mt-2 flex items-center gap-2">
-            <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', status.className)}>
+            <Badge variant={status.variant} size="md" dot={campaign.status === 'active'}>
               {status.label}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+            </Badge>
+            <Badge variant="primary" size="md">
               {objectiveLabel}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            <Edit3 size={14} />
-            {t('campaigns.id.h757886')}
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
-              campaign.status === 'active'
-                ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/20'
-                : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/20',
-            )}
-          >
-            {campaign.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
-            {campaign.status === 'active' ? t('campaigns.id.hb57e4b') : t('campaigns.id.h3fade1')}
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            <Copy size={14} />
-            {t('campaigns.id.h1fde1c')}
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-          >
-            <Trash2 size={14} />
-            {t('campaigns.id.hc6577c')}
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-border">
-        <nav className="-mb-px flex gap-6" aria-label={t('campaigns.id.h77725b')}>
-          {getTabs(t).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'border-b-2 pb-3 text-sm font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground',
-              )}
-              aria-selected={activeTab === tab.id}
-              role="tab"
+            </Badge>
+          </span>
+        }
+        actions={
+          <>
+            <Button variant="secondary" size="sm" leadingIcon={<Edit3 size={14} />}>
+              {t('campaigns.id.h757886')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              leadingIcon={campaign.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
+              className={campaign.status === 'active' ? 'text-warning hover:bg-warning/10' : 'text-success hover:bg-success/10'}
             >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+              {campaign.status === 'active' ? t('campaigns.id.hb57e4b') : t('campaigns.id.h3fade1')}
+            </Button>
+            <Button variant="secondary" size="sm" leadingIcon={<Copy size={14} />}>
+              {t('campaigns.id.h1fde1c')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              leadingIcon={<Trash2 size={14} />}
+              className="text-destructive hover:bg-destructive/10"
+            >
+              {t('campaigns.id.hc6577c')}
+            </Button>
+          </>
+        }
+      />
+
+      <Tabs
+        value={activeTab}
+        onValueChange={(k) => setActiveTab(k as typeof activeTab)}
+        items={getTabs(t).map((tab) => ({
+          key: tab.id,
+          label: tab.label,
+        }))}
+      />
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
