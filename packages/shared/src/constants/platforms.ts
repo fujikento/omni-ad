@@ -12,6 +12,44 @@ export const PLATFORM_DISPLAY_NAMES: Record<Platform, string> = {
   [Platform.MICROSOFT]: 'Microsoft広告',
 };
 
+/** Short names for compact UI (badges, tight table cells). */
+export const PLATFORM_SHORT_NAMES: Record<Platform, string> = {
+  [Platform.META]: 'Meta',
+  [Platform.GOOGLE]: 'Google',
+  [Platform.X]: 'X',
+  [Platform.TIKTOK]: 'TikTok',
+  [Platform.LINE_YAHOO]: 'LINE/Yahoo',
+  [Platform.AMAZON]: 'Amazon',
+  [Platform.MICROSOFT]: 'Microsoft',
+};
+
+/**
+ * Official brand colors for use as *identification accents* only
+ * (e.g. colored dots, left-borders, subtle logo tints). Not for large
+ * fills or replacing the product's own accent system. Sources: each
+ * platform's public brand guidelines.
+ */
+export const PLATFORM_BRAND_COLORS: Record<Platform, string> = {
+  [Platform.META]: '#1877F2',
+  [Platform.GOOGLE]: '#4285F4',
+  [Platform.X]: '#0F1419',
+  [Platform.TIKTOK]: '#FF0050',
+  [Platform.LINE_YAHOO]: '#06C755',
+  [Platform.AMAZON]: '#FF9900',
+  [Platform.MICROSOFT]: '#00A4EF',
+};
+
+/** Slug used for asset filenames (`/platforms/{slug}.svg`). */
+export const PLATFORM_SLUGS: Record<Platform, string> = {
+  [Platform.META]: 'meta',
+  [Platform.GOOGLE]: 'google',
+  [Platform.X]: 'x',
+  [Platform.TIKTOK]: 'tiktok',
+  [Platform.LINE_YAHOO]: 'line',
+  [Platform.AMAZON]: 'amazon',
+  [Platform.MICROSOFT]: 'microsoft',
+};
+
 export const PLATFORM_CREATIVE_SPECS: Record<Platform, PlatformCreativeSpecs> = {
   [Platform.META]: {
     platform: Platform.META,
