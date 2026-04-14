@@ -15,6 +15,7 @@ import {
   ScrollText,
   X,
 } from 'lucide-react';
+import { Badge, Button, EmptyState, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
@@ -56,11 +57,13 @@ const REPORT_TYPE_LABEL_KEYS: Record<ReportType, string> = {
   executive_summary: 'reports.type.executiveSummary',
 };
 
-const STATUS_CONFIG: Record<ReportStatus, { labelKey: string; className: string }> = {
-  ready: { labelKey: 'reports.status.ready', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  generating: { labelKey: 'reports.status.generating', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  scheduled: { labelKey: 'reports.status.scheduled', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  failed: { labelKey: 'reports.status.failed', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+type StatusVariant = 'success' | 'info' | 'primary' | 'destructive';
+
+const STATUS_CONFIG: Record<ReportStatus, { labelKey: string; variant: StatusVariant }> = {
+  ready: { labelKey: 'reports.status.ready', variant: 'success' },
+  generating: { labelKey: 'reports.status.generating', variant: 'info' },
+  scheduled: { labelKey: 'reports.status.scheduled', variant: 'primary' },
+  failed: { labelKey: 'reports.status.failed', variant: 'destructive' },
 };
 
 const FREQUENCY_LABEL_KEYS: Record<Frequency, string> = {
@@ -114,10 +117,10 @@ function StatusBadge({ status }: { status: ReportStatus }): React.ReactElement {
   const { t } = useI18n();
   const config = STATUS_CONFIG[status];
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', config.className)}>
+    <Badge variant={config.variant} size="md" dot={status === 'ready'}>
       {status === 'generating' && <Loader2 size={10} className="mr-1 animate-spin" />}
       {t(config.labelKey)}
-    </span>
+    </Badge>
   );
 }
 
@@ -490,41 +493,40 @@ export default function ReportsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('reports.title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('reports.description')}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ExportButton
-            data={reports}
-            columns={[
-              { key: 'title' as const, label: t('reports.table.title') },
-              { key: 'type' as const, label: t('reports.table.type'), format: (v: Report[keyof Report]) => t(REPORT_TYPE_LABEL_KEYS[v as ReportType] ?? '') || String(v) },
-              { key: 'dateRange' as const, label: t('reports.table.period') },
-              { key: 'status' as const, label: t('reports.table.status'), format: (v: Report[keyof Report]) => t(STATUS_CONFIG[v as ReportStatus]?.labelKey ?? '') || String(v) },
-              { key: 'format' as const, label: t('reports.format') },
-            ]}
-            filename="reports"
-          />
-          <button
-            type="button"
-            onClick={() => setGenerateOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Plus size={16} />
-            {t('reports.generateReport')}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Analysis & Optimization"
+        title={t('reports.title')}
+        description={t('reports.description')}
+        actions={
+          <>
+            <ExportButton
+              data={reports}
+              columns={[
+                { key: 'title' as const, label: t('reports.table.title') },
+                { key: 'type' as const, label: t('reports.table.type'), format: (v: Report[keyof Report]) => t(REPORT_TYPE_LABEL_KEYS[v as ReportType] ?? '') || String(v) },
+                { key: 'dateRange' as const, label: t('reports.table.period') },
+                { key: 'status' as const, label: t('reports.table.status'), format: (v: Report[keyof Report]) => t(STATUS_CONFIG[v as ReportStatus]?.labelKey ?? '') || String(v) },
+                { key: 'format' as const, label: t('reports.format') },
+              ]}
+              filename="reports"
+            />
+            <Button
+              size="sm"
+              leadingIcon={<Plus size={14} />}
+              onClick={() => setGenerateOpen(true)}
+            >
+              {t('reports.generateReport')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Report list table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b border-border bg-muted/40">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.title')}</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.type')}</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('reports.table.period')}</th>
@@ -544,11 +546,12 @@ export default function ReportsPage(): React.ReactElement {
                 ))
               ) : reports.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <ScrollText size={48} className="text-muted-foreground/30" />
-                      <p className="text-muted-foreground">{t('reports.noReports')}</p>
-                    </div>
+                  <td colSpan={6} className="px-4 py-12">
+                    <EmptyState
+                      icon={<ScrollText size={18} />}
+                      title={t('reports.noReports')}
+                      className="border-0 bg-transparent"
+                    />
                   </td>
                 </tr>
               ) : (

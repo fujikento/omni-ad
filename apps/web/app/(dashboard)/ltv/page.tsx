@@ -1,13 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  ArrowUpDown,
-  RefreshCw,
-  TrendingDown,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { ArrowUpDown, RefreshCw, Users } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -17,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
@@ -151,19 +146,13 @@ function getRetentionColorClass(rate: number): string {
 function KpiCard({ card }: { card: KpiCardData }): React.ReactElement {
   const { t } = useI18n();
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-      <p className="mt-3 text-3xl font-bold text-foreground">{card.value}</p>
-      <div className="mt-1 flex items-center gap-1">
-        {card.trend === 'up' ? (
-          <TrendingUp size={14} className="text-green-500" />
-        ) : card.trend === 'down' ? (
-          <TrendingDown size={14} className="text-green-500" />
-        ) : null}
-        <span className="text-xs font-medium text-green-600">{card.trendValue}</span>
-        <span className="text-xs text-muted-foreground">{t('ltv.vsLastMonth')}</span>
-      </div>
-    </div>
+    <StatCard
+      label={card.label}
+      value={card.value}
+      deltaLabel={t('ltv.vsLastMonth')}
+    >
+      <span className="text-xs font-medium tabular-nums text-success">{card.trendValue}</span>
+    </StatCard>
   );
 }
 
@@ -229,15 +218,11 @@ export default function LtvPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {t('ltv.title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('ltv.description')}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Analysis & Optimization"
+        title={t('ltv.title')}
+        description={t('ltv.description')}
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

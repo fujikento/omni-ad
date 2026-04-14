@@ -19,6 +19,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import { Button, EmptyState, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
@@ -841,48 +842,43 @@ export default function CreativesPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {t('creatives.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('creatives.description')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/creatives/video-studio"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Film size={16} />
-            {t('creatives.videoStudio')}
-          </Link>
-          <Link
-            href="/creatives/optimization"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <RefreshCw size={16} />
-            {t('creatives.optimization')}
-          </Link>
-          <Link
-            href="/creatives/mass-production"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Rocket size={16} />
-            {t('creatives.massProduction')}
-          </Link>
-          <button
-            type="button"
-            onClick={() => setWizardOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <Sparkles size={16} />
-            {t('creatives.generate')}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Ad Management"
+        title={t('creatives.title')}
+        description={t('creatives.description')}
+        actions={
+          <>
+            <Link
+              href="/creatives/video-studio"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+            >
+              <Film size={14} />
+              {t('creatives.videoStudio')}
+            </Link>
+            <Link
+              href="/creatives/optimization"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+            >
+              <RefreshCw size={14} />
+              {t('creatives.optimization')}
+            </Link>
+            <Link
+              href="/creatives/mass-production"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+            >
+              <Rocket size={14} />
+              {t('creatives.massProduction')}
+            </Link>
+            <Button
+              size="sm"
+              leadingIcon={<Sparkles size={14} />}
+              onClick={() => setWizardOpen(true)}
+            >
+              {t('creatives.generate')}
+            </Button>
+          </>
+        }
+      />
 
       {/* File Upload */}
       <FileUploadSection
@@ -927,13 +923,12 @@ export default function CreativesPage(): React.ReactElement {
           ))}
         </div>
       ) : creatives.length === 0 ? (
-        <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-border bg-card">
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <BrainCircuit size={48} className="text-muted-foreground/30" />
-            <p className="text-lg font-medium">{t('creatives.noCreatives')}</p>
-            <p className="text-sm">{t('creatives.noCreativesHint')}</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={<BrainCircuit size={18} />}
+          title={t('creatives.noCreatives')}
+          description={t('creatives.noCreativesHint')}
+          className="py-16"
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {creatives.map((creative) => (

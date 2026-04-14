@@ -1,12 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  ArrowUpDown,
-  Building2,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
+import { ArrowUpDown, Building2 } from 'lucide-react';
+import { Badge, PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -45,10 +41,12 @@ interface ClientRow {
 // Constants
 // ============================================================
 
-const STATUS_CONFIG: Record<ClientStatus, { labelKey: string; className: string }> = {
-  good: { labelKey: 'clients.statusGood', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  warning: { labelKey: 'clients.statusWarning', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  critical: { labelKey: 'clients.statusCritical', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+type StatusVariant = 'success' | 'warning' | 'destructive';
+
+const STATUS_CONFIG: Record<ClientStatus, { labelKey: string; variant: StatusVariant }> = {
+  good: { labelKey: 'clients.statusGood', variant: 'success' },
+  warning: { labelKey: 'clients.statusWarning', variant: 'warning' },
+  critical: { labelKey: 'clients.statusCritical', variant: 'destructive' },
 };
 
 function getMockPortfolioKpi(t: (key: string) => string): PortfolioKpi[] {
@@ -108,10 +106,10 @@ function getHeatmapIntensity(metric: HeatmapMetric, client: ClientRow): { bg: st
   }
 
   const intensityMap: Record<number, { bg: string; text: string }> = {
-    0: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
-    1: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400' },
-    2: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
-    3: { bg: 'bg-green-200 dark:bg-green-900/40', text: 'text-green-800 dark:text-green-300' },
+    0: { bg: 'bg-destructive/10', text: 'text-destructive' },
+    1: { bg: 'bg-warning/15', text: 'text-warning' },
+    2: { bg: 'bg-success/10', text: 'text-success' },
+    3: { bg: 'bg-success/20', text: 'text-success' },
   };
 
   return intensityMap[score] as { bg: string; text: string };
@@ -156,22 +154,28 @@ function getSortValue(client: ClientRow, field: SortField): string | number {
 
 function PortfolioCard({ kpi }: { kpi: PortfolioKpi }): React.ReactElement {
   const { t } = useI18n();
+  // PortfolioKpi carries a display-formatted trendValue string; StatCard's
+  // delta is numeric, so fall back to a custom inline layout that keeps
+  // the existing data shape.
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
-      <p className="mt-3 text-3xl font-bold text-foreground">{kpi.value}</p>
-      <div className="mt-1 flex items-center gap-1">
-        {kpi.trend === 'up' && <TrendingUp size={14} className="text-green-500" />}
-        {kpi.trend === 'down' && <TrendingDown size={14} className="text-red-500" />}
-        <span className={cn(
-          'text-xs font-medium',
-          kpi.trend === 'up' ? 'text-green-600' : kpi.trend === 'down' ? 'text-red-600' : 'text-muted-foreground',
-        )}>
+    <StatCard
+      label={kpi.label}
+      value={kpi.value}
+      deltaLabel={kpi.trend !== 'flat' ? t('clients.vsLastMonth') : undefined}
+    >
+      <div className="flex items-center gap-1 text-xs font-medium">
+        <span
+          className={cn(
+            'tabular-nums',
+            kpi.trend === 'up' && 'text-success',
+            kpi.trend === 'down' && 'text-destructive',
+            kpi.trend === 'flat' && 'text-muted-foreground',
+          )}
+        >
           {kpi.trendValue}
         </span>
-        {kpi.trend !== 'flat' && <span className="text-xs text-muted-foreground">{t('clients.vsLastMonth')}</span>}
       </div>
-    </div>
+    </StatCard>
   );
 }
 
@@ -230,15 +234,11 @@ export default function ClientsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {t('clients.title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('clients.description')}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Management"
+        title={t('clients.title')}
+        description={t('clients.description')}
+      />
 
       {/* Portfolio Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -248,15 +248,15 @@ export default function ClientsPage(): React.ReactElement {
       </div>
 
       {/* Client Table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <div className="flex items-center gap-2 border-b border-border px-6 py-4">
-          <Building2 size={18} className="text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">{t('clients.clientList')}</h2>
+          <Building2 size={16} className="text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">{t('clients.clientList')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b border-border bg-muted/40">
                 <SortableColumnHeader label={t('clients.clientName')} field="name" currentSort={sortField} onSort={handleSort} />
                 <SortableColumnHeader label={t('clients.plan')} field="plan" currentSort={sortField} onSort={handleSort} />
                 <SortableColumnHeader label={t('clients.monthlyBudget')} field="budget" currentSort={sortField} onSort={handleSort} align="right" />
@@ -293,27 +293,27 @@ export default function ClientsPage(): React.ReactElement {
                         <div
                           className={cn(
                             'h-full rounded-full',
-                            client.spendRate >= 80 ? 'bg-green-500' : client.spendRate >= 50 ? 'bg-yellow-500' : 'bg-red-500',
+                            client.spendRate >= 80 ? 'bg-success' : client.spendRate >= 50 ? 'bg-warning' : 'bg-destructive',
                           )}
                           style={{ width: `${Math.min(100, client.spendRate)}%` }}
                         />
                       </div>
-                      <span className="text-foreground">{client.spendRate}%</span>
+                      <span className="tabular-nums text-foreground">{client.spendRate}%</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className={cn(
-                      'font-semibold',
-                      client.roas >= 3 ? 'text-green-600' : client.roas >= 2 ? 'text-yellow-600' : 'text-red-600',
+                      'font-semibold tabular-nums',
+                      client.roas >= 3 ? 'text-success' : client.roas >= 2 ? 'text-warning' : 'text-destructive',
                     )}>
                       {client.roas.toFixed(1)}x
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-foreground">{client.activeCampaigns}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-foreground">{client.activeCampaigns}</td>
                   <td className="px-4 py-3">
-                    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CONFIG[client.status].className)}>
+                    <Badge variant={STATUS_CONFIG[client.status].variant} size="md" dot={client.status === 'good'}>
                       {t(STATUS_CONFIG[client.status].labelKey)}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               ))}
@@ -323,10 +323,10 @@ export default function ClientsPage(): React.ReactElement {
       </div>
 
       {/* Performance Heatmap */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">{t('clients.performanceHeatmap')}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t('clients.heatmapDescription')}</p>
+          <h2 className="text-sm font-semibold text-foreground">{t('clients.performanceHeatmap')}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">{t('clients.heatmapDescription')}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

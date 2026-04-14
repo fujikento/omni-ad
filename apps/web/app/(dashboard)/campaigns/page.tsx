@@ -28,7 +28,7 @@ import {
   X,
 } from 'lucide-react';
 import { Badge, Button, PageHeader, PlatformBadge, PlatformIcon } from '@omni-ad/ui';
-import { Platform as PlatformEnum } from '@omni-ad/shared';
+import { dbPlatformToEnum } from '@omni-ad/shared';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { ExportButton } from '@/app/components/export-button';
@@ -76,19 +76,6 @@ const STATUS_CONFIG: Record<CampaignStatus, { labelKey: string; variant: StatusV
 
 
 const ALL_STATUSES: CampaignStatus[] = ['draft', 'active', 'paused', 'completed', 'archived'];
-
-// Local map strictly typed against this file's lowercase Platform union.
-// Shared has DB_PLATFORM_TO_ENUM but its key is `string` (for parsing untrusted
-// input), which defeats index-access narrowing under noUncheckedIndexedAccess.
-const PLATFORM_TO_ENUM: Record<Platform, PlatformEnum> = {
-  meta: PlatformEnum.META,
-  google: PlatformEnum.GOOGLE,
-  x: PlatformEnum.X,
-  tiktok: PlatformEnum.TIKTOK,
-  line_yahoo: PlatformEnum.LINE_YAHOO,
-  amazon: PlatformEnum.AMAZON,
-  microsoft: PlatformEnum.MICROSOFT,
-};
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
   meta: { label: 'Meta', color: 'bg-indigo-500' },
@@ -253,7 +240,7 @@ function PlatformBadges({ platforms }: { platforms: Platform[] }): React.ReactEl
         {platforms.map((p) => (
           <PlatformBadge
             key={p}
-            platform={PLATFORM_TO_ENUM[p]}
+            platform={dbPlatformToEnum(p)}
             size="sm"
             showLabel={false}
           />
@@ -272,7 +259,7 @@ function PlatformBadges({ platforms }: { platforms: Platform[] }): React.ReactEl
             className="grid h-5 w-5 place-items-center rounded-full border-2 border-card bg-card shadow-xs"
             title={PLATFORM_CONFIG[p].label}
           >
-            <PlatformIcon platform={PLATFORM_TO_ENUM[p]} size={11} />
+            <PlatformIcon platform={dbPlatformToEnum(p)} size={11} />
           </div>
         ))}
       </div>
@@ -1475,7 +1462,7 @@ function FilterBar({
                 )}>
                   {platformFilter.has(p) && <Check size={10} strokeWidth={3} />}
                 </div>
-                <PlatformIcon platform={PLATFORM_TO_ENUM[p]} size={14} />
+                <PlatformIcon platform={dbPlatformToEnum(p)} size={14} />
                 <span className="flex-1 text-left text-xs font-medium">{PLATFORM_CONFIG[p].label}</span>
               </button>
             ))}

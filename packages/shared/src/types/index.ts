@@ -1,5 +1,12 @@
-export { Platform, PlatformErrorCode, DB_PLATFORM_TO_ENUM, isPlatformError } from './platform.js';
+export {
+  Platform,
+  PlatformErrorCode,
+  DB_PLATFORM_TO_ENUM,
+  dbPlatformToEnum,
+  isPlatformError,
+} from './platform.js';
 export type {
+  DbPlatformKey,
   PlatformStatus,
   ConnectionStatus,
   OAuthTokens,

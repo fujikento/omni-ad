@@ -8,7 +8,25 @@ export enum Platform {
   MICROSOFT = 'MICROSOFT',
 }
 
-/** Maps lowercase DB platform strings to Platform enum values. */
+/**
+ * Lowercase DB / URL strings for each platform. Useful as the source of
+ * truth for both runtime parsing and strictly-typed lookups.
+ */
+export type DbPlatformKey =
+  | 'meta'
+  | 'google'
+  | 'x'
+  | 'tiktok'
+  | 'line_yahoo'
+  | 'amazon'
+  | 'microsoft';
+
+/**
+ * Runtime parser: the key is widened to `string` so untrusted input
+ * (URL params, webhook payloads) can be looked up safely — the result
+ * is `Platform | undefined`. When the key is already a `DbPlatformKey`,
+ * use `dbPlatformToEnum()` instead to keep strict typing.
+ */
 export const DB_PLATFORM_TO_ENUM: Record<string, Platform> = {
   meta: Platform.META,
   google: Platform.GOOGLE,
@@ -18,6 +36,21 @@ export const DB_PLATFORM_TO_ENUM: Record<string, Platform> = {
   amazon: Platform.AMAZON,
   microsoft: Platform.MICROSOFT,
 };
+
+const DB_PLATFORM_TO_ENUM_TYPED: Record<DbPlatformKey, Platform> = {
+  meta: Platform.META,
+  google: Platform.GOOGLE,
+  x: Platform.X,
+  tiktok: Platform.TIKTOK,
+  line_yahoo: Platform.LINE_YAHOO,
+  amazon: Platform.AMAZON,
+  microsoft: Platform.MICROSOFT,
+};
+
+/** Strictly typed lookup — never returns undefined for a valid DbPlatformKey. */
+export function dbPlatformToEnum(key: DbPlatformKey): Platform {
+  return DB_PLATFORM_TO_ENUM_TYPED[key];
+}
 
 export function isPlatformError(value: unknown): value is PlatformError {
   return (
