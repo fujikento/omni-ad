@@ -7,6 +7,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { z } from 'zod';
 
 import { campaigns } from './campaigns';
 import { funnelStatusEnum } from './enums';
@@ -73,3 +74,29 @@ export const funnelStageCampaignsRelations = relations(
     }),
   }),
 );
+
+// ---------------------------------------------------------------------------
+// FunnelStage — typed shape for the `funnels.stages` JSONB payload.
+// Each stage describes a conversion step plus optional platform/campaign
+// routing metadata used by the monthly-funnel pivot service.
+// ---------------------------------------------------------------------------
+
+export interface FunnelStage {
+  name: string;
+  eventName: string;
+  type?: string;
+  platforms?: string[];
+  campaignIds?: string[];
+  platform?: string;
+}
+
+export const funnelStageSchema: z.ZodType<FunnelStage> = z.object({
+  name: z.string().min(1),
+  eventName: z.string().min(1),
+  type: z.string().optional(),
+  platforms: z.array(z.string()).optional(),
+  campaignIds: z.array(z.string().uuid()).optional(),
+  platform: z.string().optional(),
+});
+
+export const funnelStagesSchema = z.array(funnelStageSchema);
