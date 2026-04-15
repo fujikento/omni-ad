@@ -10,7 +10,7 @@ import {
   Edit3,
   FolderKanban,
   Globe,
-  Image,
+  Image as ImageIcon,
   Link2,
   Loader2,
   Monitor,
@@ -139,7 +139,7 @@ const CAMPAIGN_TABS: { labelKey: string; icon: React.ReactNode }[] = [
   { labelKey: 'campaigns.basicInfo', icon: <Globe size={14} /> },
   { labelKey: 'campaigns.conversionSettings', icon: <Target size={14} /> },
   { labelKey: 'campaigns.targeting', icon: <Users size={14} /> },
-  { labelKey: 'campaigns.creative', icon: <Image size={14} /> },
+  { labelKey: 'campaigns.creative', icon: <ImageIcon size={14} aria-hidden="true" /> },
   { labelKey: 'campaigns.platform', icon: <Sliders size={14} /> },
 ];
 
@@ -1078,7 +1078,7 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
                           )}
                         >
                           <div className="flex h-20 items-center justify-center rounded-md bg-muted/50">
-                            <Image size={24} className="text-muted-foreground/30" />
+                            <ImageIcon size={24} className="text-muted-foreground/30" aria-hidden="true" />
                           </div>
                           <p className="mt-1.5 text-xs font-medium text-foreground line-clamp-1">
                             {creative.name}

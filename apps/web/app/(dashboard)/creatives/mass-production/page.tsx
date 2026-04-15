@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
-  Image,
+  Image as ImageIcon,
   Loader2,
   Rocket,
   Sparkles,
@@ -363,7 +363,7 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
               >
                 {/* Thumbnail placeholder */}
                 <div className="flex h-24 items-center justify-center rounded-md bg-muted/50">
-                  <Image size={24} className="text-muted-foreground/30" />
+                  <ImageIcon size={24} className="text-muted-foreground/30" aria-hidden="true" />
                 </div>
                 <div className="mt-3">
                   <p className="text-sm font-semibold text-foreground line-clamp-1">

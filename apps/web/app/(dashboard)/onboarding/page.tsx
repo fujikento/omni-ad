@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
@@ -697,13 +698,13 @@ function CompletionStep(): React.ReactElement {
           <Home size={24} className="text-primary" />
           <span className="text-sm font-medium text-foreground">{t('onboarding.gotoDashboard')}</span>
         </a>
-        <a
+        <Link
           href="/campaigns"
           className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
         >
           <LayoutDashboard size={24} className="text-primary" />
           <span className="text-sm font-medium text-foreground">{t('onboarding.gotoCampaigns')}</span>
-        </a>
+        </Link>
         <a
           href="/analytics"
           className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"

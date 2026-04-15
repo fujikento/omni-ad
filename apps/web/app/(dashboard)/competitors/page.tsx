@@ -966,7 +966,6 @@ function AddCompetitorModal({
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
-    const { t } = useI18n();
     e.preventDefault();
     if (!name || !domain) return;
     setIsAdding(true);

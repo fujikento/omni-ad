@@ -3,13 +3,14 @@
 import { useI18n } from '@/lib/i18n';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Copy,
   Edit3,
   Eye,
-  Image,
+  Image as ImageIcon,
   Inbox,
   Monitor,
   MousePointerClick,
@@ -603,7 +604,7 @@ function CreativesTab({ creatives }: { creatives: Creative[] }): React.ReactElem
           <div key={creative.id} className="rounded-lg border border-border bg-card p-4 transition-shadow hover:shadow-md">
             {/* Thumbnail placeholder */}
             <div className="mb-3 flex h-36 items-center justify-center rounded-md bg-muted/50">
-              <Image size={32} className="text-muted-foreground/40" />
+              <ImageIcon size={32} className="text-muted-foreground/40" aria-hidden="true" />
             </div>
             <h4 className="text-sm font-medium text-foreground">{creative.headline}</h4>
             <div className="mt-2 flex items-center justify-between">
@@ -837,13 +838,13 @@ export default function CampaignDetailPage(): React.ReactElement {
     <div className="space-y-6">
       <PageHeader
         eyebrow={
-          <a
+          <Link
             href="/campaigns"
             className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft size={12} />
             {t('campaigns.id.h36486b')}
-          </a>
+          </Link>
         }
         title={
           <span className="inline-flex items-center gap-3">

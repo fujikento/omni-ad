@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   AlertTriangle,
@@ -435,13 +436,13 @@ export default function AccountAnalysisPage(): React.ReactElement {
         className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
         aria-label={t('accountAnalysis.breadcrumbLabel')}
       >
-        <a href="/settings" className="transition-colors hover:text-foreground">
+        <Link href="/settings" className="transition-colors hover:text-foreground">
           {t('accountAnalysis.breadcrumbSettings')}
-        </a>
+        </Link>
         <ChevronRight size={12} />
-        <a href="/account-analysis" className="transition-colors hover:text-foreground">
+        <Link href="/account-analysis" className="transition-colors hover:text-foreground">
           {t('accountAnalysis.breadcrumbAnalysis')}
-        </a>
+        </Link>
         <ChevronRight size={12} />
         <span className="text-foreground">{data.platformLabel}</span>
       </nav>
