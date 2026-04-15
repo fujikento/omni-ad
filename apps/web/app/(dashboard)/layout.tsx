@@ -454,6 +454,22 @@ function DashboardLayoutInner({
 }): React.ReactElement {
   const { t } = useI18n();
   const pathname = usePathname();
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
+
+  // Client-side auth gate. The actual security boundary is the API (401 on
+  // every tRPC call), but unauthenticated visitors should not see the
+  // dashboard chrome or navigation map. Token currently lives in
+  // localStorage, so this check must run client-side.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('omni-ad-token');
+    if (!token) {
+      window.location.replace('/login');
+      return;
+    }
+    setAuthChecked(true);
+  }, []);
+
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -531,6 +547,11 @@ function DashboardLayoutInner({
         : t('layout.resumeFailed');
       setEmergencyError(message);
     }
+  }
+
+  // Block all rendering until the auth gate confirms a token exists.
+  if (!authChecked) {
+    return <div className="h-screen w-screen bg-background" aria-hidden="true" />;
   }
 
   return (
