@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -87,7 +88,9 @@ export const videoProjects = pgTable('video_projects', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgCreatedAtIdx: index('video_projects_org_created_at_idx').on(table.organizationId, table.createdAt),
+}));
 
 // ---------------------------------------------------------------------------
 // Relations

@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import { jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organizations, users } from './organizations';
 
@@ -22,7 +22,10 @@ export const auditLog = pgTable('audit_log', {
   timestamp: timestamp('timestamp', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgTimestampIdx: index('audit_log_org_timestamp_idx').on(table.organizationId, table.timestamp),
+  orgEntityIdx: index('audit_log_org_entity_idx').on(table.organizationId, table.entityType, table.entityId),
+}));
 
 // Relations
 

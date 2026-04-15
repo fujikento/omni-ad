@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+  index,
   integer,
   jsonb,
   pgTable,
@@ -30,7 +31,9 @@ export const audiences = pgTable('audiences', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgCreatedAtIdx: index('audiences_org_created_at_idx').on(table.organizationId, table.createdAt),
+}));
 
 export const audienceOverlaps = pgTable('audience_overlaps', {
   id: uuid('id')
