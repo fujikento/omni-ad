@@ -6,6 +6,15 @@ import {
 } from '@omni-ad/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 
+// Attribution model type — matches the queue's ComputeAttributionJob shape
+// without forcing callers to import the worker package.
+export type AttributionModel =
+  | 'first_touch'
+  | 'last_touch'
+  | 'linear'
+  | 'time_decay'
+  | 'position_based';
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -433,4 +442,368 @@ export function computeForecast(
     out.push(point);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Cohort matrix — stage-1 → stage-2 transitions by (hashed_email, clickId, ip)
+// ---------------------------------------------------------------------------
+
+export interface StageTransition {
+  fromStage: string;
+  toStage: string;
+  lagMonths: number[];
+  pct: number;
+}
+
+export interface CohortRow {
+  cohortMonth: string; // "YYYY-MM"
+  stageTransitions: StageTransition[];
+}
+
+interface CohortQueryRow extends Record<string, unknown> {
+  cohort_month: string;
+  lag_months: number | string | null;
+  matched: string | number | null;
+  cohort_total: string | number | null;
+}
+
+/**
+ * Cohort matrix: for each month M in the trailing `monthCount` months, take
+ * every unique identity that triggered stage-1 in M and, via a LATERAL
+ * self-join on conversion_events keyed by
+ * COALESCE(hashed_email, external_click_id, ip_address), find the earliest
+ * stage-2 event by that same identity within [M, M+6 months).
+ */
+export async function getCohortMatrix(
+  orgId: string,
+  funnelId: string,
+  monthCount = 6,
+): Promise<CohortRow[]> {
+  const stages = await loadFunnelStages(orgId, funnelId);
+  const [stage1, stage2] = stages;
+  if (!stage1 || !stage2) return [];
+
+  const rawRows = await db.execute<CohortQueryRow>(sql`
+    WITH cohort_members AS (
+      SELECT
+        date_trunc('month', ce.created_at)::date AS cohort_month,
+        COALESCE(ce.hashed_email, ce.external_click_id, ce.ip_address) AS identity,
+        MIN(ce.created_at) AS first_touch
+      FROM conversion_events ce
+      WHERE ce.organization_id = ${orgId}
+        AND ce.event_name = ${stage1.eventName}
+        AND ce.created_at >= date_trunc('month', now()) - (${monthCount} || ' months')::interval
+        AND COALESCE(ce.hashed_email, ce.external_click_id, ce.ip_address) IS NOT NULL
+      GROUP BY 1, 2
+    ),
+    matched AS (
+      SELECT
+        cm.cohort_month,
+        cm.identity,
+        nxt.matched_at,
+        EXTRACT(MONTH FROM age(nxt.matched_at, cm.first_touch))::int
+          + 12 * EXTRACT(YEAR FROM age(nxt.matched_at, cm.first_touch))::int AS lag_months
+      FROM cohort_members cm
+      LEFT JOIN LATERAL (
+        SELECT MIN(ce2.created_at) AS matched_at
+        FROM conversion_events ce2
+        WHERE ce2.organization_id = ${orgId}
+          AND ce2.event_name = ${stage2.eventName}
+          AND COALESCE(ce2.hashed_email, ce2.external_click_id, ce2.ip_address) = cm.identity
+          AND ce2.created_at >= cm.first_touch
+          AND ce2.created_at <  cm.first_touch + interval '6 months'
+      ) nxt ON TRUE
+    )
+    SELECT
+      to_char(cohort_month, 'YYYY-MM') AS cohort_month,
+      lag_months,
+      COUNT(*) FILTER (WHERE matched_at IS NOT NULL) AS matched,
+      COUNT(*) AS cohort_total
+    FROM matched
+    GROUP BY cohort_month, lag_months
+    ORDER BY cohort_month ASC, lag_months ASC NULLS LAST;
+  `);
+
+  const dbRows = Array.isArray(rawRows)
+    ? (rawRows as CohortQueryRow[])
+    : ((rawRows as { rows?: CohortQueryRow[] }).rows ?? []);
+
+  return buildCohortRows(dbRows, stage1.name, stage2.name);
+}
+
+function buildCohortRows(
+  dbRows: CohortQueryRow[],
+  fromStageName: string,
+  toStageName: string,
+): CohortRow[] {
+  // Group by cohort_month.
+  const byMonth = new Map<
+    string,
+    { lags: number[]; matched: number; total: number }
+  >();
+  for (const r of dbRows) {
+    const key = String(r.cohort_month);
+    const entry = byMonth.get(key) ?? { lags: [], matched: 0, total: 0 };
+    const lag = r.lag_months === null ? null : Number(r.lag_months);
+    const matched = Number(r.matched ?? 0);
+    const total = Number(r.cohort_total ?? 0);
+    if (lag !== null && Number.isFinite(lag)) {
+      for (let i = 0; i < matched; i++) entry.lags.push(lag);
+    }
+    entry.matched += matched;
+    entry.total += total;
+    byMonth.set(key, entry);
+  }
+
+  const out: CohortRow[] = [];
+  for (const [month, entry] of byMonth) {
+    const pct = entry.total > 0 ? entry.matched / entry.total : 0;
+    out.push({
+      cohortMonth: month,
+      stageTransitions: [
+        {
+          fromStage: fromStageName,
+          toStage: toStageName,
+          lagMonths: entry.lags,
+          pct,
+        },
+      ],
+    });
+  }
+  out.sort((a, b) => a.cohortMonth.localeCompare(b.cohortMonth));
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Attribution — per-stage channel credit for a given month
+// ---------------------------------------------------------------------------
+
+export interface ChannelCredit {
+  channel: string;
+  credit: number;
+}
+
+export interface StageAttribution {
+  stageName: string;
+  channels: ChannelCredit[];
+}
+
+interface AttributionRow extends Record<string, unknown> {
+  platform: string | null;
+  credit: string | number | null;
+}
+
+/**
+ * Per-stage attribution: for each of the funnel's first three stages,
+ * compute credit per platform by joining conversion_events to attribution
+ * touchpoints (filtered to the month) with the requested weighting model.
+ *
+ * This is a synchronous compute (unlike report.service.computeAttribution
+ * which schedules a worker job). We surface the credit map directly so the
+ * dashboard can render it inline.
+ */
+export async function getAttribution(
+  orgId: string,
+  funnelId: string,
+  month: string,
+  model: AttributionModel,
+): Promise<StageAttribution[]> {
+  const stages = await loadFunnelStages(orgId, funnelId);
+  const first3 = stages.slice(0, 3);
+  const monthStart = `${month}-01`;
+
+  const results = await Promise.all(
+    first3.map((stage) =>
+      computeStageCredit(orgId, stage.eventName, monthStart, model),
+    ),
+  );
+
+  return first3.map((stage, i) => ({
+    stageName: stage.name,
+    channels: results[i] ?? [],
+  }));
+}
+
+async function computeStageCredit(
+  orgId: string,
+  eventName: string,
+  monthStart: string,
+  model: AttributionModel,
+): Promise<ChannelCredit[]> {
+  const weight = attributionWeightExpr(model);
+  const rows = await db.execute<AttributionRow>(sql`
+    WITH conversions AS (
+      SELECT
+        ce.id AS conversion_id,
+        ce.created_at AS conv_at,
+        COALESCE(ce.hashed_email, ce.external_click_id, ce.ip_address) AS identity
+      FROM conversion_events ce
+      WHERE ce.organization_id = ${orgId}
+        AND ce.event_name = ${eventName}
+        AND ce.created_at >= ${monthStart}::date
+        AND ce.created_at <  (${monthStart}::date + interval '1 month')
+    ),
+    touchpoints AS (
+      SELECT
+        t.platform,
+        c.conversion_id,
+        ROW_NUMBER() OVER (PARTITION BY c.conversion_id ORDER BY t.timestamp ASC) AS touch_rank,
+        COUNT(*) OVER (PARTITION BY c.conversion_id) AS touch_count
+      FROM attribution_touchpoints t
+      JOIN conversions c
+        ON c.identity = t.visitor_id
+       AND t.timestamp <= c.conv_at
+      WHERE t.organization_id = ${orgId}
+    )
+    SELECT platform, SUM(${weight})::numeric AS credit
+    FROM touchpoints
+    GROUP BY platform
+    ORDER BY credit DESC;
+  `);
+
+  const list = Array.isArray(rows)
+    ? (rows as AttributionRow[])
+    : ((rows as { rows?: AttributionRow[] }).rows ?? []);
+
+  return list.map((r) => ({
+    channel: String(r.platform ?? 'unknown'),
+    credit: Number(r.credit ?? 0),
+  }));
+}
+
+/** SQL weight expression for each attribution model. */
+function attributionWeightExpr(model: AttributionModel) {
+  switch (model) {
+    case 'first_touch':
+      return sql`CASE WHEN touch_rank = 1 THEN 1 ELSE 0 END`;
+    case 'last_touch':
+      return sql`CASE WHEN touch_rank = touch_count THEN 1 ELSE 0 END`;
+    case 'linear':
+      return sql`1.0 / NULLIF(touch_count, 0)`;
+    case 'time_decay':
+      // Exponential-ish: rank-weighted so later touches get more credit.
+      return sql`(touch_rank * 1.0) / NULLIF((touch_count * (touch_count + 1)) / 2.0, 0)`;
+    case 'position_based':
+      // 40% first, 40% last, 20% spread across middle.
+      return sql`CASE
+        WHEN touch_count = 1 THEN 1.0
+        WHEN touch_rank = 1 OR touch_rank = touch_count THEN 0.4
+        ELSE 0.2 / NULLIF(touch_count - 2, 0)
+      END`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Drilldown — top 10 campaigns / creatives / channels for a given stage/month
+// ---------------------------------------------------------------------------
+
+export interface DrilldownItem {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface Drilldown {
+  campaigns: DrilldownItem[];
+  creatives: DrilldownItem[];
+  channels: DrilldownItem[];
+}
+
+interface DrilldownRow extends Record<string, unknown> {
+  id: string | null;
+  label: string | null;
+  count: string | number | null;
+}
+
+function toDrilldownItems(rows: DrilldownRow[]): DrilldownItem[] {
+  return rows.map((r) => ({
+    id: String(r.id ?? ''),
+    label: String(r.label ?? ''),
+    count: Number(r.count ?? 0),
+  }));
+}
+
+function asRowsArray<T extends Record<string, unknown>>(
+  raw: unknown,
+): T[] {
+  if (Array.isArray(raw)) return raw as T[];
+  const withRows = raw as { rows?: T[] };
+  return withRows.rows ?? [];
+}
+
+export async function getDrilldown(
+  orgId: string,
+  funnelId: string,
+  month: string,
+  stageIndex: number,
+): Promise<Drilldown> {
+  const stages = await loadFunnelStages(orgId, funnelId);
+  const stage = stages[stageIndex];
+  if (!stage) {
+    throw new FunnelConfigurationError(
+      `Invalid stageIndex ${stageIndex} for funnel ${funnelId}`,
+    );
+  }
+  const monthStart = `${month}-01`;
+
+  const [campaignsRaw, creativesRaw, channelsRaw] = await Promise.all([
+    db.execute<DrilldownRow>(sql`
+      SELECT
+        c.id::text AS id,
+        c.name AS label,
+        COUNT(*) AS count
+      FROM conversion_events ce
+      JOIN campaigns c ON c.id = ce.campaign_id
+      WHERE ce.organization_id = ${orgId}
+        AND ce.event_name = ${stage.eventName}
+        AND ce.created_at >= ${monthStart}::date
+        AND ce.created_at <  (${monthStart}::date + interval '1 month')
+      GROUP BY c.id, c.name
+      ORDER BY count DESC
+      LIMIT 10;
+    `),
+    db.execute<DrilldownRow>(sql`
+      -- conversion_events only links to campaigns, so we walk
+      -- campaigns → ad_groups → ads → creatives to surface the creatives
+      -- that ran under campaigns producing this month's conversions.
+      SELECT
+        cr.id::text AS id,
+        cr.name AS label,
+        COUNT(DISTINCT ce.id) AS count
+      FROM conversion_events ce
+      JOIN ad_groups ag ON ag.campaign_id = ce.campaign_id
+      JOIN ads a        ON a.ad_group_id = ag.id
+      JOIN creatives cr ON cr.id = a.creative_id
+      WHERE ce.organization_id = ${orgId}
+        AND ce.event_name = ${stage.eventName}
+        AND ce.created_at >= ${monthStart}::date
+        AND ce.created_at <  (${monthStart}::date + interval '1 month')
+      GROUP BY cr.id, cr.name
+      ORDER BY count DESC
+      LIMIT 10;
+    `),
+    db.execute<DrilldownRow>(sql`
+      SELECT
+        COALESCE(t.platform::text, 'unknown') AS id,
+        COALESCE(t.platform::text, 'unknown') AS label,
+        COUNT(*) AS count
+      FROM attribution_touchpoints t
+      JOIN conversion_events ce
+        ON ce.organization_id = t.organization_id
+       AND COALESCE(ce.hashed_email, ce.external_click_id, ce.ip_address) = t.visitor_id
+      WHERE t.organization_id = ${orgId}
+        AND ce.event_name = ${stage.eventName}
+        AND ce.created_at >= ${monthStart}::date
+        AND ce.created_at <  (${monthStart}::date + interval '1 month')
+      GROUP BY t.platform
+      ORDER BY count DESC
+      LIMIT 10;
+    `),
+  ]);
+
+  return {
+    campaigns: toDrilldownItems(asRowsArray<DrilldownRow>(campaignsRaw)),
+    creatives: toDrilldownItems(asRowsArray<DrilldownRow>(creativesRaw)),
+    channels: toDrilldownItems(asRowsArray<DrilldownRow>(channelsRaw)),
+  };
 }
