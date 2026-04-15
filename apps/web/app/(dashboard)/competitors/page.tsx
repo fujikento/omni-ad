@@ -499,7 +499,7 @@ function ImpressionShareChart({
             type="monotone"
             dataKey="ours"
             name={t('competitors.ownCompany')}
-            stroke="#3B82F6"
+            stroke="hsl(var(--chart-1))"
             strokeWidth={3}
             dot={false}
           />
@@ -507,7 +507,7 @@ function ImpressionShareChart({
             type="monotone"
             dataKey="competitorA"
             name="CompetitorA"
-            stroke="#EF4444"
+            stroke="hsl(var(--chart-2))"
             strokeWidth={1.5}
             dot={false}
             strokeDasharray="4 2"
@@ -516,7 +516,7 @@ function ImpressionShareChart({
             type="monotone"
             dataKey="competitorB"
             name="CompetitorB"
-            stroke="#8B5CF6"
+            stroke="hsl(var(--chart-3))"
             strokeWidth={1.5}
             dot={false}
             strokeDasharray="4 2"
@@ -525,7 +525,7 @@ function ImpressionShareChart({
             type="monotone"
             dataKey="competitorC"
             name="CompetitorC"
-            stroke="#F59E0B"
+            stroke="hsl(var(--chart-4))"
             strokeWidth={1.5}
             dot={false}
             strokeDasharray="4 2"

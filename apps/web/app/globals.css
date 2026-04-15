@@ -63,6 +63,13 @@
     --platform-yahoo: 270 99% 41%;
     --platform-amazon: 36 100% 50%;
     --platform-microsoft: 199 100% 47%;
+
+    /* Chart series — qualitative categorical palette for Recharts / sparklines */
+    --chart-1: 217 91% 60%;  /* blue-500   — primary series */
+    --chart-2: 0 84% 60%;    /* red-500    — secondary / negative */
+    --chart-3: 258 90% 66%;  /* violet-500 — tertiary */
+    --chart-4: 38 92% 50%;   /* amber-500  — quaternary */
+    --chart-5: 142 71% 45%;  /* green-500  — positive trend */
   }
 
   .dark {
@@ -107,6 +114,13 @@
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.3);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+
+    /* Chart series — dark mode tuned for contrast on near-black surfaces */
+    --chart-1: 217 91% 66%;
+    --chart-2: 0 84% 68%;
+    --chart-3: 258 90% 72%;
+    --chart-4: 38 92% 58%;
+    --chart-5: 142 71% 52%;
   }
 }
 

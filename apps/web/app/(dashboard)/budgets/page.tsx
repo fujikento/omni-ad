@@ -69,17 +69,19 @@ interface MonthlyPacing {
 
 // -- Constants --
 
+// Platform chart colors — resolved from CSS variables defined in globals.css
+// so that light/dark themes and Figma tokens stay in sync (no hex drift).
 const PLATFORM_COLORS = {
-  Google: '#4285F4',
-  Meta: '#6366F1',
-  TikTok: '#EC4899',
-  LINE: '#06C755',
-  X: '#374151',
-  'Yahoo!': '#EF4444',
+  Google: 'hsl(var(--platform-google))',
+  Meta: 'hsl(var(--platform-meta))',
+  TikTok: 'hsl(var(--platform-tiktok))',
+  LINE: 'hsl(var(--platform-line))',
+  X: 'hsl(var(--platform-x))',
+  'Yahoo!': 'hsl(var(--platform-yahoo))',
 } as const;
 
 function getPlatformColor(key: string): string {
-  return (PLATFORM_COLORS as Record<string, string | undefined>)[key] ?? '#6B7280';
+  return (PLATFORM_COLORS as Record<string, string | undefined>)[key] ?? 'hsl(var(--muted-foreground))';
 }
 
 const PACING_STATUS_CONFIG: Record<PacingStatus, { labelKey: string; className: string; badgeClass: string }> = {

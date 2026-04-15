@@ -323,7 +323,7 @@ function KpiCard({ card, dailyTotals }: { card: KpiCardData; dailyTotals: DailyT
           {card.value}
         </p>
         {hasSparkData && card.label !== 'ROAS' && card.label !== t('campaigns.id.h718987') && (
-          <Sparkline data={sparkData} color={isPositive ? '#22c55e' : '#ef4444'} />
+          <Sparkline data={sparkData} color={isPositive ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />
         )}
       </div>
       <div className="mt-1 flex items-center gap-2">
