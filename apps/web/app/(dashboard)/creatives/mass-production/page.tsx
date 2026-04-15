@@ -302,7 +302,7 @@ function BatchProgressView({ progress, onCancel }: BatchProgressViewProps): Reac
             {progress.status === 'generating' ? (
               <Loader2 size={24} className="animate-spin text-primary" />
             ) : progress.status === 'completed' ? (
-              <Check size={24} className="text-green-600" />
+              <Check size={24} className="text-success" />
             ) : (
               <X size={24} className="text-red-500" />
             )}

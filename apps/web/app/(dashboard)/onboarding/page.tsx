@@ -408,7 +408,7 @@ function CampaignStep({
           <div className="mt-4 space-y-3">
             <div className="flex items-center gap-2">
               <Check size={16} className="text-green-500" />
-              <span className="text-sm font-semibold text-green-600">{t('onboarding.planGenerated')}</span>
+              <span className="text-sm font-semibold text-success">{t('onboarding.planGenerated')}</span>
             </div>
             {(Object.entries(aiPlan) as [keyof AiGeneratedPlan, string][]).map(([key, value]) => {
               const fieldLabels: Record<keyof AiGeneratedPlan, string> = {
@@ -681,7 +681,7 @@ function CompletionStep(): React.ReactElement {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-        <Check size={40} className="text-green-600 dark:text-green-400" />
+        <Check size={40} className="text-success" />
       </div>
       <h2 className="mt-6 text-2xl font-bold text-foreground">
         {t('onboarding.completeTitle')}

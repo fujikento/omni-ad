@@ -278,7 +278,7 @@ function ImportPanel(): React.ReactElement {
         {uploaded ? (
           <>
             <Check size={24} className="text-green-500" />
-            <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+            <p className="mt-2 text-sm font-medium text-success">
               {t('identityGraph.importComplete')}
             </p>
           </>

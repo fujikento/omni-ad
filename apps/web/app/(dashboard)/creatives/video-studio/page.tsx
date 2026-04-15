@@ -864,7 +864,7 @@ function PreviewExportStep({
           <button
             type="button"
             onClick={onApprove}
-            className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
+            className="inline-flex items-center gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
           >
             <Check size={14} />
             {t('videoStudio.approve')}
@@ -958,7 +958,7 @@ export default function VideoStudioPage(): React.ReactElement {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-          <Check size={32} className="text-green-600 dark:text-green-400" />
+          <Check size={32} className="text-success" />
         </div>
         <h2 className="mt-4 text-xl font-bold text-foreground">{t('videoStudio.approvedTitle')}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{t('videoStudio.approvedDesc')}</p>

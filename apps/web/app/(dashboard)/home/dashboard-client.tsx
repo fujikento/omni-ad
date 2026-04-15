@@ -170,7 +170,7 @@ function AlertBanner({ alerts, onViewDetail }: {
       {criticals.length > 0 && (
         <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950/30">
           <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-600 dark:text-red-400" />
+            <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-destructive" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-red-800 dark:text-red-300">
                 {t('dashboard.criticalAlertCount', { count: criticals.length })}
@@ -267,7 +267,7 @@ function AlertDetailModal({ alert, onClose, onStopCampaign, onDismiss }: AlertDe
               onStopCampaign(alert);
               onClose();
             }}
-            className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+            className="inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
           >
             <ShieldAlert size={14} />
             {t('dashboard.stopCampaign')}

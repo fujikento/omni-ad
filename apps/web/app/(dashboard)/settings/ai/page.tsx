@@ -401,13 +401,13 @@ function ApiKeyCard({
               {t('settings.ai.apiKeys.testConnection')}
             </button>
             {state.testResult === 'success' && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
                 <Check size={12} />
                 {t('settings.ai.connectionSuccess')}
               </span>
             )}
             {state.testResult === 'failure' && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
                 <AlertTriangle size={12} />
                 {t('settings.ai.connectionFailure')}
               </span>

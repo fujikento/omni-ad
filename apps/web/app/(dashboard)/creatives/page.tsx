@@ -486,7 +486,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
                 </div>
               ) : generated ? (
                 <div className="space-y-3">
-                  <p className="text-sm font-medium text-green-600">{t('creatives.wizard.generationComplete')}</p>
+                  <p className="text-sm font-medium text-success">{t('creatives.wizard.generationComplete')}</p>
                   {Array.from({ length: variantCount }, (_, i) => (
                     <div key={i} className="rounded-lg border border-border p-4">
                       <div className="flex items-center justify-between">
@@ -546,7 +546,7 @@ function GenerateWizard({ open, onClose }: GenerateWizardProps): React.ReactElem
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+              className="rounded-md bg-success px-4 py-2 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
             >
               {t('creatives.wizard.doneBtn')}
             </button>
@@ -766,7 +766,7 @@ function FileUploadSection({
                   <p className="mt-1 text-xs text-destructive">{file.errorMessage}</p>
                 )}
                 {file.status === 'complete' && (
-                  <p className="mt-1 text-xs font-medium text-green-600">{t('creatives.upload.complete')}</p>
+                  <p className="mt-1 text-xs font-medium text-success">{t('creatives.upload.complete')}</p>
                 )}
               </div>
 

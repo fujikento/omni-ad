@@ -68,11 +68,11 @@ const TestTableRow = memo(function TestTableRow({
       </td>
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-1.5">
-          {test.lift > 0 && <Trophy size={12} className="text-green-600 dark:text-green-400" />}
+          {test.lift > 0 && <Trophy size={12} className="text-success" />}
           <span className="text-sm text-foreground">{translateVariantName(test.bestVariant, t)}</span>
           <span className={cn(
             'text-xs font-semibold',
-            test.lift > 0 ? 'text-green-600' : test.lift < 0 ? 'text-red-600' : 'text-muted-foreground',
+            test.lift > 0 ? 'text-success' : test.lift < 0 ? 'text-destructive' : 'text-muted-foreground',
           )}>
             {test.lift > 0 ? '+' : ''}{test.lift.toFixed(1)}%
           </span>
@@ -118,7 +118,7 @@ const TestTableRow = memo(function TestTableRow({
             <button
               type="button"
               onClick={() => onDeclareWinner(test.id)}
-              className="rounded p-1 text-green-600 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
+              className="rounded p-1 text-success transition-colors hover:bg-success/10"
               aria-label={t('abTests.actionDeclareWinner')}
               title={t('abTests.actionDeclareWinner')}
             >
