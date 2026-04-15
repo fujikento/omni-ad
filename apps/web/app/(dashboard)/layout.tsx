@@ -83,7 +83,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: 'nav.aiOps',
     items: [
       { labelKey: 'nav.aiAutopilot', href: '/ai-pilot', icon: <Sparkles size={18} />, activeIndicator: true },
-      { labelKey: 'nav.competitors', href: '/competitors', icon: <Swords size={18} />, badge: 3 },
+      { labelKey: 'nav.competitors', href: '/competitors', icon: <Swords size={18} /> },
       { labelKey: 'nav.autoRules', href: '/auto-rules', icon: <Workflow size={18} /> },
     ],
   },
@@ -105,7 +105,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { labelKey: 'nav.analytics', href: '/analytics', icon: <BarChart3 size={18} /> },
       { labelKey: 'nav.budgets', href: '/budgets', icon: <Gauge size={18} /> },
-      { labelKey: 'nav.abTests', href: '/ab-tests', icon: <FlaskConical size={18} />, badge: 847 },
+      { labelKey: 'nav.abTests', href: '/ab-tests', icon: <FlaskConical size={18} /> },
       { labelKey: 'nav.ltv', href: '/ltv', icon: <TrendingUp size={18} /> },
       { labelKey: 'nav.reports', href: '/reports', icon: <ScrollText size={18} /> },
     ],
@@ -115,7 +115,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { labelKey: 'nav.accountAnalysis', href: '/account-analysis', icon: <ScanSearch size={18} /> },
       { labelKey: 'nav.clients', href: '/clients', icon: <Building2 size={18} /> },
-      { labelKey: 'nav.approvals', href: '/approvals', icon: <CheckSquare size={18} />, badge: 5 },
+      { labelKey: 'nav.approvals', href: '/approvals', icon: <CheckSquare size={18} /> },
       { labelKey: 'nav.settings', href: '/settings', icon: <Settings size={18} /> },
     ],
   },
@@ -228,9 +228,11 @@ function NotificationPanel({
 function UserDropdown({
   open,
   onClose,
+  currentUser,
 }: {
   open: boolean;
   onClose: () => void;
+  currentUser: CurrentUser | null;
 }): React.ReactElement | null {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
@@ -270,8 +272,8 @@ function UserDropdown({
       aria-label={t('header.userMenu')}
     >
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-medium text-foreground">{t('common.username')}</p>
-        <p className="text-xs text-muted-foreground">user@example.com</p>
+        <p className="text-sm font-medium text-foreground">{currentUser?.name ?? '—'}</p>
+        <p className="text-xs text-muted-foreground">{currentUser?.email ?? ''}</p>
       </div>
       {menuItems.map((item) => (
         <a
@@ -299,38 +301,6 @@ function UserDropdown({
           {t('header.logout')}
         </button>
       </div>
-    </div>
-  );
-}
-
-function UsageMeter({ sidebarOpen }: { sidebarOpen: boolean }): React.ReactElement {
-  const { t } = useI18n();
-  const used = 28;
-  const total = 100;
-  const percentage = Math.round((used / total) * 100);
-
-  return (
-    <div className="space-y-2">
-      {sidebarOpen ? (
-        <>
-          <div className="flex items-center justify-between text-[11px] text-sidebar-foreground/60">
-            <span>{t('common.creativeGeneration')}</span>
-            <span className="tabular-nums font-medium text-sidebar-foreground/90">{used}/{total}</span>
-          </div>
-          <div className="h-1 w-full overflow-hidden rounded-full bg-sidebar-accent">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-info transition-all"
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
-        </>
-      ) : (
-        <div className="flex justify-center" title={`${t('common.creativeGeneration')}: ${used}/${total}`}>
-          <div className="h-6 w-6 rounded-full border-2 border-primary/30 p-0.5">
-            <div className="h-full w-full rounded-full bg-primary" style={{ clipPath: `inset(${100 - percentage}% 0 0 0)` }} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -411,6 +381,28 @@ interface TRPCQueryResult {
   result?: { data?: { json?: NotificationFromAPI[] } };
 }
 
+interface CurrentUser {
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface MeQueryResult {
+  result?: { data?: { json?: CurrentUser } };
+}
+
+async function fetchCurrentUser(): Promise<CurrentUser | null> {
+  if (typeof window === 'undefined') return null;
+  const token = localStorage.getItem('omni-ad-token');
+  if (!token) return null;
+  const response = await fetch(`${API_URL}/auth.me`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  const body = (await response.json().catch(() => null)) as MeQueryResult | null;
+  return body?.result?.data?.json ?? null;
+}
+
 async function fetchNotifications(): Promise<Notification[]> {
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('omni-ad-token')
@@ -480,6 +472,14 @@ function DashboardLayoutInner({
   const [emergencyStopModalOpen, setEmergencyStopModalOpen] = useState(false);
   const [emergencyStopped, setEmergencyStopped] = useState(false);
   const [emergencyStopping, setEmergencyStopping] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    if (!authChecked) return;
+    fetchCurrentUser()
+      .then(setCurrentUser)
+      .catch(() => setCurrentUser(null));
+  }, [authChecked]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -673,42 +673,6 @@ function DashboardLayoutInner({
           ))}
         </nav>
 
-        {/* Sidebar footer */}
-        <div className="space-y-3 border-t border-sidebar-border p-3">
-          <UsageMeter sidebarOpen={sidebarOpen} />
-
-          {sidebarOpen ? (
-            <div className="rounded-md border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
-                    {t('common.plan')}
-                  </p>
-                  <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                    {t('common.professional')}
-                  </p>
-                </div>
-                <a
-                  href="/settings"
-                  className="shrink-0 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/25"
-                >
-                  {t('common.upgrade')}
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center">
-              <a
-                href="/settings"
-                className="rounded-md p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                title={t('common.upgrade')}
-                aria-label={t('common.upgrade')}
-              >
-                <Zap size={18} />
-              </a>
-            </div>
-          )}
-        </div>
       </aside>
 
       {/* Main content */}
@@ -791,9 +755,11 @@ function DashboardLayoutInner({
                 </div>
                 <div className="hidden text-left sm:block">
                   <p className="text-xs font-medium leading-tight text-foreground">
-                    {t('common.username')}
+                    {currentUser?.name ?? '—'}
                   </p>
-                  <p className="text-[10px] leading-tight text-muted-foreground">{t('common.admin')}</p>
+                  <p className="text-[10px] leading-tight text-muted-foreground">
+                    {currentUser?.role ?? ''}
+                  </p>
                 </div>
                 <ChevronDown size={12} className="hidden text-muted-foreground sm:block" />
               </button>
@@ -801,6 +767,7 @@ function DashboardLayoutInner({
               <UserDropdown
                 open={userDropdownOpen}
                 onClose={() => setUserDropdownOpen(false)}
+                currentUser={currentUser}
               />
             </div>
           </div>
