@@ -1,6 +1,6 @@
 import { generateReportJobSchema, type GenerateReportJob } from '@omni-ad/queue';
 import { db } from '@omni-ad/db';
-import { campaigns, metricsDaily } from '@omni-ad/db/schema';
+import { campaigns, metricsDaily, notifications } from '@omni-ad/db/schema';
 import { and, between, eq, sql, desc } from 'drizzle-orm';
 
 interface ProcessorLogger {
@@ -73,7 +73,29 @@ export async function processReporting(job: { name: string; data: unknown }): Pr
       topCampaignCount: topCampaigns.length,
     });
 
-    // TODO: Store report in reports table and/or enqueue email delivery
+    // TODO(schema): a dedicated `reports` table does not yet exist in
+    // packages/db/src/schema — add one (id, orgId, type, range, payload,
+    // createdAt) and persist the full report here. Until then, surface the
+    // completion via a dashboard notification so the UI can react.
+    await db.insert(notifications).values({
+      organizationId: data.organizationId,
+      userId: null,
+      type: 'info',
+      title: 'レポート生成完了',
+      message:
+        `${data.reportType} レポート (${startDate} ～ ${endDate}) を生成しました。` +
+        `総支出 ¥${summary.totalSpend.toLocaleString('ja-JP')} / ROAS ${summary.overallRoas.toFixed(2)}`,
+      source: 'reporting',
+      actionUrl: '/reports',
+      metadata: {
+        reportType: data.reportType,
+        startDate,
+        endDate,
+        summary,
+        platformBreakdown,
+        topCampaigns,
+      },
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     logger.error('Report generation failed', {
