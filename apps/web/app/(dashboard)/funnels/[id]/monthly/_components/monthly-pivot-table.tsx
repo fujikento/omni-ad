@@ -13,6 +13,8 @@ export interface MonthlyPivotTableProps {
   notes: Record<string, string>;
   savingMonth: string | null;
   onNoteSave: (month: string, text: string) => void;
+  /** Emitted when a CV① / CV② / CV③ cell is clicked — opens the drilldown. */
+  onStageCellClick?: (month: string, stageIndex: number) => void;
 }
 
 interface RowProps {
@@ -23,7 +25,14 @@ interface RowProps {
   note: string;
   saving: boolean;
   onNoteSave: (month: string, text: string) => void;
+  onStageCellClick?: (month: string, stageIndex: number) => void;
 }
+
+const CV_STAGE_INDEX: Partial<Record<string, number>> = {
+  cv1: 0,
+  cv2: 1,
+  cv3: 2,
+};
 
 function MonthRowImpl({
   row,
@@ -33,6 +42,7 @@ function MonthRowImpl({
   note,
   saving,
   onNoteSave,
+  onStageCellClick,
 }: RowProps): React.ReactElement {
   return (
     <tr className="border-b border-border hover:bg-muted/30">
@@ -44,8 +54,34 @@ function MonthRowImpl({
       </th>
       {columns.map((col) => {
         const t = trailingFor(rows, index, col.key);
+        const stageIndex = CV_STAGE_INDEX[col.key];
+        const clickable = onStageCellClick && stageIndex !== undefined;
         return (
-          <td key={col.key} className="whitespace-nowrap px-3 py-2 text-xs">
+          <td
+            key={col.key}
+            className={
+              clickable
+                ? 'whitespace-nowrap px-3 py-2 text-xs cursor-pointer transition-colors hover:bg-primary/5'
+                : 'whitespace-nowrap px-3 py-2 text-xs'
+            }
+            onClick={
+              clickable
+                ? () => onStageCellClick(row.month, stageIndex)
+                : undefined
+            }
+            onKeyDown={
+              clickable
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onStageCellClick(row.month, stageIndex);
+                    }
+                  }
+                : undefined
+            }
+            role={clickable ? 'button' : undefined}
+            tabIndex={clickable ? 0 : undefined}
+          >
             <StageCell
               formatted={col.format(row[col.key])}
               trailing={t.series}
@@ -75,11 +111,16 @@ function MonthlyPivotTableImpl({
   notes,
   savingMonth,
   onNoteSave,
+  onStageCellClick,
 }: MonthlyPivotTableProps): React.ReactElement {
   const columns = useMemo(() => buildColumns(meta), [meta]);
   const handleNoteSave = useCallback(
     (month: string, text: string) => onNoteSave(month, text),
     [onNoteSave],
+  );
+  const handleStageCellClick = useCallback(
+    (month: string, stageIndex: number) => onStageCellClick?.(month, stageIndex),
+    [onStageCellClick],
   );
 
   return (
@@ -123,6 +164,7 @@ function MonthlyPivotTableImpl({
               note={notes[row.month] ?? ''}
               saving={savingMonth === row.month}
               onNoteSave={handleNoteSave}
+              onStageCellClick={onStageCellClick ? handleStageCellClick : undefined}
             />
           ))}
         </tbody>

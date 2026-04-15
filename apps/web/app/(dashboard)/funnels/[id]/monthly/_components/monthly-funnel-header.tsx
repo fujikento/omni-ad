@@ -1,8 +1,9 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { PageHeader, SegmentedControl } from '@omni-ad/ui';
 import { ExportButton } from '@/app/components/export-button';
+import { exportMonthlyFunnelXlsx } from './xlsx-export';
 import type { MonthRange, MonthlyRow, PivotMeta } from '../_types';
 
 export interface MonthlyFunnelHeaderProps {
@@ -11,6 +12,7 @@ export interface MonthlyFunnelHeaderProps {
   onRangeChange: (value: MonthRange) => void;
   months: MonthlyRow[];
   meta?: PivotMeta;
+  notes?: Record<string, string>;
 }
 
 const JP = new Intl.NumberFormat('ja-JP');
@@ -66,8 +68,19 @@ function MonthlyFunnelHeaderImpl({
   onRangeChange,
   months,
   meta,
+  notes,
 }: MonthlyFunnelHeaderProps): React.ReactElement {
   const exportData = useMemo(() => buildExportRows(months), [months]);
+
+  const handleXlsxExport = useCallback(() => {
+    if (!meta) return;
+    exportMonthlyFunnelXlsx({
+      months,
+      notes: notes ?? {},
+      meta,
+      filename: 'monthly-funnel',
+    });
+  }, [months, notes, meta]);
   const stage1 = meta?.stages[0]?.name ?? 'CV①';
   const stage2 = meta?.stages[1]?.name ?? 'CV②';
   const stage3 = meta?.stages[2]?.name ?? 'CV③';
@@ -111,7 +124,12 @@ function MonthlyFunnelHeaderImpl({
             options={RANGE_OPTIONS}
             size="sm"
           />
-          <ExportButton data={exportData} columns={columns} filename="monthly-funnel" />
+          <ExportButton
+            data={exportData}
+            columns={columns}
+            filename="monthly-funnel"
+            onXlsxExport={meta ? handleXlsxExport : undefined}
+          />
         </div>
       }
     />

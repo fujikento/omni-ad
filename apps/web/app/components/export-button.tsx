@@ -19,6 +19,13 @@ interface ExportButtonProps<T> {
   columns: ColumnDefinition<T>[];
   filename?: string;
   className?: string;
+  /**
+   * Optional override for the XLSX format. When present, the dropdown's
+   * "Excel" item calls this instead of the built-in CSV fallback. Callers
+   * that need a real multi-sheet workbook (e.g. the monthly funnel) can
+   * plug in their own SheetJS-backed builder here.
+   */
+  onXlsxExport?: () => void;
 }
 
 type ExportFormat = 'csv' | 'xlsx';
@@ -69,6 +76,7 @@ export function ExportButton<T>({
   columns,
   filename = 'export',
   className,
+  onXlsxExport,
 }: ExportButtonProps<T>): React.ReactElement {
   const { t } = useI18n();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -98,7 +106,13 @@ export function ExportButton<T>({
       return;
     }
 
-    // XLSX stub
+    // XLSX — prefer a caller-supplied builder (e.g. the monthly funnel's
+    // multi-sheet workbook). Fall back to CSV-with-BOM for callers that
+    // haven't wired up a workbook yet.
+    if (onXlsxExport) {
+      onXlsxExport();
+      return;
+    }
     const csv = convertToCSV(data, columns);
     const dateSuffix = new Date().toISOString().slice(0, 10);
     downloadBlob(csv, `${filename}_${dateSuffix}.csv`, 'text/csv;charset=utf-8;');
