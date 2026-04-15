@@ -117,8 +117,18 @@ function buildServer(): ReturnType<typeof Fastify> {
     credentials: true,
   });
 
+  // HSTS only when the deployment actually serves HTTPS. Setting it
+  // unconditionally over plain HTTP can trip up users in the dev/IP
+  // phase if they ever hit the same host via https://.
+  const HSTS_ENABLED =
+    process.env["FRONTEND_URL"]?.startsWith("https://") === true ||
+    process.env["FORCE_HSTS"] === "true";
+
   void server.register(helmet, {
     contentSecurityPolicy: false,
+    hsts: HSTS_ENABLED
+      ? { maxAge: 31536000, includeSubDomains: true }
+      : false,
   });
 
   // --- Rate Limiting ---
