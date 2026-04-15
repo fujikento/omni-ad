@@ -18,6 +18,7 @@ import { db } from '@omni-ad/db';
 import { creatives, creativeVariants } from '@omni-ad/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { resolveApiKey } from '../utils/resolve-api-key.js';
+import { getStorageClient, isStorageConfigured } from '../storage/index.js';
 
 // Platform string type matching the DB platform enum used by creativeVariants.
 type DbPlatform =
@@ -149,13 +150,14 @@ async function tryProcessImageGeneration(job: { name: string; data: unknown }): 
       model: images[0]?.model ?? 'unknown',
     });
 
-    // TODO(storage): persist generated images to object storage (S3/GCS).
-    // For now, merge the generated URLs/model into creatives.baseContent and
-    // create per-platform creativeVariants rows so the data is queryable.
+    // Upload generated images to durable object storage when a provider is
+    // registered; otherwise keep the provider URL so the data remains usable.
+    const uploadedImages = await uploadImagesOrFallback(data.creativeId, images);
+
     await persistImageResults({
       creativeId: data.creativeId,
       platforms: data.platforms as DbPlatform[],
-      images,
+      images: uploadedImages,
     });
     return true;
   } catch (err: unknown) {
@@ -204,13 +206,14 @@ async function tryProcessVideoGeneration(job: { name: string; data: unknown }): 
       duration: video.durationSeconds,
     });
 
-    // TODO(storage): persist generated video to object storage (S3/GCS).
-    // For now, merge the generated URL/metadata into creatives.baseContent
-    // and create per-platform creativeVariants rows.
+    // Upload generated video to durable object storage when a provider is
+    // registered; otherwise keep the provider URL.
+    const uploadedVideo = await uploadVideoOrFallback(data.creativeId, video);
+
     await persistVideoResult({
       creativeId: data.creativeId,
       platforms: data.platforms as DbPlatform[],
-      video,
+      video: uploadedVideo,
     });
     return true;
   } catch (err: unknown) {
@@ -353,7 +356,8 @@ async function persistImageResults(args: {
     .where(eq(creatives.id, args.creativeId));
 
   // Create one variant row per requested platform, pairing the first image
-  // dimensions (storage/multi-size handled later in TODO(storage)).
+  // dimensions. Per-platform multi-size rendering is a separate concern and
+  // lands with the platform-specific adaptation step.
   for (const platform of args.platforms) {
     await db.insert(creativeVariants).values({
       creativeId: args.creativeId,
@@ -449,4 +453,81 @@ async function persistAdaptedVariant(args: {
     format,
     fileUrl: args.adapted.videoUrl ?? args.adapted.imageUrl ?? null,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Storage upload helpers
+// ---------------------------------------------------------------------------
+
+interface GeneratedImage {
+  url: string;
+  width: number;
+  height: number;
+  model: string;
+}
+
+interface GeneratedVideo {
+  url: string;
+  durationSeconds: number;
+  aspectRatio: string;
+  model: string;
+}
+
+async function uploadImagesOrFallback(
+  creativeId: string,
+  images: GeneratedImage[],
+): Promise<GeneratedImage[]> {
+  if (!isStorageConfigured()) {
+    logger.info('Storage not configured, keeping provider URLs for images', {
+      creativeId,
+      imageCount: images.length,
+    });
+    return images;
+  }
+
+  const client = getStorageClient();
+  const uploaded: GeneratedImage[] = [];
+  for (let i = 0; i < images.length; i += 1) {
+    const img = images[i];
+    if (!img) continue;
+    try {
+      const key = `creatives/${creativeId}/image-${i}.png`;
+      const result = await client.uploadImage(img.url, key);
+      uploaded.push({ ...img, url: result.url });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      logger.error('Image upload failed, falling back to provider URL', {
+        creativeId,
+        index: i,
+        error: message,
+      });
+      uploaded.push(img);
+    }
+  }
+  return uploaded;
+}
+
+async function uploadVideoOrFallback(
+  creativeId: string,
+  video: GeneratedVideo,
+): Promise<GeneratedVideo> {
+  if (!isStorageConfigured()) {
+    logger.info('Storage not configured, keeping provider URL for video', {
+      creativeId,
+    });
+    return video;
+  }
+
+  try {
+    const key = `creatives/${creativeId}/video.mp4`;
+    const result = await getStorageClient().uploadVideo(video.url, key);
+    return { ...video, url: result.url };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('Video upload failed, falling back to provider URL', {
+      creativeId,
+      error: message,
+    });
+    return video;
+  }
 }
