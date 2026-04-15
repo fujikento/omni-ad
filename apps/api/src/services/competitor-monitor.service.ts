@@ -18,7 +18,7 @@ import {
 import type {
   AlertData,
 } from '@omni-ad/db/schema';
-import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { createNotification } from './notification.service.js';
 
 // ---------------------------------------------------------------------------
@@ -400,49 +400,17 @@ export async function collectCompetitorCreatives(
         );
 
       const avgWeeklyCount = existingCreatives.length || 1;
-      let newCreativeCount = 0;
 
-      for (const record of records) {
-        // Check if we already track this ad
-        const existing = await db.query.competitorCreatives.findFirst({
-          where: and(
-            eq(competitorCreatives.competitorId, competitor.id),
-            eq(competitorCreatives.externalAdId, record.id),
-          ),
-        });
-
-        if (existing) {
-          // Update last seen + active status
-          await db
-            .update(competitorCreatives)
-            .set({
-              lastSeenAt: sql`now()`,
-              isActive: !record.ad_delivery_stop_time,
-            })
-            .where(eq(competitorCreatives.id, existing.id));
-        } else {
-          // New creative
-          const titles = record.ad_creative_link_titles ?? [];
-          const bodies = record.ad_creative_bodies ?? [];
-
-          await db.insert(competitorCreatives).values({
-            organizationId,
-            competitorId: competitor.id,
-            platform: 'meta',
-            externalAdId: record.id,
-            headline: titles[0] ?? null,
-            bodyText: bodies[0] ?? null,
-            startDate: record.ad_delivery_start_time ?? null,
-            isActive: !record.ad_delivery_stop_time,
-            estimatedSpend: record.spend
-              ? `${record.spend.lower_bound}-${record.spend.upper_bound}`
-              : null,
-          });
-
-          snapshotsCreated++;
-          newCreativeCount++;
-        }
-      }
+      const { inserted, activeUpdates, inactiveUpdates } =
+        await upsertCompetitorRecords(
+          organizationId,
+          competitor.id,
+          records,
+        );
+      const newCreativeCount = inserted;
+      snapshotsCreated += inserted;
+      void activeUpdates;
+      void inactiveUpdates;
 
       // Detect creative surge (>3x normal weekly volume)
       if (newCreativeCount > avgWeeklyCount * 3 && newCreativeCount > 3) {
@@ -492,6 +460,116 @@ export async function collectCompetitorCreatives(
   }
 
   return { snapshotsCreated, alertsGenerated };
+}
+
+// ---------------------------------------------------------------------------
+// Batched upsert helper for competitor creatives
+// ---------------------------------------------------------------------------
+
+interface UpsertResult {
+  inserted: number;
+  activeUpdates: number;
+  inactiveUpdates: number;
+}
+
+async function fetchExistingCreativeIds(
+  competitorId: string,
+  externalIds: string[],
+): Promise<Map<string, string>> {
+  const rows = await db
+    .select({
+      id: competitorCreatives.id,
+      externalAdId: competitorCreatives.externalAdId,
+    })
+    .from(competitorCreatives)
+    .where(
+      and(
+        eq(competitorCreatives.competitorId, competitorId),
+        inArray(competitorCreatives.externalAdId, externalIds),
+      ),
+    );
+
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    if (row.externalAdId) map.set(row.externalAdId, row.id);
+  }
+  return map;
+}
+
+function buildInsertRow(
+  organizationId: string,
+  competitorId: string,
+  record: MetaAdRecord,
+): typeof competitorCreatives.$inferInsert {
+  const titles = record.ad_creative_link_titles ?? [];
+  const bodies = record.ad_creative_bodies ?? [];
+  return {
+    organizationId,
+    competitorId,
+    platform: 'meta',
+    externalAdId: record.id,
+    headline: titles[0] ?? null,
+    bodyText: bodies[0] ?? null,
+    startDate: record.ad_delivery_start_time ?? null,
+    isActive: !record.ad_delivery_stop_time,
+    estimatedSpend: record.spend
+      ? `${record.spend.lower_bound}-${record.spend.upper_bound}`
+      : null,
+  };
+}
+
+async function applyBulkUpdate(ids: string[], isActive: boolean): Promise<void> {
+  if (ids.length === 0) return;
+  await db
+    .update(competitorCreatives)
+    .set({ lastSeenAt: sql`now()`, isActive })
+    .where(inArray(competitorCreatives.id, ids));
+}
+
+/**
+ * Replaces a per-record findFirst + insert/update loop (2N round-trips)
+ * with: 1 pre-fetch + 1 bulk insert + up to 2 bulk updates (≤ 4 queries).
+ * Update buckets differ only by `isActive`, collapsing N per-row updates
+ * into one UPDATE per bucket via `inArray`.
+ */
+async function upsertCompetitorRecords(
+  organizationId: string,
+  competitorId: string,
+  records: MetaAdRecord[],
+): Promise<UpsertResult> {
+  if (records.length === 0) {
+    return { inserted: 0, activeUpdates: 0, inactiveUpdates: 0 };
+  }
+
+  const existing = await fetchExistingCreativeIds(
+    competitorId,
+    records.map((r) => r.id),
+  );
+
+  const toInsert: (typeof competitorCreatives.$inferInsert)[] = [];
+  const activeIds: string[] = [];
+  const inactiveIds: string[] = [];
+
+  for (const record of records) {
+    const existingId = existing.get(record.id);
+    if (existingId) {
+      (record.ad_delivery_stop_time ? inactiveIds : activeIds).push(existingId);
+    } else {
+      toInsert.push(buildInsertRow(organizationId, competitorId, record));
+    }
+  }
+
+  if (toInsert.length > 0) {
+    await db.insert(competitorCreatives).values(toInsert);
+  }
+  await applyBulkUpdate(activeIds, true);
+  await applyBulkUpdate(inactiveIds, false);
+
+  return {
+    inserted: toInsert.length,
+    activeUpdates: activeIds.length,
+    inactiveUpdates: inactiveIds.length,
+  };
 }
 
 // ---------------------------------------------------------------------------
