@@ -9,10 +9,21 @@ export function initRedisConnection(options: ConnectionOptions): void {
 
 export function getRedisConnection(): ConnectionOptions {
   if (!redisConnection) {
-    const host = process.env['REDIS_HOST'] ?? 'localhost';
-    const port = Number(process.env['REDIS_PORT'] ?? 6379);
-    const password = process.env['REDIS_PASSWORD'] ?? undefined;
-    redisConnection = { host, port, password };
+    const url = process.env['REDIS_URL'];
+    if (url) {
+      const parsed = new URL(url);
+      redisConnection = {
+        host: parsed.hostname,
+        port: Number(parsed.port || 6379),
+        password: parsed.password || undefined,
+        username: parsed.username || undefined,
+      };
+    } else {
+      const host = process.env['REDIS_HOST'] ?? 'localhost';
+      const port = Number(process.env['REDIS_PORT'] ?? 6379);
+      const password = process.env['REDIS_PASSWORD'] ?? undefined;
+      redisConnection = { host, port, password };
+    }
   }
   return redisConnection;
 }
