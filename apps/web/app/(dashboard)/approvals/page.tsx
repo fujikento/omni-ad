@@ -254,7 +254,7 @@ function PendingRequestCard({
         <button
           type="button"
           onClick={onApprove}
-          className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+          className="inline-flex items-center gap-1.5 rounded-md bg-success px-4 py-2 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
         >
           <Check size={14} />
           {t('approvals.approve')}
@@ -275,7 +275,7 @@ function PendingRequestCard({
                 onReject();
                 setShowRejectInput(false);
               }}
-              className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+              className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
             >
               {t('approvals.reject')}
             </button>
