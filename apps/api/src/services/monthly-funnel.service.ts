@@ -256,3 +256,181 @@ export async function getPivot(
     meta: { stages, eventNames },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Anomaly detection (trailing 6-month z-score per column)
+// ---------------------------------------------------------------------------
+
+export interface AnomalyFlag {
+  column: keyof MonthlyRow;
+  zScore: number;
+  mean: number;
+  stdev: number;
+}
+
+/** Columns we evaluate for anomalies. Non-numeric/identity columns excluded. */
+const ANOMALY_COLUMNS: Array<keyof MonthlyRow> = [
+  'impressions',
+  'clicks',
+  'spend',
+  'revenue',
+  'cv1',
+  'cv2',
+  'cv3',
+  'cpc',
+  'ctr',
+  'cvr1',
+  'cpa1',
+  'cvr2',
+  'cpa2',
+  'cvr3',
+  'cpa3',
+  'divergence',
+];
+
+/** Compute the z-score of `value` against a sample `window`. Returns 0 for empty/flat windows. */
+export function zscore(value: number, window: number[]): number {
+  if (!window.length) return 0;
+  const mean = window.reduce((s, v) => s + v, 0) / window.length;
+  const variance =
+    window.reduce((s, v) => s + (v - mean) * (v - mean), 0) / window.length;
+  const stdev = Math.sqrt(variance);
+  if (stdev === 0 || !Number.isFinite(stdev)) return 0;
+  return (value - mean) / stdev;
+}
+
+/** Compute the trailing-window mean and sample stdev. */
+function windowStats(window: number[]): { mean: number; stdev: number } {
+  if (!window.length) return { mean: 0, stdev: 0 };
+  const mean = window.reduce((s, v) => s + v, 0) / window.length;
+  const variance =
+    window.reduce((s, v) => s + (v - mean) * (v - mean), 0) / window.length;
+  return { mean, stdev: Math.sqrt(variance) };
+}
+
+/**
+ * Per-row, per-column anomaly flags: for each month, look at the trailing
+ * six-month window (excluding the current row) and flag any column whose
+ * |z-score| exceeds 2.
+ */
+export function computeAnomalies(rows: MonthlyRow[]): AnomalyFlag[][] {
+  const out: AnomalyFlag[][] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const flags: AnomalyFlag[] = [];
+    const windowStart = Math.max(0, i - 6);
+    const windowRows = rows.slice(windowStart, i);
+    if (!windowRows.length) {
+      out.push(flags);
+      continue;
+    }
+    const current = rows[i];
+    if (!current) {
+      out.push(flags);
+      continue;
+    }
+    for (const col of ANOMALY_COLUMNS) {
+      const windowValues = windowRows.map((r) => r[col] as number);
+      const { mean, stdev } = windowStats(windowValues);
+      const value = current[col] as number;
+      const z = zscore(value, windowValues);
+      if (Math.abs(z) > 2) flags.push({ column: col, zScore: z, mean, stdev });
+    }
+    out.push(flags);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Forecasting (linear regression + Y-on-Y seasonal blend)
+// ---------------------------------------------------------------------------
+
+export interface ForecastPoint {
+  month: string;
+  cv1: number;
+  cv2: number;
+  cv3: number;
+}
+
+/** Linear regression: returns slope, intercept, and residual stderr. */
+export function linearRegress(
+  points: { x: number; y: number }[],
+): { slope: number; intercept: number; stderr: number } {
+  if (points.length < 2) return { slope: 0, intercept: 0, stderr: 0 };
+  const n = points.length;
+  const meanX = points.reduce((s, p) => s + p.x, 0) / n;
+  const meanY = points.reduce((s, p) => s + p.y, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (const p of points) {
+    num += (p.x - meanX) * (p.y - meanY);
+    den += (p.x - meanX) * (p.x - meanX);
+  }
+  if (den === 0) return { slope: 0, intercept: meanY, stderr: 0 };
+  const slope = num / den;
+  const intercept = meanY - slope * meanX;
+  let sse = 0;
+  for (const p of points) {
+    const pred = slope * p.x + intercept;
+    sse += (p.y - pred) * (p.y - pred);
+  }
+  const stderr = n > 2 ? Math.sqrt(sse / (n - 2)) : 0;
+  return { slope, intercept, stderr };
+}
+
+/** Shift a "YYYY-MM" month key forward by `delta` months. */
+function shiftMonth(monthKey: string, delta: number): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  if (!y || !m) return monthKey;
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function blendSeasonal(
+  regressed: number,
+  rows: MonthlyRow[],
+  targetMonth: string,
+  stage: keyof Pick<MonthlyRow, 'cv1' | 'cv2' | 'cv3'>,
+): number {
+  const yoyKey = shiftMonth(targetMonth, -12);
+  const yoyRow = rows.find((r) => r.month === yoyKey);
+  if (!yoyRow) return regressed;
+  const yoyValue = yoyRow[stage];
+  // Naive blend: 60% regression, 40% Y-on-Y anchor.
+  return 0.6 * regressed + 0.4 * yoyValue;
+}
+
+/**
+ * Per-stage forecast (cv1, cv2, cv3) for the next `horizon` months, blending
+ * a simple OLS trend with a Y-on-Y seasonal anchor when available.
+ */
+export function computeForecast(
+  rows: MonthlyRow[],
+  horizon = 3,
+): ForecastPoint[] {
+  if (rows.length === 0) return [];
+  const lastMonth = rows[rows.length - 1]?.month ?? '1970-01';
+
+  const stages: Array<keyof Pick<MonthlyRow, 'cv1' | 'cv2' | 'cv3'>> = [
+    'cv1',
+    'cv2',
+    'cv3',
+  ];
+  const regressions = stages.map((stage) =>
+    linearRegress(rows.map((r, idx) => ({ x: idx, y: r[stage] }))),
+  );
+
+  const out: ForecastPoint[] = [];
+  for (let h = 1; h <= horizon; h++) {
+    const x = rows.length - 1 + h;
+    const month = shiftMonth(lastMonth, h);
+    const point: ForecastPoint = { month, cv1: 0, cv2: 0, cv3: 0 };
+    stages.forEach((stage, i) => {
+      const reg = regressions[i];
+      if (!reg) return;
+      const regressed = Math.max(0, reg.slope * x + reg.intercept);
+      point[stage] = blendSeasonal(regressed, rows, month, stage);
+    });
+    out.push(point);
+  }
+  return out;
+}
