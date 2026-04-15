@@ -126,9 +126,9 @@ function buildServer(): ReturnType<typeof Fastify> {
   void server.register(rateLimit, {
     global: true,
     max: (request) => {
-      // Health check is exempt
+      // Health check is generous but not unlimited (DoS amplification guard)
       if (request.url === "/health") {
-        return 0; // 0 = unlimited (exempt)
+        return 120;
       }
       // Tracking pixel: generous but finite limit to prevent DoS
       if (request.url.startsWith("/track/")) {
