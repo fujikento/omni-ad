@@ -196,7 +196,9 @@ export async function resolveIdentity(
   }
 
   if (identifier.platformId) {
-    // Search via JSONB query for platform-specific ID
+    // Search via JSONB query for platform-specific ID. Both platform and id
+    // are bound as parameters; do NOT use sql.raw which would interpolate
+    // user input into the query string.
     const { platform, id } = identifier.platformId;
     const result = await db
       .select()
@@ -204,7 +206,7 @@ export async function resolveIdentity(
       .where(
         and(
           eq(identityGraph.organizationId, organizationId),
-          sql`${identityGraph.platformIds}->>${sql.raw(`'${platform}'`)} = ${id}`,
+          sql`${identityGraph.platformIds} ->> ${platform} = ${id}`,
         ),
       )
       .limit(1);
