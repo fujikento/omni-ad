@@ -2,14 +2,16 @@
 
 import { useI18n } from '@/lib/i18n';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
+  BarChart3,
   Check,
   Clipboard,
   Code2,
   ExternalLink,
   Globe,
+  Inbox,
   Plus,
   Settings2,
   Trash2,
@@ -27,6 +29,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 
 // ============================================================
 // Types
@@ -120,87 +123,6 @@ const DEFAULT_PLATFORM_MAPPING: PlatformMapping = {
   lineYahoo: false,
   lineYahooTagId: '',
 };
-
-// ============================================================
-// Mock Data
-// ============================================================
-
-function getMockEndpoints(t: (key: string, params?: Record<string, string | number>) => string): TrackingEndpoint[] {
-  return [
-  {
-    id: 'ep1',
-    name: t('settings.conversions.h53dddd'),
-    active: true,
-    pixelId: 'PX-abc123def456',
-    domains: ['example.com', 'shop.example.com'],
-    eventTypes: ['purchase', 'lead', 'add_to_cart'],
-    platformMapping: {
-      metaCapi: true,
-      metaPixelId: '123456789012345',
-      metaAccessToken: 'EAAx...',
-      googleEc: true,
-      googleConversionId: 'AW-123456789',
-      googleLabel: 'AbCdEf',
-      tiktok: false,
-      tiktokPixelId: '',
-      lineYahoo: false,
-      lineYahooTagId: '',
-    },
-    statsToday: 142,
-    statsWeek: 1284,
-  },
-  {
-    id: 'ep2',
-    name: t('settings.conversions.h6e1849'),
-    active: true,
-    pixelId: 'PX-xyz789ghi012',
-    domains: ['lp.example.com'],
-    eventTypes: ['lead', 'signup'],
-    platformMapping: {
-      metaCapi: true,
-      metaPixelId: '987654321098765',
-      metaAccessToken: 'EAAy...',
-      googleEc: true,
-      googleConversionId: 'AW-987654321',
-      googleLabel: 'GhIjKl',
-      tiktok: true,
-      tiktokPixelId: 'C9ABC123DEF',
-      lineYahoo: true,
-      lineYahooTagId: 'LY-112233',
-    },
-    statsToday: 58,
-    statsWeek: 523,
-  },
-];
-}
-
-const MOCK_DAILY_CONVERSIONS: DailyConversion[] = Array.from({ length: 7 }, (_, i) => {
-  const date = new Date(2026, 2, 27 + i);
-  return {
-    date: `${date.getMonth() + 1}/${date.getDate()}`,
-    purchase: Math.round(30 + Math.random() * 20),
-    lead: Math.round(40 + Math.random() * 25),
-    addToCart: Math.round(60 + Math.random() * 30),
-    signup: Math.round(15 + Math.random() * 10),
-  };
-});
-
-const MOCK_SYNC_STATUS: PlatformSyncStatus[] = [
-  { platform: 'Meta CAPI', sent: 1807, confirmed: 1745, rate: 96.6 },
-  { platform: 'Google EC', sent: 1807, confirmed: 1790, rate: 99.1 },
-  { platform: 'TikTok', sent: 523, confirmed: 498, rate: 95.2 },
-  { platform: 'LINE/Yahoo', sent: 523, confirmed: 510, rate: 97.5 },
-];
-
-const MOCK_RECENT_EVENTS: RecentEvent[] = [
-  { id: 'e1', timestamp: '2026/04/02 14:32:05', eventType: 'purchase', value: 29800, sourceUrl: 'shop.example.com/checkout', platformMatched: ['Meta', 'Google'] },
-  { id: 'e2', timestamp: '2026/04/02 14:28:11', eventType: 'lead', value: null, sourceUrl: 'lp.example.com/form', platformMatched: ['Meta', 'Google', 'TikTok'] },
-  { id: 'e3', timestamp: '2026/04/02 14:25:33', eventType: 'add_to_cart', value: 5980, sourceUrl: 'shop.example.com/product/123', platformMatched: ['Meta', 'Google'] },
-  { id: 'e4', timestamp: '2026/04/02 14:20:48', eventType: 'signup', value: null, sourceUrl: 'lp.example.com/register', platformMatched: ['Meta', 'Google', 'LINE'] },
-  { id: 'e5', timestamp: '2026/04/02 14:15:02', eventType: 'purchase', value: 15800, sourceUrl: 'shop.example.com/checkout', platformMatched: ['Meta', 'Google'] },
-  { id: 'e6', timestamp: '2026/04/02 14:10:19', eventType: 'lead', value: null, sourceUrl: 'lp.example.com/form', platformMatched: ['Meta', 'TikTok'] },
-  { id: 'e7', timestamp: '2026/04/02 14:05:44', eventType: 'add_to_cart', value: 12400, sourceUrl: 'shop.example.com/product/456', platformMatched: ['Meta', 'Google'] },
-];
 
 // ============================================================
 // Helpers
@@ -797,10 +719,21 @@ OmniAd('track', 'add_to_cart', { value: 5980, item: 'Product A' });`;
 
 export default function ConversionsPage(): React.ReactElement {
   const { t } = useI18n();
-  const [endpoints, setEndpoints] = useState<TrackingEndpoint[]>(getMockEndpoints(t));
+  const endpointsQuery = trpc.conversions.endpoints.list.useQuery(undefined, { retry: false });
+  const [endpoints, setEndpoints] = useState<TrackingEndpoint[]>([]);
   const [modalMode, setModalMode] = useState<ModalMode>('closed');
   const [editTarget, setEditTarget] = useState<TrackingEndpoint | null>(null);
   const [codeTarget, setCodeTarget] = useState<TrackingEndpoint | null>(null);
+
+  useEffect(() => {
+    if (endpointsQuery.data) {
+      setEndpoints((endpointsQuery.data as unknown as TrackingEndpoint[] | undefined) ?? []);
+    }
+  }, [endpointsQuery.data]);
+
+  const dailyConversions: DailyConversion[] = [];
+  const syncStatus: PlatformSyncStatus[] = [];
+  const recentEvents: RecentEvent[] = [];
 
   function handleToggleEndpoint(id: string): void {
     setEndpoints((prev) =>
@@ -885,26 +818,33 @@ export default function ConversionsPage(): React.ReactElement {
         {/* Daily events chart */}
         <div className="rounded-lg border border-border bg-card p-6">
           <h3 className="mb-4 text-base font-semibold text-foreground">{t('conversions.dailyChartTitle')}</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={MOCK_DAILY_CONVERSIONS} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-              <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  color: 'hsl(var(--foreground))',
-                }}
-              />
-              <Legend />
-              <Bar dataKey="purchase" name={t('settings.conversions.h57997c')} stackId="a" fill="hsl(262, 83%, 58%)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="lead" name={t('settings.conversions.had963b')} stackId="a" fill="hsl(221, 83%, 53%)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="addToCart" name={t('settings.conversions.hfc18be')} stackId="a" fill="hsl(142, 71%, 45%)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="signup" name={t('settings.conversions.hfc96d0')} stackId="a" fill="hsl(25, 95%, 53%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {dailyConversions.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <BarChart3 size={28} className="text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={dailyConversions} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))',
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="purchase" name={t('settings.conversions.h57997c')} stackId="a" fill="hsl(262, 83%, 58%)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="lead" name={t('settings.conversions.had963b')} stackId="a" fill="hsl(221, 83%, 53%)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="addToCart" name={t('settings.conversions.hfc18be')} stackId="a" fill="hsl(142, 71%, 45%)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="signup" name={t('settings.conversions.hfc96d0')} stackId="a" fill="hsl(25, 95%, 53%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Platform sync status */}
@@ -923,21 +863,32 @@ export default function ConversionsPage(): React.ReactElement {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_SYNC_STATUS.map((row) => (
-                  <tr key={row.platform} className="border-b border-border transition-colors hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium text-foreground">{row.platform}</td>
-                    <td className="px-4 py-3 text-right text-foreground">{row.sent.toLocaleString('ja-JP')}</td>
-                    <td className="px-4 py-3 text-right text-foreground">{row.confirmed.toLocaleString('ja-JP')}</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={cn(
-                        'font-semibold',
-                        row.rate >= 98 ? 'text-green-600' : row.rate >= 95 ? 'text-yellow-600' : 'text-red-600',
-                      )}>
-                        {row.rate.toFixed(1)}%
-                      </span>
+                {syncStatus.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-12">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <Inbox size={28} className="text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  syncStatus.map((row) => (
+                    <tr key={row.platform} className="border-b border-border transition-colors hover:bg-muted/30">
+                      <td className="px-4 py-3 font-medium text-foreground">{row.platform}</td>
+                      <td className="px-4 py-3 text-right text-foreground">{row.sent.toLocaleString('ja-JP')}</td>
+                      <td className="px-4 py-3 text-right text-foreground">{row.confirmed.toLocaleString('ja-JP')}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={cn(
+                          'font-semibold',
+                          row.rate >= 98 ? 'text-green-600' : row.rate >= 95 ? 'text-yellow-600' : 'text-red-600',
+                        )}>
+                          {row.rate.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -960,31 +911,42 @@ export default function ConversionsPage(): React.ReactElement {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_RECENT_EVENTS.map((event) => (
-                  <tr key={event.id} className="border-b border-border transition-colors hover:bg-muted/30">
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
-                      {event.timestamp}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                        {getEventTypeLabels(t)[event.eventType]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-foreground">
-                      {event.value !== null ? formatYen(event.value) : '--'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{event.sourceUrl}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {event.platformMatched.map((p) => (
-                          <span key={p} className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
-                            {p}
-                          </span>
-                        ))}
+                {recentEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <Inbox size={28} className="text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentEvents.map((event) => (
+                    <tr key={event.id} className="border-b border-border transition-colors hover:bg-muted/30">
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                        {event.timestamp}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          {getEventTypeLabels(t)[event.eventType]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-foreground">
+                        {event.value !== null ? formatYen(event.value) : '--'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{event.sourceUrl}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {event.platformMatched.map((p) => (
+                            <span key={p} className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

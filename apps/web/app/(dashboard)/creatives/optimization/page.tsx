@@ -7,6 +7,7 @@ import {
   BarChart3,
   Brain,
   FlaskConical,
+  Inbox,
   Lightbulb,
   Loader2,
   RefreshCw,
@@ -23,6 +24,7 @@ import {
 } from 'recharts';
 import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 // ============================================================
@@ -72,74 +74,15 @@ interface NextGenBatch {
 // Constants
 // ============================================================
 
+// UI enumeration for the generate → test → analyze → learn → regenerate loop.
+// Counts and statuses start empty and should be updated from live API state.
 const CYCLE_STEPS: CycleStep[] = [
-  { id: 'generate', labelKey: 'creativeOptimization.cycleGenerate', icon: <Sparkles size={16} />, status: 'completed', count: 120 },
-  { id: 'test', labelKey: 'creativeOptimization.cycleTest', icon: <FlaskConical size={16} />, status: 'active', count: 48 },
-  { id: 'analyze', labelKey: 'creativeOptimization.cycleAnalyze', icon: <BarChart3 size={16} />, status: 'active', count: 24 },
-  { id: 'learn', labelKey: 'creativeOptimization.cycleLearn', icon: <Brain size={16} />, status: 'completed', count: 8 },
+  { id: 'generate', labelKey: 'creativeOptimization.cycleGenerate', icon: <Sparkles size={16} />, status: 'waiting', count: 0 },
+  { id: 'test', labelKey: 'creativeOptimization.cycleTest', icon: <FlaskConical size={16} />, status: 'waiting', count: 0 },
+  { id: 'analyze', labelKey: 'creativeOptimization.cycleAnalyze', icon: <BarChart3 size={16} />, status: 'waiting', count: 0 },
+  { id: 'learn', labelKey: 'creativeOptimization.cycleLearn', icon: <Brain size={16} />, status: 'waiting', count: 0 },
   { id: 'regenerate', labelKey: 'creativeOptimization.cycleRegenerate', icon: <RefreshCw size={16} />, status: 'waiting', count: 0 },
 ];
-
-function getMockCampaigns(t: (key: string, params?: Record<string, string | number>) => string): OptimizationCampaign[] {
-  return [
-  {
-    id: 'oc1',
-    name: t('creatives.optimization.hc1d2a8'),
-    activeVariants: 12,
-    killedVariants: 8,
-    winners: 3,
-    nextGenEta: t('creatives.optimization.hbb787b'),
-    trendData: [
-      { day: '3/27', value: 2.1 }, { day: '3/28', value: 2.4 }, { day: '3/29', value: 2.8 },
-      { day: '3/30', value: 3.1 }, { day: '3/31', value: 2.9 }, { day: '4/1', value: 3.5 }, { day: '4/2', value: 3.8 },
-    ],
-  },
-  {
-    id: 'oc2',
-    name: t('creatives.optimization.h430222'),
-    activeVariants: 8,
-    killedVariants: 4,
-    winners: 2,
-    nextGenEta: t('creatives.optimization.h10cc68'),
-    trendData: [
-      { day: '3/27', value: 1.5 }, { day: '3/28', value: 1.8 }, { day: '3/29', value: 2.0 },
-      { day: '3/30', value: 2.2 }, { day: '3/31', value: 2.5 }, { day: '4/1', value: 2.7 }, { day: '4/2', value: 3.0 },
-    ],
-  },
-  {
-    id: 'oc3',
-    name: t('creatives.optimization.h0b1979'),
-    activeVariants: 16,
-    killedVariants: 12,
-    winners: 4,
-    nextGenEta: t('creatives.optimization.h6b2dfe'),
-    trendData: [
-      { day: '3/27', value: 1.2 }, { day: '3/28', value: 1.6 }, { day: '3/29', value: 1.9 },
-      { day: '3/30', value: 2.3 }, { day: '3/31', value: 2.8 }, { day: '4/1', value: 3.2 }, { day: '4/2', value: 3.6 },
-    ],
-  },
-];
-}
-
-function getMockPatterns(t: (key: string, params?: Record<string, string | number>) => string): WinningPattern[] {
-  return [
-  { id: 'wp1', description: t('creatives.optimization.h38f489'), platform: 'Meta', category: t('creatives.optimization.h53b4b8'), liftPercent: 34, sampleSize: 12400 },
-  { id: 'wp2', description: t('creatives.optimization.h0219a9'), platform: 'TikTok', category: t('creatives.optimization.h5976ec'), liftPercent: 28, sampleSize: 8500 },
-  { id: 'wp3', description: t('creatives.optimization.h4be29d'), platform: 'Google', category: t('creatives.optimization.hfc0d49'), liftPercent: 22, sampleSize: 45000 },
-  { id: 'wp4', description: t('creatives.optimization.ha1a545'), platform: 'LINE', category: t('creatives.optimization.hfb9603'), liftPercent: 18, sampleSize: 15200 },
-  { id: 'wp5', description: t('creatives.optimization.h9f8454'), platform: 'Meta', category: t('creatives.optimization.hbd0154'), liftPercent: 15, sampleSize: 22000 },
-  { id: 'wp6', description: t('creatives.optimization.hd11b3c'), platform: 'Meta', category: t('creatives.optimization.h874834'), liftPercent: 41, sampleSize: 9800 },
-  { id: 'wp7', description: t('creatives.optimization.h212ba7'), platform: 'Google', category: 'SaaS', liftPercent: 26, sampleSize: 31000 },
-  { id: 'wp8', description: t('creatives.optimization.h1ba3df'), platform: 'X', category: t('creatives.optimization.hc9e6bc'), liftPercent: 19, sampleSize: 18000 },
-];
-}
-
-function getMockNextGen(t: (key: string, params?: Record<string, string | number>) => string): NextGenBatch[] {
-  return [
-  { id: 'ng1', name: t('creatives.optimization.he34fc4'), variantCount: 15, basedOn: t('creatives.optimization.hc10365'), status: 'generating', createdAt: '2026-04-02 10:30' },
-  { id: 'ng2', name: t('creatives.optimization.h7bd4e5'), variantCount: 10, basedOn: t('creatives.optimization.h72b995'), status: 'completed', createdAt: '2026-04-02 08:15' },
-];
-}
 
 const STATUS_CONFIG: Record<NextGenStatus, { labelKey: string; className: string }> = {
   generating: {
@@ -248,6 +191,12 @@ function CampaignTable({ campaigns }: { campaigns: OptimizationCampaign[] }): Re
           {t('creativeOptimization.activeCampaigns')}
         </h2>
       </div>
+      {campaigns.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -306,6 +255,7 @@ function CampaignTable({ campaigns }: { campaigns: OptimizationCampaign[] }): Re
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
@@ -326,6 +276,12 @@ function WinningPatternsPanel({ patterns }: { patterns: WinningPattern[] }): Rea
           {t('creativeOptimization.winningPatternsDesc')}
         </p>
       </div>
+      {patterns.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Trophy size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
       <div className="grid gap-3 p-4 sm:grid-cols-2">
         {patterns.map((pattern) => (
           <div
@@ -360,6 +316,7 @@ function WinningPatternsPanel({ patterns }: { patterns: WinningPattern[] }): Rea
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
@@ -430,6 +387,23 @@ function NextGenQueue({ batches }: { batches: NextGenBatch[] }): React.ReactElem
 export default function CreativeOptimizationPage(): React.ReactElement {
   const { t } = useI18n();
 
+  const creativesQuery = trpc.creatives.list.useQuery(undefined, { retry: false });
+  const creativesCount = ((creativesQuery.data as unknown[] | undefined) ?? []).length;
+
+  // These datasets will come from dedicated optimization endpoints in the
+  // future. Until then, start empty and let each section render an empty
+  // state so we never surface placeholder numbers in production.
+  const campaigns: OptimizationCampaign[] = [];
+  const patterns: WinningPattern[] = [];
+  const batches: NextGenBatch[] = [];
+
+  const kpiCards: { labelKey: string; value: string; icon: React.ReactNode; color: string }[] = [
+    { labelKey: 'creativeOptimization.kpiTotalVariants', value: String(creativesCount), icon: <Target size={16} />, color: 'text-primary' },
+    { labelKey: 'creativeOptimization.kpiActiveTests', value: '0', icon: <FlaskConical size={16} />, color: 'text-info' },
+    { labelKey: 'creativeOptimization.kpiWinners', value: '0', icon: <Trophy size={16} />, color: 'text-warning' },
+    { labelKey: 'creativeOptimization.kpiPatterns', value: '0', icon: <Lightbulb size={16} />, color: 'text-success' },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -448,12 +422,7 @@ export default function CreativeOptimizationPage(): React.ReactElement {
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { labelKey: 'creativeOptimization.kpiTotalVariants', value: '156', icon: <Target size={16} />, color: 'text-primary' },
-          { labelKey: 'creativeOptimization.kpiActiveTests', value: '36', icon: <FlaskConical size={16} />, color: 'text-info' },
-          { labelKey: 'creativeOptimization.kpiWinners', value: '9', icon: <Trophy size={16} />, color: 'text-warning' },
-          { labelKey: 'creativeOptimization.kpiPatterns', value: '8', icon: <Lightbulb size={16} />, color: 'text-success' },
-        ].map((kpi) => (
+        {kpiCards.map((kpi) => (
           <StatCard
             key={kpi.labelKey}
             label={t(kpi.labelKey)}
@@ -467,13 +436,13 @@ export default function CreativeOptimizationPage(): React.ReactElement {
       <CycleVisualization steps={CYCLE_STEPS} />
 
       {/* Active campaigns table */}
-      <CampaignTable campaigns={getMockCampaigns(t)} />
+      <CampaignTable campaigns={campaigns} />
 
       {/* Winning patterns */}
-      <WinningPatternsPanel patterns={getMockPatterns(t)} />
+      <WinningPatternsPanel patterns={patterns} />
 
       {/* Next gen queue */}
-      <NextGenQueue batches={getMockNextGen(t)} />
+      <NextGenQueue batches={batches} />
     </div>
   );
 }

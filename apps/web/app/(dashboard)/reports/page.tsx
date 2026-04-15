@@ -73,44 +73,6 @@ const FREQUENCY_LABEL_KEYS: Record<Frequency, string> = {
   monthly: 'reports.frequency.monthly',
 };
 
-function getMockReports(t: (key: string, params?: Record<string, string | number>) => string): Report[] {
-  return [
-  {
-    id: '1', type: 'performance', title: t('reports.hd62085'),
-    dateRange: '2026/03/01 - 2026/03/31', status: 'ready', createdAt: '2026-04-01T09:00:00Z',
-    format: 'PDF',
-    insights: [t('reports.h3bd087'), t('reports.hecd2d1'), t('reports.hef87b1')],
-  },
-  {
-    id: '2', type: 'executive_summary', title: t('reports.h623532'),
-    dateRange: '2026/01/01 - 2026/03/31', status: 'ready', createdAt: '2026-04-01T10:00:00Z',
-    format: 'PDF',
-    insights: [t('reports.h7b96d8'), t('reports.hd8ad39'), t('reports.h05bd03')],
-  },
-  {
-    id: '3', type: 'budget', title: t('reports.h58d3bf'),
-    dateRange: '2026/03/01 - 2026/03/31', status: 'ready', createdAt: '2026-03-31T18:00:00Z',
-    format: 'XLSX',
-    insights: [t('reports.h35d33c'), t('reports.h8eec82'), t('reports.h68a005')],
-  },
-  {
-    id: '4', type: 'attribution', title: t('reports.h286062'),
-    dateRange: '2026/03/15 - 2026/03/31', status: 'generating', createdAt: '2026-04-02T06:00:00Z',
-    format: 'PDF', insights: [],
-  },
-  {
-    id: '5', type: 'creative', title: t('reports.hfcfd3d'),
-    dateRange: '2026/03/01 - 2026/03/31', status: 'scheduled', createdAt: '2026-04-02T00:00:00Z',
-    format: 'PDF', insights: [],
-  },
-];
-}
-
-const MOCK_SCHEDULES: ScheduleConfig[] = [
-  { type: 'performance', frequency: 'weekly', recipients: ['marketing@example.com'] },
-  { type: 'executive_summary', frequency: 'monthly', recipients: ['ceo@example.com', 'cmo@example.com'] },
-];
-
 // -- Subcomponents --
 
 function StatusBadge({ status }: { status: ReportStatus }): React.ReactElement {
@@ -484,8 +446,9 @@ export default function ReportsPage(): React.ReactElement {
 
   const reportsQuery = trpc.reports.list.useQuery(undefined, { retry: false });
 
-  const reports = reportsQuery.error ? getMockReports(t) : (reportsQuery.data as Report[] | undefined) ?? getMockReports(t);
-  const isLoading = reportsQuery.isLoading && !reportsQuery.error;
+  const reports = (reportsQuery.data as Report[] | undefined) ?? [];
+  const schedules: ScheduleConfig[] = [];
+  const isLoading = reportsQuery.isLoading;
 
   function formatDate(dateStr: string): string {
     return new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(dateStr));
@@ -629,26 +592,33 @@ export default function ReportsPage(): React.ReactElement {
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{t('reports.schedule.description')}</p>
         <div className="mt-4 space-y-3">
-          {MOCK_SCHEDULES.map((schedule) => (
-            <div key={`${schedule.type}-${schedule.frequency}`} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
-              <div className="flex items-center gap-3">
-                <Calendar size={16} className="text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">{t(REPORT_TYPE_LABEL_KEYS[schedule.type])}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t(FREQUENCY_LABEL_KEYS[schedule.frequency])} | {schedule.recipients.join(', ')}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => showToast(t('reports.schedule.editPreparing'))}
-                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-              >
-                {t('common.edit')}
-              </button>
+          {schedules.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <Clock size={28} className="text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
             </div>
-          ))}
+          ) : (
+            schedules.map((schedule) => (
+              <div key={`${schedule.type}-${schedule.frequency}`} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Calendar size={16} className="text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{t(REPORT_TYPE_LABEL_KEYS[schedule.type])}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t(FREQUENCY_LABEL_KEYS[schedule.frequency])} | {schedule.recipients.join(', ')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => showToast(t('reports.schedule.editPreparing'))}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  {t('common.edit')}
+                </button>
+              </div>
+            ))
+          )}
           <button
             type="button"
             onClick={() => showToast(t('reports.schedule.addPreparing'))}

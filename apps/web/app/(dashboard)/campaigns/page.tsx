@@ -27,7 +27,16 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { Badge, Button, PageHeader, PlatformBadge, PlatformIcon } from '@omni-ad/ui';
+import {
+  Badge,
+  Button,
+  KbdHint,
+  PageHeader,
+  PlatformBadge,
+  PlatformIcon,
+  SegmentedControl,
+  type SegmentedOption,
+} from '@omni-ad/ui';
 import { dbPlatformToEnum } from '@omni-ad/shared';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -74,8 +83,6 @@ const STATUS_CONFIG: Record<CampaignStatus, { labelKey: string; variant: StatusV
   archived: { labelKey: 'campaigns.status.archived', variant: 'destructive' },
 };
 
-
-const ALL_STATUSES: CampaignStatus[] = ['draft', 'active', 'paused', 'completed', 'archived'];
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string }> = {
   meta: { label: 'Meta', color: 'bg-indigo-500' },
@@ -161,62 +168,6 @@ function getInterestSuggestions(t: (key: string, params?: Record<string, string 
 
 function getExclusionAudiences(t: (key: string, params?: Record<string, string | number>) => string) {
   return [t('campaigns.h6b9f86'), t('campaigns.hf666f2'), t('campaigns.hb7b07f')] as const;
-}
-
-function getMockExistingCreatives(t: (key: string, params?: Record<string, string | number>) => string) {
-  return [
-  { id: 'c1', name: t('campaigns.h017432'), thumbnail: '' },
-  { id: 'c2', name: t('campaigns.hf90c9c'), thumbnail: '' },
-  { id: 'c3', name: t('campaigns.h1c0e47'), thumbnail: '' },
-  { id: 'c4', name: t('campaigns.h824c21'), thumbnail: '' },
-  { id: 'c5', name: t('campaigns.ha20bff'), thumbnail: '' },
-  { id: 'c6', name: t('campaigns.h96e1ed'), thumbnail: '' },
-];
-}
-
-// ============================================================
-// Mock data
-// ============================================================
-
-function getMockCampaigns(t: (key: string, params?: Record<string, string | number>) => string): Campaign[] {
-  return [
-  {
-    id: '1', name: t('campaigns.hc6f094'), status: 'active',
-    platforms: ['google', 'meta', 'line_yahoo'],
-    budget: { total: 500000, currency: 'JPY', dailyLimit: 50000 },
-    roas: 3.2, updatedAt: '2026-04-01T10:00:00Z', objective: 'conversion',
-  },
-  {
-    id: '2', name: t('campaigns.haa8e92'), status: 'paused',
-    platforms: ['tiktok'],
-    budget: { total: 200000, currency: 'JPY' },
-    roas: 1.8, updatedAt: '2026-03-28T14:30:00Z', objective: 'leads',
-  },
-  {
-    id: '3', name: t('campaigns.h986608'), status: 'draft',
-    platforms: ['google', 'meta', 'x', 'line_yahoo'],
-    budget: { total: 1000000, currency: 'JPY', dailyLimit: 100000 },
-    roas: 0, updatedAt: '2026-03-25T09:00:00Z', objective: 'awareness',
-  },
-  {
-    id: '4', name: t('campaigns.h44c4f0'), status: 'completed',
-    platforms: ['google', 'meta', 'line_yahoo', 'amazon'],
-    budget: { total: 800000, currency: 'JPY' },
-    roas: 4.5, updatedAt: '2026-01-15T18:00:00Z', objective: 'retargeting',
-  },
-  {
-    id: '5', name: t('campaigns.h72fcf2'), status: 'draft',
-    platforms: ['google', 'meta', 'tiktok'],
-    budget: { total: 600000, currency: 'JPY', dailyLimit: 60000 },
-    roas: 0, updatedAt: '2026-04-02T08:00:00Z', objective: 'conversion',
-  },
-  {
-    id: '6', name: t('campaigns.h5f8f25'), status: 'active',
-    platforms: ['line_yahoo'],
-    budget: { total: 300000, currency: 'JPY', dailyLimit: 30000 },
-    roas: 2.6, updatedAt: '2026-04-01T16:00:00Z', objective: 'engagement',
-  },
-];
 }
 
 // ============================================================
@@ -550,6 +501,9 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
       onClose();
     },
   });
+
+  const existingCreativesQuery = trpc.creatives.list.useQuery(undefined, { retry: false, enabled: open });
+  const existingCreatives = (existingCreativesQuery.data as { id: string; name: string }[] | undefined) ?? [];
 
   // Auto-generate UTM when campaign name changes
   const updateUtmFromName = useCallback((campaignName: string) => {
@@ -1103,36 +1057,42 @@ function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps): React
             <div className="space-y-5" id="campaign-tab-panel-3" role="tabpanel">
               <div>
                 <span className="mb-2 block text-sm font-medium text-foreground">{t('campaigns.selectFromCreatives')}</span>
-                <div className="grid grid-cols-3 gap-3">
-                  {getMockExistingCreatives(t).map((creative) => {
-                    const isSelected = selectedCreativeIds.includes(creative.id);
-                    return (
-                      <button
-                        key={creative.id}
-                        type="button"
-                        onClick={() => toggleCreative(creative.id)}
-                        className={cn(
-                          'group relative rounded-lg border-2 p-2 text-left transition-all',
-                          isSelected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/30',
-                        )}
-                      >
-                        <div className="flex h-20 items-center justify-center rounded-md bg-muted/50">
-                          <Image size={24} className="text-muted-foreground/30" />
-                        </div>
-                        <p className="mt-1.5 text-xs font-medium text-foreground line-clamp-1">
-                          {creative.name}
-                        </p>
-                        {isSelected && (
-                          <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                            <Check size={12} className="text-primary-foreground" />
+                {existingCreatives.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-6 text-center text-xs text-muted-foreground">
+                    {t('common.noData')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {existingCreatives.map((creative) => {
+                      const isSelected = selectedCreativeIds.includes(creative.id);
+                      return (
+                        <button
+                          key={creative.id}
+                          type="button"
+                          onClick={() => toggleCreative(creative.id)}
+                          className={cn(
+                            'group relative rounded-lg border-2 p-2 text-left transition-all',
+                            isSelected
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/30',
+                          )}
+                        >
+                          <div className="flex h-20 items-center justify-center rounded-md bg-muted/50">
+                            <Image size={24} className="text-muted-foreground/30" />
                           </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          <p className="mt-1.5 text-xs font-medium text-foreground line-clamp-1">
+                            {creative.name}
+                          </p>
+                          {isSelected && (
+                            <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                              <Check size={12} className="text-primary-foreground" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
@@ -1396,107 +1356,101 @@ function FilterBar({
   onObjectiveChange,
   hasActiveFilters,
   onClearFilters,
-}: FilterBarProps): React.ReactElement {
+  statusCounts,
+}: FilterBarProps & { statusCounts: Record<CampaignStatus | 'all', number> }): React.ReactElement {
   const { t } = useI18n();
-  const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
+
+  const statusOptions: ReadonlyArray<SegmentedOption<CampaignStatus | 'all'>> = [
+    { value: 'all', label: t('campaigns.allStatuses'), count: statusCounts.all },
+    { value: 'active', label: t(STATUS_CONFIG.active.labelKey), count: statusCounts.active },
+    { value: 'paused', label: t(STATUS_CONFIG.paused.labelKey), count: statusCounts.paused },
+    { value: 'draft', label: t(STATUS_CONFIG.draft.labelKey), count: statusCounts.draft },
+  ];
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-4">
-      {/* Search */}
-      <div className="relative flex-1 min-w-48">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+      {/* Search with keyboard hint */}
+      <div className="relative min-w-48 flex-1 sm:flex-none sm:w-64">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
-          className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-12 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder={t('campaigns.searchPlaceholder')}
           aria-label={t('campaigns.searchLabel')}
         />
+        <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+          <KbdHint>⌘</KbdHint>
+          <KbdHint>K</KbdHint>
+        </div>
       </div>
 
-      {/* Status filter */}
-      <div className="relative">
-        <select
-          value={statusFilter}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onStatusChange(e.target.value as CampaignStatus | 'all')}
-          className="appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label={t('campaigns.statusFilterLabel')}
-        >
-          <option value="all">{t('campaigns.allStatuses')}</option>
-          {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>{t(STATUS_CONFIG[s].labelKey)}</option>
-          ))}
-        </select>
-        <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-      </div>
+      {/* Status segmented control */}
+      <SegmentedControl
+        options={statusOptions}
+        value={statusFilter}
+        onValueChange={onStatusChange}
+        ariaLabel={t('campaigns.statusFilterLabel')}
+        size="sm"
+      />
 
-      {/* Platform multi-select */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setPlatformDropdownOpen((prev) => !prev)}
-          className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-          aria-label={t('campaigns.platformFilterLabel')}
-          aria-expanded={platformDropdownOpen}
-        >
-          <span>
-            {platformFilter.size === 0
-              ? t('campaigns.allPlatforms')
-              : t('campaigns.selectedCount', { count: platformFilter.size })}
-          </span>
-          <ChevronDown size={14} className={cn('transition-transform', platformDropdownOpen && 'rotate-180')} />
-        </button>
-        {platformDropdownOpen && (
-          <div className="absolute left-0 z-50 mt-1 w-56 overflow-hidden rounded-md border border-border bg-card shadow-lg animate-slide-up">
-            {ALL_PLATFORMS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => onPlatformToggle(p)}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-              >
-                <div className={cn(
-                  'flex h-4 w-4 items-center justify-center rounded border',
-                  platformFilter.has(p) ? 'border-primary bg-primary text-primary-foreground' : 'border-input',
-                )}>
-                  {platformFilter.has(p) && <Check size={10} strokeWidth={3} />}
-                </div>
-                <PlatformIcon platform={dbPlatformToEnum(p)} size={14} />
-                <span className="flex-1 text-left text-xs font-medium">{PLATFORM_CONFIG[p].label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Objective filter */}
+      {/* Objective filter (kept as select for density) */}
       <div className="relative">
         <select
           value={objectiveFilter}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onObjectiveChange(e.target.value as Objective | 'all')}
-          className="appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+            onObjectiveChange(e.target.value as Objective | 'all')
+          }
+          className="h-7 appearance-none rounded-md border border-input bg-background px-2.5 pr-7 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           aria-label={t('campaigns.objectiveFilterLabel')}
         >
           <option value="all">{t('campaigns.allObjectives')}</option>
           {OBJECTIVE_KEYS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
+            <option key={opt.value} value={opt.value}>
+              {t(opt.labelKey)}
+            </option>
           ))}
         </select>
-        <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <ChevronDown
+          size={12}
+          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
       </div>
 
-      {/* Clear filters */}
-      {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={onClearFilters}
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
-        >
-          <X size={14} />
-          {t('campaigns.clearFilters')}
-        </button>
-      )}
+      {/* Platform chip row */}
+      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        {ALL_PLATFORMS.map((p) => {
+          const active = platformFilter.has(p);
+          return (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPlatformToggle(p)}
+              aria-pressed={active}
+              className={cn(
+                'inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors',
+                active
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-card text-foreground hover:bg-muted',
+              )}
+            >
+              <PlatformIcon platform={dbPlatformToEnum(p)} size={12} />
+              {PLATFORM_CONFIG[p].label}
+            </button>
+          );
+        })}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-1 pl-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X size={12} />
+            {t('campaigns.clearFilters')}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -1520,21 +1474,21 @@ function BulkActionBar({
 }: BulkActionBarProps): React.ReactElement {
   const { t } = useI18n();
   return (
-    <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
-      <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2 shadow-lg animate-slide-up">
-        <div className="flex items-center gap-2 pr-2">
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground tabular-nums">
-            {selectedCount}
+    <div className="fixed inset-x-0 bottom-8 z-40 flex justify-center px-4">
+      <div className="flex items-center gap-3 rounded-lg border border-sidebar-border bg-sidebar p-1.5 pl-4 text-sidebar-foreground shadow-lg animate-slide-up">
+        <div className="flex items-center gap-2 pr-1">
+          <span className="grid h-5 w-5 place-items-center rounded bg-primary text-[11px] font-semibold text-primary-foreground tabular-nums">
+            <Check size={11} strokeWidth={3} />
           </span>
-          <span className="text-xs font-medium text-foreground">
+          <span className="text-sm font-medium text-white">
             {t('campaigns.selectedBulkCount', { count: selectedCount })}
           </span>
         </div>
-        <div className="h-5 w-px bg-border" />
+        <div className="h-5 w-px bg-white/10" />
         <button
           type="button"
           onClick={onPause}
-          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-warning transition-colors hover:bg-warning/10"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
         >
           <Pause size={12} />
           {t('campaigns.bulkPause')}
@@ -1542,7 +1496,7 @@ function BulkActionBar({
         <button
           type="button"
           onClick={onResume}
-          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-success transition-colors hover:bg-success/10"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
         >
           <Play size={12} />
           {t('campaigns.bulkResume')}
@@ -1550,18 +1504,19 @@ function BulkActionBar({
         <button
           type="button"
           onClick={onDelete}
-          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-destructive"
         >
           <Trash2 size={12} />
           {t('campaigns.bulkDelete')}
         </button>
-        <div className="h-5 w-px bg-border" />
+        <div className="h-5 w-px bg-white/10" />
         <button
           type="button"
           onClick={onDeselect}
-          className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label={t('campaigns.deselect')}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
         >
-          {t('campaigns.deselect')}
+          <X size={14} />
         </button>
       </div>
     </div>
@@ -1588,16 +1543,12 @@ export default function CampaignsPage(): React.ReactElement {
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // tRPC query with fallback to mock data
   const campaignsQuery = trpc.campaigns.list.useQuery(undefined, { retry: false });
   const pauseMutation = trpc.campaigns.pause.useMutation();
   const resumeMutation = trpc.campaigns.resume.useMutation();
 
-  const campaigns: Campaign[] = campaignsQuery.error
-    ? getMockCampaigns(t)
-    : (campaignsQuery.data as Campaign[] | undefined) ?? getMockCampaigns(t);
-
-  const isLoading = campaignsQuery.isLoading && !campaignsQuery.error;
+  const campaigns: Campaign[] = (campaignsQuery.data as Campaign[] | undefined) ?? [];
+  const isLoading = campaignsQuery.isLoading;
 
   // Apply filters
   const filteredCampaigns = campaigns.filter((c) => {
@@ -1609,6 +1560,26 @@ export default function CampaignsPage(): React.ReactElement {
   });
 
   const hasActiveFilters = searchQuery !== '' || statusFilter !== 'all' || platformFilter.size > 0 || objectiveFilter !== 'all';
+
+  // KPI summary derived from full (unfiltered) campaign list
+  const activeCampaigns = campaigns.filter((c) => c.status === 'active');
+  const totalSpend = activeCampaigns.reduce((sum, c) => sum + c.budget.total, 0);
+  const avgRoas = activeCampaigns.length > 0
+    ? activeCampaigns.reduce((sum, c) => sum + c.roas, 0) / activeCampaigns.length
+    : 0;
+  const needsAttentionCount = campaigns.filter(
+    (c) => c.status === 'active' && c.roas > 0 && c.roas < 1.5,
+  ).length;
+
+  // Status counts for segmented control
+  const statusCounts: Record<CampaignStatus | 'all', number> = {
+    all: campaigns.length,
+    draft: campaigns.filter((c) => c.status === 'draft').length,
+    active: activeCampaigns.length,
+    paused: campaigns.filter((c) => c.status === 'paused').length,
+    completed: campaigns.filter((c) => c.status === 'completed').length,
+    archived: campaigns.filter((c) => c.status === 'archived').length,
+  };
 
   function handleSort(field: SortField): void {
     if (sortField === field) {
@@ -1716,6 +1687,58 @@ export default function CampaignsPage(): React.ReactElement {
         }
       />
 
+      {/* KPI summary strip */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-xs lg:grid-cols-4">
+        <div className="flex flex-col gap-1 bg-card px-4 py-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            アクティブ
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-semibold tabular-nums text-foreground">
+              {activeCampaigns.length}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              / {campaigns.length}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 bg-card px-4 py-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            広告費 (今月)
+          </span>
+          <span className="text-xl font-semibold tabular-nums text-foreground">
+            {formatCurrency(totalSpend)}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 bg-card px-4 py-3 shadow-[inset_2px_0_0_0_hsl(var(--primary))]">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            平均 ROAS
+          </span>
+          <span className="text-xl font-semibold tabular-nums text-foreground">
+            {avgRoas > 0 ? `${avgRoas.toFixed(2)}x` : '—'}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 bg-card px-4 py-3">
+          <span
+            className={cn(
+              'flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider',
+              needsAttentionCount > 0 ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
+            {needsAttentionCount > 0 && (
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-destructive" />
+            )}
+            要対応
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-semibold tabular-nums text-foreground">
+              {needsAttentionCount}
+            </span>
+            <span className="text-xs text-muted-foreground">件</span>
+          </div>
+        </div>
+      </div>
+
       {/* Filter bar */}
       <FilterBar
         searchQuery={searchQuery}
@@ -1728,6 +1751,7 @@ export default function CampaignsPage(): React.ReactElement {
         onObjectiveChange={setObjectiveFilter}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={clearFilters}
+        statusCounts={statusCounts}
       />
 
       {/* Table */}

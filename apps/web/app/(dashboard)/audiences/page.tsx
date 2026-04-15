@@ -61,27 +61,6 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   microsoft: 'bg-teal-500',
 };
 
-function getMockSegments(t: (key: string, params?: Record<string, string | number>) => string): AudienceSegment[] {
-  return [
-  { id: '1', name: t('audiences.h61d77f'), size: 15200, platform: 'google', fatigueScore: 12, lastUpdated: '2026-04-01T10:00:00Z', description: t('audiences.h3d90eb') },
-  { id: '2', name: t('audiences.h22b7fc'), size: 28400, platform: 'meta', fatigueScore: 45, lastUpdated: '2026-04-01T12:00:00Z', description: t('audiences.h146dab') },
-  { id: '3', name: t('audiences.hb17e70'), size: 125000, platform: 'google', fatigueScore: 8, lastUpdated: '2026-04-02T06:00:00Z', description: t('audiences.hd7b69c') },
-  { id: '4', name: t('audiences.h0c5ae6'), size: 45000, platform: 'line_yahoo', fatigueScore: 22, lastUpdated: '2026-03-30T18:00:00Z', description: t('audiences.h1be250') },
-  { id: '5', name: t('audiences.ha78d21'), size: 89000, platform: 'tiktok', fatigueScore: 15, lastUpdated: '2026-04-01T08:00:00Z', description: t('audiences.h7f94ee') },
-  { id: '6', name: t('audiences.h2b5f14'), size: 32000, platform: 'line_yahoo', fatigueScore: 58, lastUpdated: '2026-03-28T14:00:00Z', description: t('audiences.hf712a8') },
-  { id: '7', name: t('audiences.he328b8'), size: 18500, platform: 'x', fatigueScore: 30, lastUpdated: '2026-04-01T16:00:00Z', description: t('audiences.he2a163') },
-  { id: '8', name: t('audiences.h06a958'), size: 67000, platform: 'meta', fatigueScore: 20, lastUpdated: '2026-04-02T04:00:00Z', description: t('audiences.ha3d503') },
-];
-}
-
-function getMockOverlapCircles(t: (key: string, params?: Record<string, string | number>) => string): OverlapCircle[] {
-  return [
-  { id: '1', name: t('audiences.h61d77f'), size: 15200, color: '#4285F4' },
-  { id: '2', name: t('audiences.h22b7fc'), size: 28400, color: '#6366F1' },
-  { id: '4', name: t('audiences.h0c5ae6'), size: 45000, color: '#06C755' },
-];
-}
-
 // -- Subcomponents --
 
 function FatigueIndicator({ score }: { score: number }): React.ReactElement {
@@ -266,8 +245,9 @@ export default function AudiencesPage(): React.ReactElement {
 
   const audiencesQuery = trpc.audiences.list.useQuery(undefined, { retry: false });
 
-  const segments = audiencesQuery.error ? getMockSegments(t) : (audiencesQuery.data as AudienceSegment[] | undefined) ?? getMockSegments(t);
-  const isLoading = audiencesQuery.isLoading && !audiencesQuery.error;
+  const segments = (audiencesQuery.data as AudienceSegment[] | undefined) ?? [];
+  const overlapCircles: OverlapCircle[] = [];
+  const isLoading = audiencesQuery.isLoading;
 
   const filteredSegments = searchQuery
     ? segments.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -325,15 +305,24 @@ export default function AudiencesPage(): React.ReactElement {
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-semibold text-foreground">{t('audiences.overlapAnalysis')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t('audiences.overlapDescription')}</p>
-          <OverlapVisualization circles={getMockOverlapCircles(t)} />
-          <div className="mt-2 flex flex-wrap justify-center gap-3">
-            {getMockOverlapCircles(t).map((circle) => (
-              <div key={circle.id} className="flex items-center gap-1.5">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: circle.color }} />
-                <span className="text-xs text-muted-foreground">{circle.name}</span>
+          {overlapCircles.length === 0 ? (
+            <div className="flex h-64 flex-col items-center justify-center gap-2 text-center">
+              <Users size={28} className="text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            </div>
+          ) : (
+            <>
+              <OverlapVisualization circles={overlapCircles} />
+              <div className="mt-2 flex flex-wrap justify-center gap-3">
+                {overlapCircles.map((circle) => (
+                  <div key={circle.id} className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: circle.color }} />
+                    <span className="text-xs text-muted-foreground">{circle.name}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Cross-platform lookalike */}

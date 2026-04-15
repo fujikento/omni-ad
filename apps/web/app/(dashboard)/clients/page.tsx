@@ -1,214 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowUpDown, Building2 } from 'lucide-react';
-import { Badge, PageHeader, StatCard } from '@omni-ad/ui';
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { Building2, Inbox } from 'lucide-react';
+import { PageHeader } from '@omni-ad/ui';
 import { useI18n } from '@/lib/i18n';
-
-// ============================================================
-// Types
-// ============================================================
-
-type ClientStatus = 'good' | 'warning' | 'critical';
-type SortField = 'name' | 'plan' | 'budget' | 'spendRate' | 'roas' | 'activeCampaigns' | 'status';
-type SortDirection = 'asc' | 'desc';
-type HeatmapMetric = 'roas' | 'ctr' | 'cpa' | 'spendRate';
-
-interface PortfolioKpi {
-  label: string;
-  value: string;
-  trend: 'up' | 'down' | 'flat';
-  trendValue: string;
-}
-
-interface ClientRow {
-  id: string;
-  name: string;
-  plan: string;
-  monthlyBudget: number;
-  spendRate: number;
-  roas: number;
-  activeCampaigns: number;
-  status: ClientStatus;
-  metrics: {
-    ctr: number;
-    cpa: number;
-  };
-}
-
-// ============================================================
-// Constants
-// ============================================================
-
-type StatusVariant = 'success' | 'warning' | 'destructive';
-
-const STATUS_CONFIG: Record<ClientStatus, { labelKey: string; variant: StatusVariant }> = {
-  good: { labelKey: 'clients.statusGood', variant: 'success' },
-  warning: { labelKey: 'clients.statusWarning', variant: 'warning' },
-  critical: { labelKey: 'clients.statusCritical', variant: 'destructive' },
-};
-
-function getMockPortfolioKpi(t: (key: string) => string): PortfolioKpi[] {
-  return [
-    { label: t('clients.totalClients'), value: '12', trend: 'up', trendValue: '+2' },
-    { label: t('clients.totalAdSpend'), value: '¥28,500,000', trend: 'up', trendValue: '+12%' },
-    { label: t('clients.avgRoas'), value: '3.2x', trend: 'up', trendValue: '+0.3' },
-    { label: t('clients.budgetSpendRate'), value: '72%', trend: 'flat', trendValue: t('clients.normal') },
-  ];
-}
-
-function getMockClients(t: (key: string, params?: Record<string, string | number>) => string): ClientRow[] {
-  return [
-  { id: 'c1', name: t('clients.hc3821e'), plan: t('clients.h9cfdec'), monthlyBudget: 5000000, spendRate: 78, roas: 4.2, activeCampaigns: 8, status: 'good', metrics: { ctr: 3.8, cpa: 2800 } },
-  { id: 'c2', name: t('clients.hc7d318'), plan: t('clients.hfaaee7'), monthlyBudget: 3500000, spendRate: 85, roas: 3.8, activeCampaigns: 5, status: 'good', metrics: { ctr: 3.2, cpa: 3200 } },
-  { id: 'c3', name: t('clients.he5d26e'), plan: t('clients.hfaaee7'), monthlyBudget: 2800000, spendRate: 62, roas: 2.9, activeCampaigns: 4, status: 'warning', metrics: { ctr: 2.5, cpa: 4100 } },
-  { id: 'c4', name: t('clients.h58b898'), plan: t('clients.h9cfdec'), monthlyBudget: 4200000, spendRate: 91, roas: 3.5, activeCampaigns: 7, status: 'good', metrics: { ctr: 4.1, cpa: 2600 } },
-  { id: 'c5', name: t('clients.hc49cea'), plan: t('clients.h83c3a6'), monthlyBudget: 1500000, spendRate: 45, roas: 1.8, activeCampaigns: 3, status: 'critical', metrics: { ctr: 1.9, cpa: 5800 } },
-  { id: 'c6', name: t('clients.h6ceac0'), plan: t('clients.hfaaee7'), monthlyBudget: 3000000, spendRate: 72, roas: 3.1, activeCampaigns: 5, status: 'good', metrics: { ctr: 3.0, cpa: 3500 } },
-  { id: 'c7', name: t('clients.h4df490'), plan: t('clients.h83c3a6'), monthlyBudget: 2000000, spendRate: 58, roas: 2.4, activeCampaigns: 3, status: 'warning', metrics: { ctr: 2.2, cpa: 4500 } },
-  { id: 'c8', name: t('clients.hccd8c6'), plan: t('clients.h9cfdec'), monthlyBudget: 6500000, spendRate: 68, roas: 3.9, activeCampaigns: 10, status: 'good', metrics: { ctr: 3.5, cpa: 3000 } },
-];
-}
-
-const HEATMAP_METRICS: { key: HeatmapMetric; labelKey: string }[] = [
-  { key: 'roas', labelKey: 'metrics.roas' },
-  { key: 'ctr', labelKey: 'metrics.ctr' },
-  { key: 'cpa', labelKey: 'metrics.cpa' },
-  { key: 'spendRate', labelKey: 'clients.budgetSpendRate' },
-];
-
-// ============================================================
-// Helpers
-// ============================================================
-
-function formatYen(value: number): string {
-  return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
-}
-
-function getHeatmapIntensity(metric: HeatmapMetric, client: ClientRow): { bg: string; text: string } {
-  let score: number;
-
-  switch (metric) {
-    case 'roas':
-      score = client.roas >= 3.5 ? 3 : client.roas >= 2.5 ? 2 : client.roas >= 1.5 ? 1 : 0;
-      break;
-    case 'ctr':
-      score = client.metrics.ctr >= 3.5 ? 3 : client.metrics.ctr >= 2.5 ? 2 : client.metrics.ctr >= 1.5 ? 1 : 0;
-      break;
-    case 'cpa':
-      // Lower CPA is better
-      score = client.metrics.cpa <= 3000 ? 3 : client.metrics.cpa <= 4000 ? 2 : client.metrics.cpa <= 5000 ? 1 : 0;
-      break;
-    case 'spendRate':
-      score = client.spendRate >= 70 && client.spendRate <= 90 ? 3 : client.spendRate >= 50 ? 2 : client.spendRate >= 30 ? 1 : 0;
-      break;
-  }
-
-  const intensityMap: Record<number, { bg: string; text: string }> = {
-    0: { bg: 'bg-destructive/10', text: 'text-destructive' },
-    1: { bg: 'bg-warning/15', text: 'text-warning' },
-    2: { bg: 'bg-success/10', text: 'text-success' },
-    3: { bg: 'bg-success/20', text: 'text-success' },
-  };
-
-  return intensityMap[score] as { bg: string; text: string };
-}
-
-function getHeatmapValue(metric: HeatmapMetric, client: ClientRow): string {
-  switch (metric) {
-    case 'roas':
-      return `${client.roas.toFixed(1)}x`;
-    case 'ctr':
-      return `${client.metrics.ctr.toFixed(1)}%`;
-    case 'cpa':
-      return `¥${client.metrics.cpa.toLocaleString('ja-JP')}`;
-    case 'spendRate':
-      return `${client.spendRate}%`;
-  }
-}
-
-function compareSortValues(a: string | number, b: string | number, direction: SortDirection): number {
-  const multiplier = direction === 'asc' ? 1 : -1;
-  if (typeof a === 'string' && typeof b === 'string') {
-    return a.localeCompare(b, 'ja') * multiplier;
-  }
-  return ((a as number) - (b as number)) * multiplier;
-}
-
-function getSortValue(client: ClientRow, field: SortField): string | number {
-  switch (field) {
-    case 'name': return client.name;
-    case 'plan': return client.plan;
-    case 'budget': return client.monthlyBudget;
-    case 'spendRate': return client.spendRate;
-    case 'roas': return client.roas;
-    case 'activeCampaigns': return client.activeCampaigns;
-    case 'status': return client.status;
-  }
-}
-
-// ============================================================
-// Subcomponents
-// ============================================================
-
-function PortfolioCard({ kpi }: { kpi: PortfolioKpi }): React.ReactElement {
-  const { t } = useI18n();
-  // PortfolioKpi carries a display-formatted trendValue string; StatCard's
-  // delta is numeric, so fall back to a custom inline layout that keeps
-  // the existing data shape.
-  return (
-    <StatCard
-      label={kpi.label}
-      value={kpi.value}
-      deltaLabel={kpi.trend !== 'flat' ? t('clients.vsLastMonth') : undefined}
-    >
-      <div className="flex items-center gap-1 text-xs font-medium">
-        <span
-          className={cn(
-            'tabular-nums',
-            kpi.trend === 'up' && 'text-success',
-            kpi.trend === 'down' && 'text-destructive',
-            kpi.trend === 'flat' && 'text-muted-foreground',
-          )}
-        >
-          {kpi.trendValue}
-        </span>
-      </div>
-    </StatCard>
-  );
-}
-
-function SortableColumnHeader({
-  label,
-  field,
-  currentSort,
-  onSort,
-  align = 'left',
-}: {
-  label: string;
-  field: SortField;
-  currentSort: SortField;
-  onSort: (field: SortField) => void;
-  align?: 'left' | 'right';
-}): React.ReactElement {
-  const isActive = currentSort === field;
-  return (
-    <th className={cn('px-4 py-3 font-medium text-muted-foreground', align === 'right' ? 'text-right' : 'text-left')}>
-      <button
-        type="button"
-        onClick={() => onSort(field)}
-        className="inline-flex items-center gap-1 hover:text-foreground"
-      >
-        {label}
-        <ArrowUpDown
-          size={12}
-          className={cn(isActive ? 'text-primary' : 'text-muted-foreground/50')}
-        />
-      </button>
-    </th>
-  );
-}
 
 // ============================================================
 // Main Page
@@ -216,21 +11,6 @@ function SortableColumnHeader({
 
 export default function ClientsPage(): React.ReactElement {
   const { t } = useI18n();
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-
-  function handleSort(field: SortField): void {
-    if (sortField === field) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  }
-
-  const sortedClients = [...getMockClients(t)].sort((a, b) =>
-    compareSortValues(getSortValue(a, sortField), getSortValue(b, sortField), sortDirection),
-  );
 
   return (
     <div className="space-y-6">
@@ -240,128 +20,22 @@ export default function ClientsPage(): React.ReactElement {
         description={t('clients.description')}
       />
 
-      {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {getMockPortfolioKpi(t).map((kpi) => (
-          <PortfolioCard key={kpi.label} kpi={kpi} />
-        ))}
-      </div>
-
-      {/* Client Table */}
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <div className="flex items-center gap-2 border-b border-border px-6 py-4">
           <Building2 size={16} className="text-primary" />
           <h2 className="text-sm font-semibold text-foreground">{t('clients.clientList')}</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <SortableColumnHeader label={t('clients.clientName')} field="name" currentSort={sortField} onSort={handleSort} />
-                <SortableColumnHeader label={t('clients.plan')} field="plan" currentSort={sortField} onSort={handleSort} />
-                <SortableColumnHeader label={t('clients.monthlyBudget')} field="budget" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label={t('clients.spendRate')} field="spendRate" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label="ROAS" field="roas" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label={t('clients.activeCampaigns')} field="activeCampaigns" currentSort={sortField} onSort={handleSort} align="right" />
-                <SortableColumnHeader label={t('common.status')} field="status" currentSort={sortField} onSort={handleSort} />
-              </tr>
-            </thead>
-            <tbody>
-              {sortedClients.map((client) => (
-                <tr
-                  key={client.id}
-                  className="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer"
-                  onClick={() => {
-                    // Navigate to client dashboard (mock)
-                    window.location.href = `/home?client=${client.id}`;
-                  }}
-                  role="link"
-                  tabIndex={0}
-                  onKeyDown={(e: React.KeyboardEvent<HTMLTableRowElement>) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      window.location.href = `/home?client=${client.id}`;
-                    }
-                  }}
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">{client.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{client.plan}</td>
-                  <td className="px-4 py-3 text-right text-foreground">{formatYen(client.monthlyBudget)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={cn(
-                            'h-full rounded-full',
-                            client.spendRate >= 80 ? 'bg-success' : client.spendRate >= 50 ? 'bg-warning' : 'bg-destructive',
-                          )}
-                          style={{ width: `${Math.min(100, client.spendRate)}%` }}
-                        />
-                      </div>
-                      <span className="tabular-nums text-foreground">{client.spendRate}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={cn(
-                      'font-semibold tabular-nums',
-                      client.roas >= 3 ? 'text-success' : client.roas >= 2 ? 'text-warning' : 'text-destructive',
-                    )}>
-                      {client.roas.toFixed(1)}x
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-foreground">{client.activeCampaigns}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={STATUS_CONFIG[client.status].variant} size="md" dot={client.status === 'good'}>
-                      {t(STATUS_CONFIG[client.status].labelKey)}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Performance Heatmap */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="text-sm font-semibold text-foreground">{t('clients.performanceHeatmap')}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t('clients.heatmapDescription')}</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('clients.client')}</th>
-                {HEATMAP_METRICS.map((metric) => (
-                  <th key={metric.key} className="px-4 py-3 text-center font-medium text-muted-foreground">
-                    {t(metric.labelKey)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {getMockClients(t).map((client) => (
-                <tr key={client.id} className="border-b border-border">
-                  <td className="px-4 py-3 font-medium text-foreground">{client.name}</td>
-                  {HEATMAP_METRICS.map((metric) => {
-                    const intensity = getHeatmapIntensity(metric.key, client);
-                    return (
-                      <td key={metric.key} className="px-2 py-2 text-center">
-                        <span className={cn(
-                          'inline-flex min-w-[60px] items-center justify-center rounded-md px-2 py-1.5 text-xs font-semibold',
-                          intensity.bg,
-                          intensity.text,
-                        )}>
-                          {getHeatmapValue(metric.key, client)}
-                        </span>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">
+            クライアントデータがありません。設定から組織を追加してください。
+          </p>
+          <Link
+            href="/settings"
+            className="mt-2 inline-flex items-center rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            {t('nav.settings')}
+          </Link>
         </div>
       </div>
     </div>

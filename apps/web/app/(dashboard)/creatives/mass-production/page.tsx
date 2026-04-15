@@ -16,7 +16,27 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
+
+type DbPlatform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
+
+const PLATFORM_TO_DB: Record<string, DbPlatform> = {
+  Meta: 'meta',
+  Google: 'google',
+  TikTok: 'tiktok',
+  'LINE/Yahoo': 'line_yahoo',
+  X: 'x',
+  Amazon: 'amazon',
+  Microsoft: 'microsoft',
+  meta: 'meta',
+  google: 'google',
+  tiktok: 'tiktok',
+  line_yahoo: 'line_yahoo',
+  x: 'x',
+  amazon: 'amazon',
+  microsoft: 'microsoft',
+};
 
 // ============================================================
 // Types
@@ -55,6 +75,7 @@ interface BatchProgress {
   completed: number;
   speed: number;
   creatives: GeneratedCreative[];
+  batchId?: string;
 }
 
 // ============================================================
@@ -110,28 +131,6 @@ const STEPS: { step: StepNumber; labelKey: string }[] = [
   { step: 2, labelKey: 'massProduction.step2' },
   { step: 3, labelKey: 'massProduction.step3' },
 ];
-
-function generateMockCreative(index: number): GeneratedCreative {
-  const { t } = useI18n();
-  const headlines = [
-    t('creatives.massproduction.hdaca99'), t('creatives.massproduction.hd903c2'), t('creatives.massproduction.h1e4a02'),
-    t('creatives.massproduction.h7cebce'), t('creatives.massproduction.h7ae9c2'), t('creatives.massproduction.h04717e'),
-    t('creatives.massproduction.h7274e9'), t('creatives.massproduction.h1dd742'),
-  ];
-  const ctaOptions = [t('creatives.massproduction.ha75439'), t('creatives.massproduction.h9da9f9'), t('creatives.massproduction.h2fc4c4'), t('creatives.massproduction.h40ca12'), t('creatives.massproduction.he3daad')];
-  const styleOptions = [t('creatives.massproduction.hfaaee7'), t('creatives.massproduction.h7ba865'), t('creatives.massproduction.he7794f'), t('creatives.massproduction.h916ca3'), t('creatives.massproduction.h42ae18')];
-  const platformOptions = ['Meta', 'Google', 'TikTok', 'LINE/Yahoo', 'X', 'Amazon', 'Microsoft'];
-
-  return {
-    id: `gen-${index}`,
-    headline: headlines[index % headlines.length] ?? '',
-    body: t('creatives.massproduction.h2998a7'),
-    cta: ctaOptions[index % ctaOptions.length] ?? '',
-    imageStyle: styleOptions[index % styleOptions.length] ?? '',
-    platform: platformOptions[index % platformOptions.length] ?? '',
-    score: Math.floor(Math.random() * 30) + 70,
-  };
-}
 
 // ============================================================
 // Subcomponents
@@ -469,6 +468,21 @@ export default function MassProductionPage(): React.ReactElement {
   const actualGeneration = Math.min(totalCombinations, maxGeneration);
   const estimatedMinutes = Math.ceil((actualGeneration / 10) * 0.3);
 
+  const generateMutation = trpc.creativeMass.generate.useMutation({
+    onError: () => {
+      setBatchProgress((prev) => ({ ...prev, status: 'cancelled' }));
+    },
+    onSuccess: (data: unknown) => {
+      const result = data as { batchId?: string } | undefined;
+      setBatchProgress((prev) => ({
+        ...prev,
+        status: 'completed',
+        completed: prev.total,
+        batchId: result?.batchId,
+      }));
+    },
+  });
+
   function handleStartGeneration(): void {
     const total = actualGeneration;
     setBatchProgress({
@@ -479,37 +493,32 @@ export default function MassProductionPage(): React.ReactElement {
       creatives: [],
     });
 
-    let count = 0;
-    const interval = setInterval(() => {
-      count += Math.floor(Math.random() * 3) + 1;
-      if (count >= total) {
-        count = total;
-        clearInterval(interval);
-        setBatchProgress((prev) => ({
-          ...prev,
-          status: 'completed',
-          completed: total,
-          creatives: Array.from({ length: total }, (_, i) => generateMockCreative(i)),
-        }));
-        return;
-      }
+    const platforms = Array.from(selectedPlatforms)
+      .map((p) => PLATFORM_TO_DB[p])
+      .filter((p): p is DbPlatform => Boolean(p));
 
-      setBatchProgress((prev) => ({
-        ...prev,
-        completed: count,
-        creatives: Array.from({ length: count }, (_, i) => generateMockCreative(i)),
-      }));
-    }, 500);
-
-    // Store interval ID for cleanup on cancel
-    setBatchProgress((prev) => ({ ...prev, _intervalId: interval } as BatchProgress));
+    generateMutation.mutate({
+      name: product.name || 'Mass production batch',
+      productInfo: {
+        name: product.name,
+        description: product.description,
+        usp: product.usp,
+        targetAudience: product.targetAudience,
+        price: product.price || undefined,
+      },
+      platforms,
+      language: product.language,
+      keigoLevel: 'polite',
+      headlineAngles: Array.from(selectedHeadlines),
+      bodyApproaches: Array.from(selectedBodies),
+      ctaVariations: Array.from(selectedCtas),
+      imageStyles: Array.from(selectedStyles),
+      targetCount: total,
+    });
   }
 
   function handleCancelGeneration(): void {
-    setBatchProgress((prev) => ({
-      ...prev,
-      status: 'cancelled',
-    }));
+    setBatchProgress((prev) => ({ ...prev, status: 'cancelled' }));
   }
 
   const isStep1Valid = product.name.trim() !== '' && product.description.trim() !== '';

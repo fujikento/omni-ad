@@ -154,84 +154,6 @@ const TRAFFIC_OPTIONS: { value: TrafficAllocation; labelKey: string; descKey: st
 ];
 
 // ============================================================
-// Mock Data (25 tests)
-// ============================================================
-
-function generateMockTests(t: (key: string, params?: Record<string, string | number>) => string): ABTest[] {
-  const names = [
-    t('abtests.h115194'), t('abtests.hdd82ff'), t('abtests.h7dfccf'), t('abtests.h9fd32b'),
-    t('abtests.h61aa86'), t('abtests.h16c3ca'), t('abtests.haa46d0'), t('abtests.h6b7e11'),
-    t('abtests.h855fc4'), t('abtests.hcda532'), t('abtests.hf8f528'), t('abtests.hda1767'),
-    t('abtests.h37ab0d'), t('abtests.h59df6c'), t('abtests.h4f73cd'), t('abtests.hb51571'),
-    t('abtests.h5f4060'), t('abtests.h6a7254'), t('abtests.h861234'), t('abtests.h4f579c'),
-    t('abtests.h4633c0'), t('abtests.h7798f4'), t('abtests.h713bc9'), t('abtests.h1dc3ce'),
-    t('abtests.hf5fb5e'),
-  ];
-
-  const testTypes: TestType[] = ['creative', 'headline', 'cta', 'targeting', 'bidding', 'lp'];
-  const metrics: MetricType[] = ['ctr', 'cvr', 'roas', 'cpa'];
-  const statuses: TestStatus[] = ['running', 'running', 'running', 'completed', 'paused'];
-
-  return names.map((name, i) => {
-    const status = statuses[i % statuses.length] as TestStatus;
-    const metric = metrics[i % metrics.length] as MetricType;
-    const testType = testTypes[i % testTypes.length] as TestType;
-    const variantCount = Math.floor(Math.random() * 4) + 2;
-    const significance = status === 'completed'
-      ? 95 + Math.random() * 5
-      : Math.floor(Math.random() * 100);
-    const currentSamples = Math.floor(Math.random() * 80000) + 5000;
-    const requiredSamples = currentSamples + Math.floor(Math.random() * 40000);
-    const lift = (Math.random() * 30 - 5);
-
-    const variants: Variant[] = Array.from({ length: variantCount }, (_, vi) => {
-      const isWinner = vi === 0;
-      const rate = metric === 'roas'
-        ? 2 + Math.random() * 3
-        : metric === 'cpa'
-          ? 500 + Math.random() * 2000
-          : 0.01 + Math.random() * 0.08;
-      return {
-        name: vi === 0 ? '__control__' : `__variant_${String.fromCharCode(65 + vi)}__`,
-        description: vi === 0 ? '__original__' : `__test_pattern_${vi}__`,
-        impressions: Math.floor(currentSamples / variantCount),
-        clicks: Math.floor(currentSamples / variantCount * 0.04),
-        conversions: Math.floor(currentSamples / variantCount * 0.01),
-        rate,
-        ci: status === 'completed' ? { lower: rate * 0.9, upper: rate * 1.1 } : null,
-        pValue: status === 'completed' ? Math.random() * 0.05 : null,
-        isWinner,
-      };
-    });
-
-    const bestVariantName = variants.find((v) => v.isWinner)?.name ?? '__control__';
-
-    return {
-      id: `t${i + 1}`,
-      name,
-      status,
-      metric,
-      testType,
-      campaignName: getCampaignOptions(t)[i % getCampaignOptions(t).length] ?? '',
-      variantCount,
-      currentSamples,
-      requiredSamples: status === 'completed' ? currentSamples : requiredSamples,
-      significance: Math.round(significance * 10) / 10,
-      bestVariant: bestVariantName,
-      lift: Math.round(lift * 10) / 10,
-      createdAt: `2026-03-${String(Math.max(1, 30 - i)).padStart(2, '0')}`,
-      variants,
-      pValue: status === 'completed' ? Math.random() * 0.05 : null,
-      confidenceInterval: status === 'completed'
-        ? { lower: lift - 2, upper: lift + 2 }
-        : null,
-    };
-  });
-}
-
-// Mock tests generated inside component via useMemo
-
-// ============================================================
 // Helpers
 // ============================================================
 
@@ -932,7 +854,7 @@ function BulkActionsBar({
 
 export default function ABTestsPage(): React.ReactElement {
   const { t } = useI18n();
-  const [tests, setTests] = useState<ABTest[]>(() => generateMockTests(t));
+  const [tests, setTests] = useState<ABTest[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailTest, setDetailTest] = useState<ABTest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -951,8 +873,8 @@ export default function ABTestsPage(): React.ReactElement {
   // Computed stats
   const runningCount = tests.filter((t) => t.status === 'running').length;
   const completedCount = tests.filter((t) => t.status === 'completed').length;
-  const winnersToday = 23;
-  const avgSignificanceDays = 4.2;
+  const winnersToday = 0;
+  const avgSignificanceDays = 0;
 
   // Filtered & sorted tests
   const filteredTests = tests.filter((t) => {

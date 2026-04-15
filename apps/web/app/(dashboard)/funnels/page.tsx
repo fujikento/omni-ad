@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ChevronDown,
   GripVertical,
+  Inbox,
   Loader2,
   Plus,
   Sparkles,
@@ -67,62 +68,6 @@ const STAGE_HEADER_COLORS: Record<string, string> = {
   closing: 'bg-orange-500',
   retention: 'bg-green-500',
 };
-
-function getMockFunnel(t: (key: string, params?: Record<string, string | number>) => string): Funnel {
-  return {
-  id: '1',
-  name: t('funnels.he68f77'),
-  description: t('funnels.h5b44d5'),
-  stages: [
-    {
-      id: 's1',
-      name: t('funnels.h5ab04e'),
-      type: 'awareness',
-      platforms: ['google', 'meta', 'tiktok'],
-      campaigns: [
-        { id: 'c1', name: t('funnels.h986608') },
-        { id: 'c2', name: t('funnels.h691393') },
-      ],
-      budgetAllocation: 35,
-      metrics: { impressions: 500000, clicks: 25000, conversions: 0, dropOffRate: 0 },
-    },
-    {
-      id: 's2',
-      name: t('funnels.h5ddcc3'),
-      type: 'interest',
-      platforms: ['meta', 'line_yahoo'],
-      campaigns: [
-        { id: 'c3', name: t('funnels.h18110e') },
-      ],
-      budgetAllocation: 25,
-      metrics: { impressions: 250000, clicks: 15000, conversions: 0, dropOffRate: 40 },
-    },
-    {
-      id: 's3',
-      name: t('funnels.h8c9928'),
-      type: 'closing',
-      platforms: ['google', 'meta', 'line_yahoo'],
-      campaigns: [
-        { id: 'c4', name: t('funnels.h8327cb') },
-        { id: 'c5', name: t('funnels.hb59a3d') },
-      ],
-      budgetAllocation: 30,
-      metrics: { impressions: 100000, clicks: 8000, conversions: 1200, dropOffRate: 47 },
-    },
-    {
-      id: 's4',
-      name: t('funnels.h9bb2fe'),
-      type: 'retention',
-      platforms: ['line_yahoo', 'meta'],
-      campaigns: [
-        { id: 'c6', name: t('funnels.h17c1f2') },
-      ],
-      budgetAllocation: 10,
-      metrics: { impressions: 50000, clicks: 3000, conversions: 450, dropOffRate: 63 },
-    },
-  ],
-};
-}
 
 // -- Subcomponents --
 
@@ -343,11 +288,9 @@ export default function FunnelsPage(): React.ReactElement {
 
   const funnelsQuery = trpc.funnels.list.useQuery(undefined, { retry: false });
 
-  // Use mock data when API not available
-  const funnel = funnelsQuery.error
-    ? getMockFunnel(t)
-    : (funnelsQuery.data as Funnel | undefined) ?? getMockFunnel(t);
-  const isLoading = funnelsQuery.isLoading && !funnelsQuery.error;
+  const funnels = (funnelsQuery.data as Funnel[] | Funnel | undefined);
+  const funnel: Funnel | undefined = Array.isArray(funnels) ? funnels[0] : funnels;
+  const isLoading = funnelsQuery.isLoading;
 
   return (
     <div className="space-y-6">
@@ -367,7 +310,7 @@ export default function FunnelsPage(): React.ReactElement {
       />
 
       {/* Funnel name */}
-      {!isLoading && (
+      {!isLoading && funnel && (
         <div className="rounded-lg border border-border bg-card px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">{funnel.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{funnel.description}</p>
@@ -380,6 +323,11 @@ export default function FunnelsPage(): React.ReactElement {
           {Array.from({ length: 4 }, (_, i) => (
             <div key={i} className="h-48 w-full max-w-lg animate-pulse rounded-lg bg-muted" />
           ))}
+        </div>
+      ) : !funnel || funnel.stages.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-16 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
         </div>
       ) : (
         <div className="flex flex-col items-center">
@@ -394,7 +342,7 @@ export default function FunnelsPage(): React.ReactElement {
       )}
 
       {/* Summary metrics */}
-      {!isLoading && (
+      {!isLoading && funnel && funnel.stages.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {funnel.stages.map((stage) => (
             <div key={stage.id} className="rounded-lg border border-border bg-card p-4 text-center">

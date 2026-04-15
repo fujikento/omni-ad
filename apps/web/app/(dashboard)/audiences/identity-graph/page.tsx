@@ -11,11 +11,10 @@ import {
   Fingerprint,
   Globe,
   Link2,
+  Inbox,
   Plus,
-  Search,
   Shield,
   Upload,
-  Users,
 } from 'lucide-react';
 import {
   Bar,
@@ -27,6 +26,7 @@ import {
 } from 'recharts';
 import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 // ============================================================
@@ -64,21 +64,6 @@ interface UnifiedSegment {
 // Constants
 // ============================================================
 
-const MOCK_PLATFORMS: PlatformIdentity[] = [
-  { platform: 'Meta', matched: 12000, unmatched: 8000, color: '#1877F2' },
-  { platform: 'Google', matched: 15000, unmatched: 5000, color: '#4285F4' },
-  { platform: 'TikTok', matched: 8500, unmatched: 6500, color: '#FF0050' },
-  { platform: 'LINE', matched: 9800, unmatched: 4200, color: '#06C755' },
-  { platform: 'X', matched: 5200, unmatched: 7800, color: '#1DA1F2' },
-];
-
-const MOCK_JOURNEY: JourneyTouchpoint[] = [
-  { id: 'j1', platform: 'Meta', action: 'identityGraph.journeyViewAd', timestamp: '3/28 14:30', icon: <Globe size={16} /> },
-  { id: 'j2', platform: 'Google', action: 'identityGraph.journeySearchClick', timestamp: '3/29 10:15', icon: <Search size={16} /> },
-  { id: 'j3', platform: 'TikTok', action: 'identityGraph.journeyConversion', timestamp: '3/30 19:45', icon: <Check size={16} /> },
-  { id: 'j4', platform: 'LINE', action: 'identityGraph.journeySubscriber', timestamp: '3/31 08:00', icon: <Users size={16} /> },
-];
-
 const PLATFORM_BADGE_COLORS: Record<string, string> = {
   Meta: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   Google: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
@@ -86,29 +71,6 @@ const PLATFORM_BADGE_COLORS: Record<string, string> = {
   LINE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   X: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 };
-
-function getMockSegments(t: (key: string, params?: Record<string, string | number>) => string): UnifiedSegment[] {
-  return [
-  {
-    id: 'us1',
-    name: t('audiences.identitygraph.hc819b5'),
-    criteria: [
-      { platform: 'Meta', action: t('audiences.identitygraph.h05087c') },
-      { platform: 'TikTok', action: t('audiences.identitygraph.h41db74') },
-    ],
-    size: 3200,
-  },
-  {
-    id: 'us2',
-    name: t('audiences.identitygraph.hbf31ff'),
-    criteria: [
-      { platform: 'Google', action: t('audiences.identitygraph.hc5e661') },
-      { platform: 'LINE', action: t('audiences.identitygraph.hd52f71') },
-    ],
-    size: 1800,
-  },
-];
-}
 
 // ============================================================
 // Subcomponents
@@ -150,6 +112,20 @@ function PlatformCoverageMap({ platforms }: { platforms: PlatformIdentity[] }): 
     unmatched: p.unmatched,
   }));
 
+  if (platforms.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <h2 className="mb-3 text-base font-semibold text-foreground">
+          {t('identityGraph.platformCoverage')}
+        </h2>
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <h2 className="mb-3 text-base font-semibold text-foreground">
@@ -187,6 +163,23 @@ function PlatformCoverageMap({ platforms }: { platforms: PlatformIdentity[] }): 
 
 function CrossPlatformJourney({ touchpoints }: { touchpoints: JourneyTouchpoint[] }): React.ReactElement {
   const { t } = useI18n();
+
+  if (touchpoints.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <h2 className="mb-1 text-base font-semibold text-foreground">
+          {t('identityGraph.journeyTitle')}
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          {t('identityGraph.journeyDesc')}
+        </p>
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -398,6 +391,18 @@ function SegmentBuilder({ segments }: { segments: UnifiedSegment[] }): React.Rea
 export default function IdentityGraphPage(): React.ReactElement {
   const { t } = useI18n();
 
+  const segmentsQuery = trpc.identityGraph.listSegments.useQuery(undefined, {
+    retry: false,
+  });
+
+  const segments: UnifiedSegment[] =
+    (segmentsQuery.data as UnifiedSegment[] | undefined) ?? [];
+
+  // Datasets below require backend endpoints that are not wired yet.
+  // Start empty so each section renders its own empty state.
+  const platforms: PlatformIdentity[] = [];
+  const touchpoints: JourneyTouchpoint[] = [];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -418,41 +423,40 @@ export default function IdentityGraphPage(): React.ReactElement {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           labelKey="identityGraph.kpiUnifiedProfiles"
-          value="24,500"
+          value="0"
           icon={<Fingerprint size={16} />}
           color="text-primary"
         />
         <KpiCard
           labelKey="identityGraph.kpiMatchRate"
-          value="47.3%"
+          value="0%"
           icon={<Link2 size={16} />}
           color="text-blue-500"
         />
         <KpiCard
           labelKey="identityGraph.kpiPlatformCoverage"
-          value="4.2 / 7"
+          value="0 / 7"
           icon={<Globe size={16} />}
           color="text-green-500"
         />
         <KpiCard
           labelKey="identityGraph.kpiDuplicates"
-          value="8,200"
-          subValue="(33.5%)"
+          value="0"
           icon={<Database size={16} />}
           color="text-yellow-500"
         />
       </div>
 
       {/* Platform coverage */}
-      <PlatformCoverageMap platforms={MOCK_PLATFORMS} />
+      <PlatformCoverageMap platforms={platforms} />
 
       {/* Cross-platform journey */}
-      <CrossPlatformJourney touchpoints={MOCK_JOURNEY} />
+      <CrossPlatformJourney touchpoints={touchpoints} />
 
       {/* Import + Segment builder side by side on large screens */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ImportPanel />
-        <SegmentBuilder segments={getMockSegments(t)} />
+        <SegmentBuilder segments={segments} />
       </div>
     </div>
   );

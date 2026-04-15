@@ -82,46 +82,6 @@ function getPlatformColor(key: string): string {
   return (PLATFORM_COLORS as Record<string, string | undefined>)[key] ?? '#6B7280';
 }
 
-const MOCK_ALLOCATIONS: PlatformAllocation[] = [
-  { platform: 'Google', current: 180000, recommended: 210000, color: PLATFORM_COLORS['Google'] },
-  { platform: 'Meta', current: 150000, recommended: 170000, color: PLATFORM_COLORS['Meta'] },
-  { platform: 'TikTok', current: 80000, recommended: 60000, color: PLATFORM_COLORS['TikTok'] },
-  { platform: 'LINE', current: 60000, recommended: 45000, color: PLATFORM_COLORS['LINE'] },
-  { platform: 'X', current: 25000, recommended: 15000, color: PLATFORM_COLORS['X'] },
-  { platform: 'Yahoo!', current: 15000, recommended: 10000, color: PLATFORM_COLORS['Yahoo!'] },
-];
-
-const MOCK_FORECASTS: ForecastEntry[] = [
-  { platform: 'Google', predictedRoas: 4.2, confidence: { low: 3.6, high: 4.8 } },
-  { platform: 'Meta', predictedRoas: 3.8, confidence: { low: 3.1, high: 4.5 } },
-  { platform: 'TikTok', predictedRoas: 2.5, confidence: { low: 1.8, high: 3.2 } },
-  { platform: 'LINE', predictedRoas: 2.1, confidence: { low: 1.5, high: 2.7 } },
-  { platform: 'X', predictedRoas: 1.6, confidence: { low: 1.0, high: 2.2 } },
-  { platform: 'Yahoo!', predictedRoas: 1.9, confidence: { low: 1.3, high: 2.5 } },
-];
-
-const MOCK_HISTORY: HistoricalEntry[] = Array.from({ length: 14 }, (_, i) => {
-  const date = new Date(2026, 2, 19 + i);
-  return {
-    date: `${date.getMonth() + 1}/${date.getDate()}`,
-    google: 170000 + Math.random() * 20000,
-    meta: 140000 + Math.random() * 20000,
-    tiktok: 70000 + Math.random() * 20000,
-    line: 55000 + Math.random() * 10000,
-    x: 20000 + Math.random() * 10000,
-    yahoo: 12000 + Math.random() * 6000,
-  };
-});
-
-const MOCK_MONTHLY_PACING: MonthlyPacing = {
-  spent: 2340000,
-  total: 3000000,
-  daysRemaining: 8,
-  projectedSpend: 3150000,
-  projectedOverage: 5,
-  status: 'caution',
-};
-
 const PACING_STATUS_CONFIG: Record<PacingStatus, { labelKey: string; className: string; badgeClass: string }> = {
   normal: {
     labelKey: 'budgets.pacingNormal',
@@ -347,15 +307,15 @@ export default function BudgetsPage(): React.ReactElement {
     'Yahoo!': 15000,
   });
 
-  // tRPC hooks (with graceful fallback)
   const budgetQuery = trpc.budgets.current.useQuery(undefined, { retry: false });
+  const historyQuery = trpc.budgets.history.useQuery({ limit: 14 }, { retry: false });
+  const monthlyPacingQuery = trpc.budgets.monthlyPacing.useQuery(undefined, { retry: false });
 
-  const allocations = budgetQuery.error
-    ? MOCK_ALLOCATIONS
-    : (budgetQuery.data as PlatformAllocation[] | undefined) ?? MOCK_ALLOCATIONS;
-  const forecasts = MOCK_FORECASTS;
-  const history = MOCK_HISTORY;
-  const isLoading = budgetQuery.isLoading && !budgetQuery.error;
+  const allocations = (budgetQuery.data as PlatformAllocation[] | undefined) ?? [];
+  const forecasts: ForecastEntry[] = [];
+  const history = (historyQuery.data as HistoricalEntry[] | undefined) ?? [];
+  const monthlyPacing = (monthlyPacingQuery.data as MonthlyPacing | undefined) ?? null;
+  const isLoading = budgetQuery.isLoading;
 
   function handleOptimize(): void {
     setIsOptimizing(true);
@@ -391,7 +351,13 @@ export default function BudgetsPage(): React.ReactElement {
       />
 
       {/* Monthly pacing */}
-      <MonthlyPacingSection pacing={MOCK_MONTHLY_PACING} />
+      {monthlyPacing ? (
+        <MonthlyPacingSection pacing={monthlyPacing} />
+      ) : (
+        <div className="rounded-lg border border-dashed border-border bg-card px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      )}
 
       {/* Current allocation + AI recommendation */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   Check,
@@ -18,6 +18,7 @@ import {
 import { EmptyState, PageHeader, Tabs } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 // ============================================================
@@ -117,210 +118,6 @@ const APPROVER_ROLE_LABEL_KEYS: Record<ApproverRole, string> = {
   admin: 'approvals.roleAdmin',
   manager: 'approvals.roleManager',
 };
-
-// ============================================================
-// Mock Data
-// ============================================================
-
-function getMockPending(t: (key: string, params?: Record<string, string | number>) => string): ApprovalRequest[] {
-  return [
-  {
-    id: 'r1',
-    type: 'budget_change',
-    title: t('approvals.hbbe89f'),
-    requester: { name: t('approvals.ha2aa03'), role: t('approvals.h44a95d'), avatar: 'T' },
-    timeAgo: t('approvals.h5bf96a'),
-    reason: t('approvals.h9b8a06'),
-    changes: [{ label: t('approvals.h3af4b5'), before: '¥80,000', after: '¥150,000', percentChange: 87.5 }],
-    comments: [
-      { id: 'c1', user: t('approvals.hcef95e'), text: t('approvals.hb89412'), timestamp: t('approvals.h2012e9') },
-    ],
-    status: 'pending',
-  },
-  {
-    id: 'r2',
-    type: 'campaign_create',
-    title: t('approvals.h87ec6c'),
-    requester: { name: t('approvals.hd44bfa'), role: t('approvals.h44a95d'), avatar: 'S' },
-    timeAgo: t('approvals.h00bb20'),
-    reason: t('approvals.hf27651'),
-    changes: [
-      { label: t('approvals.h0b721f'), before: '--', after: '¥300,000' },
-      { label: t('approvals.h853ac7'), before: '--', after: '4/29 - 5/6' },
-      { label: t('approvals.hcd47fa'), before: '--', after: 'Google, Meta, TikTok' },
-    ],
-    comments: [],
-    status: 'pending',
-  },
-  {
-    id: 'r3',
-    type: 'creative_publish',
-    title: t('approvals.h882b95'),
-    requester: { name: t('approvals.hdec8fe'), role: t('approvals.haa6851'), avatar: 'Y' },
-    timeAgo: t('approvals.heabfe8'),
-    reason: t('approvals.h5e8b3f'),
-    changes: [
-      { label: t('approvals.h2ed498'), before: '--', after: 'Meta, TikTok' },
-      { label: t('approvals.h9991e0'), before: '--', after: t('approvals.hd238a2') },
-    ],
-    comments: [
-      { id: 'c2', user: t('approvals.ha2aa03'), text: t('approvals.he2b053'), timestamp: t('approvals.h3bdef6') },
-      { id: 'c3', user: t('approvals.hdec8fe'), text: t('approvals.h0ac9c7'), timestamp: t('approvals.h56602f') },
-    ],
-    status: 'pending',
-  },
-  {
-    id: 'r4',
-    type: 'rule_change',
-    title: t('approvals.hcf9805'),
-    requester: { name: t('approvals.ha2aa03'), role: t('approvals.h44a95d'), avatar: 'T' },
-    timeAgo: t('approvals.heabfe8'),
-    reason: t('approvals.h898772'),
-    changes: [{ label: t('approvals.h086871'), before: '¥3,000', after: '¥5,000', percentChange: 66.7 }],
-    comments: [],
-    status: 'pending',
-  },
-  {
-    id: 'r5',
-    type: 'budget_change',
-    title: t('approvals.hf646b1'),
-    requester: { name: t('approvals.hcef95e'), role: t('approvals.h6a7bea'), avatar: 'H' },
-    timeAgo: t('approvals.ha601b9'),
-    reason: t('approvals.h478cf9'),
-    changes: [{ label: t('approvals.h0560e6'), before: '¥10,000', after: '¥25,000', percentChange: 150 }],
-    comments: [],
-    status: 'pending',
-  },
-];
-}
-
-function getMockMyRequests(t: (key: string, params?: Record<string, string | number>) => string): ApprovalRequest[] {
-  return [
-  {
-    id: 'mr1',
-    type: 'budget_change',
-    title: t('approvals.h42661f'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.heabfe8'),
-    reason: '',
-    changes: [{ label: t('approvals.h3af4b5'), before: '¥400,000', after: '¥500,000' }],
-    comments: [{ id: 'mc1', user: t('approvals.h509397'), text: t('approvals.h33b803'), timestamp: t('approvals.h3dfa67') }],
-    status: 'approved',
-  },
-  {
-    id: 'mr2',
-    type: 'campaign_create',
-    title: t('approvals.hbec60f'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.h35ee47'),
-    reason: '',
-    changes: [{ label: t('approvals.h0b721f'), before: '--', after: '¥100,000' }],
-    comments: [{ id: 'mc2', user: t('approvals.h509397'), text: t('approvals.h4e0821'), timestamp: t('approvals.ha601b9') }],
-    status: 'rejected',
-  },
-  {
-    id: 'mr3',
-    type: 'budget_change',
-    title: t('approvals.h0376f4'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.h00bb20'),
-    reason: '',
-    changes: [{ label: t('approvals.h0560e6'), before: '¥30,000', after: '¥50,000' }],
-    comments: [],
-    status: 'pending',
-  },
-  {
-    id: 'mr4',
-    type: 'creative_publish',
-    title: t('approvals.heacbc8'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.h9778cc'),
-    reason: '',
-    changes: [],
-    comments: [],
-    status: 'approved',
-  },
-  {
-    id: 'mr5',
-    type: 'rule_change',
-    title: t('approvals.hd305bb'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.hec37ad'),
-    reason: '',
-    changes: [],
-    comments: [],
-    status: 'cancelled',
-  },
-  {
-    id: 'mr6',
-    type: 'budget_change',
-    title: t('approvals.h32d043'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.hec37ad'),
-    reason: '',
-    changes: [{ label: t('approvals.h3af4b5'), before: '¥200,000', after: '¥350,000' }],
-    comments: [],
-    status: 'approved',
-  },
-  {
-    id: 'mr7',
-    type: 'campaign_create',
-    title: t('approvals.h750ba8'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.h0f215e'),
-    reason: '',
-    changes: [{ label: t('approvals.h0b721f'), before: '--', after: '¥150,000' }],
-    comments: [],
-    status: 'approved',
-  },
-  {
-    id: 'mr8',
-    type: 'creative_publish',
-    title: t('approvals.h62a1a4'),
-    requester: { name: t('approvals.h86b24e'), role: t('approvals.h44a95d'), avatar: 'U' },
-    timeAgo: t('approvals.h1cee87'),
-    reason: '',
-    changes: [],
-    comments: [],
-    status: 'rejected',
-  },
-];
-}
-
-function getMockPolicies(t: (key: string, params?: Record<string, string | number>) => string): ApprovalPolicy[] {
-  return [
-  {
-    id: 'p1',
-    name: t('approvals.h01e53a'),
-    target: 'budget',
-    budgetThreshold: 100000,
-    requiredApprovers: 2,
-    approverRoles: ['owner', 'admin'],
-    autoApproveLimit: 30000,
-    enabled: true,
-  },
-  {
-    id: 'p2',
-    name: t('approvals.h2885c0'),
-    target: 'campaign',
-    budgetThreshold: 50000,
-    requiredApprovers: 1,
-    approverRoles: ['owner', 'admin', 'manager'],
-    autoApproveLimit: 50000,
-    enabled: true,
-  },
-  {
-    id: 'p3',
-    name: t('approvals.h5e77cb'),
-    target: 'auto_rule',
-    budgetThreshold: 0,
-    requiredApprovers: 1,
-    approverRoles: ['owner', 'admin'],
-    autoApproveLimit: 0,
-    enabled: false,
-  },
-];
-}
 
 // ============================================================
 // Helpers
@@ -772,8 +569,15 @@ function PolicyCreateModal({
 
 function PoliciesTab(): React.ReactElement {
   const { t } = useI18n();
-  const [policies, setPolicies] = useState<ApprovalPolicy[]>(getMockPolicies(t));
+  const policiesQuery = trpc.approvals.policies.list.useQuery(undefined, { retry: false });
+  const [policies, setPolicies] = useState<ApprovalPolicy[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (policiesQuery.data) {
+      setPolicies((policiesQuery.data as unknown as ApprovalPolicy[] | undefined) ?? []);
+    }
+  }, [policiesQuery.data]);
 
   function handleTogglePolicy(id: string): void {
     setPolicies((prev) =>
@@ -890,8 +694,30 @@ function PoliciesTab(): React.ReactElement {
 export default function ApprovalsPage(): React.ReactElement {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<ApprovalTab>('pending');
-  const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>(getMockPending(t));
-  const [myRequests, setMyRequests] = useState<ApprovalRequest[]>(getMockMyRequests(t));
+
+  const pendingQuery = trpc.approvals.requests.list.useQuery(
+    { status: 'pending' },
+    { retry: false },
+  );
+  const myRequestsQuery = trpc.approvals.requests.list.useQuery(
+    {},
+    { retry: false },
+  );
+
+  const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>([]);
+  const [myRequests, setMyRequests] = useState<ApprovalRequest[]>([]);
+
+  useEffect(() => {
+    if (pendingQuery.data) {
+      setPendingRequests((pendingQuery.data as unknown as ApprovalRequest[] | undefined) ?? []);
+    }
+  }, [pendingQuery.data]);
+
+  useEffect(() => {
+    if (myRequestsQuery.data) {
+      setMyRequests((myRequestsQuery.data as unknown as ApprovalRequest[] | undefined) ?? []);
+    }
+  }, [myRequestsQuery.data]);
 
   const pendingCount = pendingRequests.length;
 

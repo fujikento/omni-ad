@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  BarChart3,
   ChevronRight,
   Info,
   Lightbulb,
@@ -28,6 +29,7 @@ import {
 } from 'recharts';
 import { Button, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 // ============================================================
@@ -165,84 +167,6 @@ const SEVERITY_CONFIG: Record<RiskSeverity, { bgClass: string; textClass: string
     borderClass: 'border-blue-200 dark:border-blue-800',
   },
 };
-
-function generateDailySpend(): DailySpend[] {
-  return Array.from({ length: 30 }, (_, i) => {
-    const date = new Date(2026, 2, 4 + i);
-    const dayOfWeek = date.getDay();
-    const baseSpend = 85000 + Math.sin(i / 4) * 15000;
-    const weekendFactor = dayOfWeek === 0 || dayOfWeek === 6 ? 0.7 : 1;
-    return {
-      date: `${date.getMonth() + 1}/${date.getDate()}`,
-      spend: Math.round(baseSpend * weekendFactor + (Math.random() - 0.5) * 10000),
-    };
-  });
-}
-
-function generateWeekdayAverage(t: (key: string, params?: Record<string, string | number>) => string): WeekdayAverage[] {
-  const days = [t('accountanalysis.connectionId.he42b99'), t('accountanalysis.connectionId.hdf3bbd'), t('accountanalysis.connectionId.heab619'), t('accountanalysis.connectionId.he0a5e0'), t('accountanalysis.connectionId.h9c4189'), t('accountanalysis.connectionId.h06da77'), t('accountanalysis.connectionId.h3edddd')];
-  const averages = [92000, 95000, 98000, 96000, 88000, 62000, 58000];
-  return days.map((day, i) => ({ day, average: averages[i] ?? 0 }));
-}
-
-function getMockData(t: (key: string, params?: Record<string, string | number>) => string): AccountAnalysisData {
-  return {
-  platformLabel: 'Google Ads',
-  platformIcon: 'G',
-  accountName: 'OMNI-AD Google',
-  overallScore: 62,
-  analysisDate: '2026-04-03 09:30',
-  aiSummary: t('accountanalysis.connectionId.hde029e'),
-  totalCampaigns: 8,
-  activeCampaigns: 5,
-  totalSpend30d: 2450000,
-  averageRoas: 2.8,
-  averageCtr: 3.2,
-  campaigns: [
-    { id: 'c1', name: t('accountanalysis.connectionId.hc6f094'), status: 'active', objective: 'conversions', dailyBudget: 50000, spend30d: 680000, roas: 4.5, ctr: 4.2, impressions: 250000 },
-    { id: 'c2', name: t('accountanalysis.connectionId.h03d928'), status: 'active', objective: 'awareness', dailyBudget: 30000, spend30d: 420000, roas: 3.8, ctr: 2.8, impressions: 520000 },
-    { id: 'c3', name: t('accountanalysis.connectionId.h038dd1'), status: 'active', objective: 'conversions', dailyBudget: 25000, spend30d: 350000, roas: 3.2, ctr: 5.1, impressions: 180000 },
-    { id: 'c4', name: t('accountanalysis.connectionId.hb59a3d'), status: 'active', objective: 'conversions', dailyBudget: 35000, spend30d: 480000, roas: 2.4, ctr: 3.5, impressions: 310000 },
-    { id: 'c5', name: t('accountanalysis.connectionId.h345237'), status: 'paused', objective: 'engagement', dailyBudget: 20000, spend30d: 180000, roas: 1.8, ctr: 1.2, impressions: 420000 },
-    { id: 'c6', name: t('accountanalysis.connectionId.h152ccd'), status: 'active', objective: 'traffic', dailyBudget: 15000, spend30d: 210000, roas: 0.8, ctr: 2.1, impressions: 150000 },
-    { id: 'c7', name: t('accountanalysis.connectionId.h86923f'), status: 'paused', objective: 'awareness', dailyBudget: 10000, spend30d: 85000, roas: 0.5, ctr: 0.4, impressions: 380000 },
-    { id: 'c8', name: t('accountanalysis.connectionId.h9336ef'), status: 'completed', objective: 'conversions', dailyBudget: 0, spend30d: 45000, roas: 2.1, ctr: 3.8, impressions: 95000 },
-  ],
-  dailySpend: generateDailySpend(),
-  weekdayAverage: generateWeekdayAverage(t),
-  peakDay: t('accountanalysis.connectionId.hc1440f'),
-  lowDay: t('accountanalysis.connectionId.h17f430'),
-  topPerformers: [
-    { campaignName: t('accountanalysis.connectionId.hc6f094'), roas: 4.5, reason: t('accountanalysis.connectionId.h8ef9c1') },
-    { campaignName: t('accountanalysis.connectionId.h03d928'), roas: 3.8, reason: t('accountanalysis.connectionId.h3ad3c0') },
-    { campaignName: t('accountanalysis.connectionId.h038dd1'), roas: 3.2, reason: t('accountanalysis.connectionId.h97c1d0') },
-  ],
-  underPerformers: [
-    { campaignName: t('accountanalysis.connectionId.h152ccd'), roas: 0.8, reason: t('accountanalysis.connectionId.hfb0b39') },
-    { campaignName: t('accountanalysis.connectionId.h86923f'), roas: 0.5, reason: t('accountanalysis.connectionId.h80e7b5') },
-    { campaignName: t('accountanalysis.connectionId.h345237'), roas: 1.8, reason: t('accountanalysis.connectionId.hd411e0') },
-  ],
-  opportunities: [
-    { text: t('accountanalysis.connectionId.h8df653') },
-    { text: t('accountanalysis.connectionId.h39e157') },
-    { text: t('accountanalysis.connectionId.hc2cab4') },
-    { text: t('accountanalysis.connectionId.ha87ed3') },
-    { text: t('accountanalysis.connectionId.h4ef798') },
-  ],
-  suggestions: [
-    { id: 's1', priority: 'HIGH', title: t('accountanalysis.connectionId.h03ed83'), description: t('accountanalysis.connectionId.haffd78'), estimatedImpact: t('accountanalysis.connectionId.h9c0b51') },
-    { id: 's2', priority: 'HIGH', title: t('accountanalysis.connectionId.h3742a7'), description: t('accountanalysis.connectionId.h4e3f5c'), estimatedImpact: 'CPA -35%, ROAS +1.2pt' },
-    { id: 's3', priority: 'MEDIUM', title: t('accountanalysis.connectionId.h917b64'), description: t('accountanalysis.connectionId.h3465e8'), estimatedImpact: t('accountanalysis.connectionId.h548143') },
-    { id: 's4', priority: 'MEDIUM', title: t('accountanalysis.connectionId.h3cc035'), description: t('accountanalysis.connectionId.hb59719'), estimatedImpact: t('accountanalysis.connectionId.h71875d') },
-    { id: 's5', priority: 'LOW', title: t('accountanalysis.connectionId.h1dac3a'), description: t('accountanalysis.connectionId.h38e370'), estimatedImpact: t('accountanalysis.connectionId.h506f3c') },
-  ],
-  risks: [
-    { id: 'r1', severity: 'CRITICAL', title: t('accountanalysis.connectionId.hc81a5f'), description: t('accountanalysis.connectionId.h486166'), affectedCampaigns: [t('accountanalysis.connectionId.hc6f094')] },
-    { id: 'r2', severity: 'WARNING', title: t('accountanalysis.connectionId.h639b4d'), description: t('accountanalysis.connectionId.h741959'), affectedCampaigns: [t('accountanalysis.connectionId.h038dd1')] },
-    { id: 'r3', severity: 'INFO', title: t('accountanalysis.connectionId.hffef54'), description: t('accountanalysis.connectionId.he1883f'), affectedCampaigns: [t('accountanalysis.connectionId.hb59a3d'), t('accountanalysis.connectionId.h152ccd'), t('accountanalysis.connectionId.h86923f')] },
-  ],
-};
-}
 
 // ============================================================
 // Score Indicator
@@ -475,11 +399,14 @@ export default function AccountAnalysisPage(): React.ReactElement {
   const { t } = useI18n();
   const { connectionId } = useParams<{ connectionId: string }>();
   const [isReanalyzing, setIsReanalyzing] = useState(false);
-  const [isLoading] = useState(false);
 
-  // TODO: replace mock data with tRPC query using connectionId
-  void connectionId;
-  const data = getMockData(t);
+  const latestQuery = trpc.accountAnalysis.latest.useQuery(
+    { connectionId: connectionId ?? '' },
+    { enabled: Boolean(connectionId), retry: false },
+  );
+
+  const isLoading = latestQuery.isLoading;
+  const data = latestQuery.data as AccountAnalysisData | undefined;
 
   function handleReanalyze(): void {
     setIsReanalyzing(true);
@@ -488,6 +415,18 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
   if (isLoading) {
     return <SkeletonPage />;
+  }
+
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-20 text-center">
+        <BarChart3 size={36} className="text-muted-foreground/40" />
+        <p className="text-sm font-medium text-foreground">{t('common.noData')}</p>
+        <p className="max-w-sm text-xs text-muted-foreground">
+          {t('accountAnalysis.breadcrumbAnalysis')}
+        </p>
+      </div>
+    );
   }
 
   return (

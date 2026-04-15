@@ -46,3 +46,10 @@ Thumbs.db
 .improve-state/
 test-results/
 playwright-report/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Tooling caches
+.aidesigner/
+.claude/

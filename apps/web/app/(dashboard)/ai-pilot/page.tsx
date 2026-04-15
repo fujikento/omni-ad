@@ -7,12 +7,14 @@ import {
   Check,
   Clock,
   Filter,
+  Inbox,
   Lightbulb,
   Pause,
   Play,
   Plus,
   RefreshCw,
   Settings,
+  Shield,
   Sparkles,
   TrendingUp,
   X,
@@ -27,7 +29,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Badge, Button, EmptyState, PageHeader } from '@omni-ad/ui';
+import {
+  Badge,
+  Button,
+  EmptyState,
+  KbdHint,
+  NavyHero,
+  PageHeader,
+} from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
@@ -60,12 +69,6 @@ interface AiDecision {
   result: string | null;
   timestamp: string;
   timeAgo: string;
-}
-
-interface StatusCardData {
-  label: string;
-  value: string;
-  subLabel?: string;
 }
 
 interface PerformanceMetric {
@@ -144,203 +147,10 @@ const STATUS_CONFIG: Record<
 };
 
 // ============================================================
-// Mock Data
+// Static UI enumerations
 // ============================================================
 
-function getMockStrategySummary(t: (key: string, params?: Record<string, string | number>) => string): string {
-  return t('aipilot.hac9d00');
-}
-
-interface MockStatusCardDef {
-  labelKey: string;
-  value: string;
-  subLabelKey?: string;
-  subLabelLiteral?: string;
-}
-
-function getMockStatusCardDefs(t: (key: string, params?: Record<string, string | number>) => string): MockStatusCardDef[] {
-  return [
-  { labelKey: 'aiPilot.status', value: 'ON', subLabelKey: 'aiPilot.approvalMode' },
-  { labelKey: 'aiPilot.lastRun', value: t('aipilot.h2012e9'), subLabelLiteral: '2026-04-02 12:00 JST' },
-  { labelKey: 'aiPilot.nextRun', value: t('aipilot.he5a0b1'), subLabelLiteral: '14:00 JST' },
-  { labelKey: 'aiPilot.todayDecisions', value: t('aipilot.hcc1d8b'), subLabelLiteral: t('aipilot.hc39f70') },
-];
-}
-
-function getMockDecisions(t: (key: string, params?: Record<string, string | number>) => string): AiDecision[] {
-  return [
-  {
-    id: 'd1',
-    type: 'budget_adjustment',
-    status: 'executed',
-    campaignName: t('aipilot.hb2cb88'),
-    reasoning:
-      t('aipilot.h45b75a'),
-    confidence: 92,
-    actionSummary: t('aipilot.h2f14dd'),
-    result: 'ROAS: 2.8 → 3.5 (+25%)',
-    timestamp: '2026-04-02T12:00:00Z',
-    timeAgo: t('aipilot.h2012e9'),
-  },
-  {
-    id: 'd2',
-    type: 'budget_adjustment',
-    status: 'executed',
-    campaignName: t('aipilot.h3f3a1a'),
-    reasoning:
-      t('aipilot.hc62dbe'),
-    confidence: 87,
-    actionSummary: t('aipilot.h492de4'),
-    result: 'CPC: ¥320 → ¥285 (-11%)',
-    timestamp: '2026-04-02T10:00:00Z',
-    timeAgo: t('aipilot.hcf7356'),
-  },
-  {
-    id: 'd3',
-    type: 'budget_adjustment',
-    status: 'pending_approval',
-    campaignName: t('aipilot.haaff51'),
-    reasoning:
-      t('aipilot.h8bc06b'),
-    confidence: 78,
-    actionSummary: t('aipilot.he2b3a3'),
-    result: null,
-    timestamp: '2026-04-02T13:00:00Z',
-    timeAgo: t('aipilot.h6ff847'),
-  },
-  {
-    id: 'd4',
-    type: 'campaign_pause',
-    status: 'executed',
-    campaignName: t('aipilot.h645cb3'),
-    reasoning:
-      t('aipilot.h0a5d03'),
-    confidence: 95,
-    actionSummary: t('aipilot.he0df9c'),
-    result: t('aipilot.h9a12bf'),
-    timestamp: '2026-04-02T09:00:00Z',
-    timeAgo: t('aipilot.h00bb20'),
-  },
-  {
-    id: 'd5',
-    type: 'campaign_pause',
-    status: 'executed',
-    campaignName: t('aipilot.h2c49b9'),
-    reasoning:
-      t('aipilot.h2d5da4'),
-    confidence: 99,
-    actionSummary: t('aipilot.heb52db'),
-    result: t('aipilot.h6aefeb'),
-    timestamp: '2026-04-02T08:00:00Z',
-    timeAgo: t('aipilot.ha45695'),
-  },
-  {
-    id: 'd6',
-    type: 'campaign_resume',
-    status: 'executed',
-    campaignName: t('aipilot.h890fdc'),
-    reasoning:
-      t('aipilot.h051bda'),
-    confidence: 85,
-    actionSummary: t('aipilot.h3dea2b'),
-    result: 'CTR: 2.1% → 3.4% (+62%)',
-    timestamp: '2026-04-02T07:00:00Z',
-    timeAgo: t('aipilot.hc00d00'),
-  },
-  {
-    id: 'd7',
-    type: 'creative_rotation',
-    status: 'executed',
-    campaignName: t('aipilot.hbf5fb2'),
-    reasoning:
-      t('aipilot.hf445f3'),
-    confidence: 91,
-    actionSummary: t('aipilot.h3a55ac'),
-    result: 'CTR: 1.8% → 2.5% (+39%)',
-    timestamp: '2026-04-02T11:00:00Z',
-    timeAgo: t('aipilot.h5bf96a'),
-  },
-  {
-    id: 'd8',
-    type: 'creative_rotation',
-    status: 'pending_approval',
-    campaignName: t('aipilot.h3f3a1a'),
-    reasoning:
-      t('aipilot.hbdfe36'),
-    confidence: 73,
-    actionSummary: t('aipilot.h9cd77a'),
-    result: null,
-    timestamp: '2026-04-02T13:30:00Z',
-    timeAgo: t('aipilot.h98a92c'),
-  },
-  {
-    id: 'd9',
-    type: 'campaign_creation',
-    status: 'pending_approval',
-    campaignName: null,
-    reasoning:
-      t('aipilot.h8d3201'),
-    confidence: 81,
-    actionSummary:
-      t('aipilot.h0041c3'),
-    result: null,
-    timestamp: '2026-04-02T12:30:00Z',
-    timeAgo: t('aipilot.h3a2bc0'),
-  },
-  {
-    id: 'd10',
-    type: 'strategy_insight',
-    status: 'executed',
-    campaignName: null,
-    reasoning:
-      t('aipilot.h2fecae'),
-    confidence: 88,
-    actionSummary: t('aipilot.h5d6a00'),
-    result: t('aipilot.hbd6191'),
-    timestamp: '2026-04-02T06:00:00Z',
-    timeAgo: t('aipilot.hc8d38c'),
-  },
-  {
-    id: 'd11',
-    type: 'strategy_insight',
-    status: 'executed',
-    campaignName: null,
-    reasoning:
-      t('aipilot.h0a65a9'),
-    confidence: 84,
-    actionSummary: t('aipilot.hace6d1'),
-    result: 'CVR: 2.4% → 2.8% (+17%)',
-    timestamp: '2026-04-01T18:00:00Z',
-    timeAgo: t('aipilot.h930405'),
-  },
-  {
-    id: 'd12',
-    type: 'strategy_insight',
-    status: 'executed',
-    campaignName: null,
-    reasoning:
-      t('aipilot.h18fbd8'),
-    confidence: 76,
-    actionSummary: t('aipilot.h143936'),
-    result: t('aipilot.h71cf6d'),
-    timestamp: '2026-04-01T14:00:00Z',
-    timeAgo: t('aipilot.h23c9bc'),
-  },
-];
-}
-
-const MOCK_PERFORMANCE_METRICS: PerformanceMetric[] = [
-  { label: 'ROAS', before: 2.3, after: 3.24, format: 'roas' },
-  { label: 'CPA', before: 4200, after: 2850, format: 'currency' },
-  { label: 'CTR', before: 1.8, after: 2.6, format: 'percent' },
-  { label: 'CVR', before: 2.1, after: 2.8, format: 'percent' },
-];
-
-const BEFORE_AFTER_CHART_DATA: BeforeAfterChartData[] = [
-  { metric: 'ROAS', before: 2.3, after: 3.24 },
-  { metric: 'CTR(%)', before: 1.8, after: 2.6 },
-  { metric: 'CVR(%)', before: 2.1, after: 2.8 },
-];
+const GUARDRAIL_RULES = ['Min ROAS > 3.0', 'Daily Cap: ¥50,000', 'No PMax Mod'] as const;
 
 const CHART_COLORS = {
   before: 'hsl(220, 14%, 70%)',
@@ -351,59 +161,52 @@ const CHART_COLORS = {
 // Subcomponents
 // ============================================================
 
-function StatusPanel({
-  cards,
-  isActive,
-}: {
-  cards: StatusCardData[];
-  isActive: boolean;
-  statusLabel?: string;
-}): React.ReactElement {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {cards.map((card, idx) => (
-        <div key={card.label} className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
-          <p className="mt-1 text-xl font-bold text-foreground">
-            {idx === 0 ? (
-              <span className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    'inline-block h-3 w-3 rounded-full',
-                    isActive ? 'bg-green-500' : 'bg-red-500',
-                  )}
-                />
-                {card.value}
-              </span>
-            ) : (
-              card.value
-            )}
-          </p>
-          {card.subLabel && (
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{card.subLabel}</p>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+const CONFIDENCE_TOKEN_COUNT = 10;
+
+type ConfidenceTone = 'primary' | 'success' | 'warning' | 'destructive';
+
+function getConfidenceTone(confidence: number, status: DecisionStatus): ConfidenceTone {
+  if (status === 'rejected') return 'destructive';
+  if (confidence >= 95) return 'primary';
+  if (confidence >= 80) return 'success';
+  if (confidence >= 60) return 'warning';
+  return 'destructive';
 }
 
-function StrategySummaryCard({
-  summary,
-  updatedAt,
+function SegmentedConfidence({
+  value,
+  tone,
 }: {
-  summary: string;
-  updatedAt: string;
+  value: number;
+  tone: ConfidenceTone;
 }): React.ReactElement {
-  const { t } = useI18n();
+  const filled = Math.round((value / 100) * CONFIDENCE_TOKEN_COUNT);
+  const toneBg =
+    tone === 'primary'
+      ? 'bg-primary'
+      : tone === 'success'
+        ? 'bg-success'
+        : tone === 'warning'
+          ? 'bg-warning'
+          : 'bg-destructive';
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/5 p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles size={18} className="text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">{t('aiPilot.aiPolicy')}</h3>
-      </div>
-      <p className="text-sm leading-relaxed text-foreground">{summary}</p>
-      <p className="mt-3 text-xs text-muted-foreground">{t('aiPilot.lastUpdated')}: {updatedAt}</p>
+    <div
+      className="flex gap-[2px]"
+      role="meter"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      {Array.from({ length: CONFIDENCE_TOKEN_COUNT }).map((_, i) => (
+        <span
+          key={i}
+          className={cn(
+            'h-3 w-1 rounded-sm',
+            i < filled ? toneBg : 'bg-muted',
+          )}
+          aria-hidden="true"
+        />
+      ))}
     </div>
   );
 }
@@ -421,107 +224,111 @@ function DecisionCard({
   const typeConfig = DECISION_TYPE_CONFIG[decision.type];
   const statusConfig = STATUS_CONFIG[decision.status];
   const isPending = decision.status === 'pending_approval';
+  const tone = getConfidenceTone(decision.confidence, decision.status);
+  const accentClass =
+    tone === 'primary'
+      ? 'bg-primary'
+      : tone === 'success'
+        ? 'bg-success'
+        : tone === 'warning'
+          ? 'bg-warning'
+          : 'bg-destructive';
 
   return (
-    <div className="rounded-lg border border-border bg-card p-5 transition-colors hover:border-border/80">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg" role="img" aria-label={t(typeConfig.labelKey)}>
-            {typeConfig.icon}
-          </span>
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
-              typeConfig.badgeClass,
-            )}
-          >
-            {t(typeConfig.labelKey)}
-          </span>
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
-              statusConfig.badgeClass,
-            )}
-          >
-            {t(statusConfig.labelKey)}
-          </span>
+    <article className="relative overflow-hidden rounded-lg border border-border bg-card shadow-xs transition-colors hover:border-border/60">
+      <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1', accentClass)} />
+      <div className="p-5 pl-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div
+              className={cn(
+                'grid h-8 w-8 shrink-0 place-items-center rounded-md border',
+                typeConfig.badgeClass,
+              )}
+            >
+              {typeConfig.icon}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t(typeConfig.labelKey)}
+              </p>
+              <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                {decision.campaignName ?? '—'}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('aiPilot.confidence')}
+              </span>
+              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                {decision.confidence}%
+              </span>
+            </div>
+            <SegmentedConfidence value={decision.confidence} tone={tone} />
+          </div>
         </div>
-        <span className="flex-shrink-0 text-xs text-muted-foreground">
-          {decision.timeAgo}
-        </span>
-      </div>
 
-      {/* Campaign name */}
-      {decision.campaignName && (
-        <p className="mt-2 text-sm font-semibold text-foreground">
-          {decision.campaignName}
+        {/* Reasoning — mono voice */}
+        <div className="mt-4 rounded-md border-l-2 border-primary/40 bg-muted/40 px-3 py-2">
+          <p className="font-mono text-[13px] leading-relaxed text-muted-foreground">
+            {decision.reasoning}
+          </p>
+        </div>
+
+        {/* Action summary */}
+        <p className="mt-3 whitespace-pre-line text-xs text-muted-foreground">
+          <span className="mr-1.5 font-semibold text-foreground/70">
+            {t('aiPilot.actionLabel')}:
+          </span>
+          {decision.actionSummary}
         </p>
-      )}
 
-      {/* Reasoning */}
-      <div className="mt-3 rounded-md border-l-4 border-primary/30 bg-muted/50 px-4 py-3">
-        <p className="text-xs font-medium text-muted-foreground mb-1">{t('aiPilot.aiReasoning')}</p>
-        <p className="text-sm leading-relaxed text-foreground">{decision.reasoning}</p>
-      </div>
-
-      {/* Confidence */}
-      <div className="mt-3 flex items-center gap-3">
-        <span className="text-xs text-muted-foreground">{t('aiPilot.confidence')}</span>
-        <div className="flex-1 h-2 rounded-full bg-muted">
-          <div
-            className={cn(
-              'h-full rounded-full transition-all',
-              decision.confidence >= 90
-                ? 'bg-green-500'
-                : decision.confidence >= 70
-                  ? 'bg-blue-500'
-                  : 'bg-yellow-500',
+        {/* Footer: status + time + impact + actions */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
+                statusConfig.badgeClass,
+              )}
+            >
+              {t(statusConfig.labelKey)}
+            </span>
+            <span className="tabular-nums text-muted-foreground">{decision.timeAgo}</span>
+            {decision.result && (
+              <span className="inline-flex items-center gap-1 font-mono text-success">
+                <TrendingUp size={12} />
+                {decision.result}
+              </span>
             )}
-            style={{ width: `${decision.confidence}%` }}
-          />
+          </div>
+          {isPending && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onReject(decision.id)}
+                leadingIcon={<X size={12} />}
+              >
+                <span>{t('aiPilot.reject')}</span>
+                <KbdHint className="ml-1">R</KbdHint>
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => onApprove(decision.id)}
+                leadingIcon={<Check size={12} strokeWidth={3} />}
+              >
+                <span>{t('aiPilot.approve')}</span>
+                <KbdHint className="ml-1" tone="inverse">A</KbdHint>
+              </Button>
+            </div>
+          )}
         </div>
-        <span className="text-xs font-semibold text-foreground">{decision.confidence}%</span>
       </div>
-
-      {/* Action summary */}
-      <div className="mt-3">
-        <p className="text-xs font-medium text-muted-foreground mb-1">{t('aiPilot.actionLabel')}</p>
-        <p className="text-sm text-foreground whitespace-pre-line">{decision.actionSummary}</p>
-      </div>
-
-      {/* Result */}
-      {decision.result && (
-        <div className="mt-3 flex items-center gap-2">
-          <TrendingUp size={14} className="text-green-600 dark:text-green-400" />
-          <span className="text-sm font-medium text-green-600 dark:text-green-400">
-            {decision.result}
-          </span>
-        </div>
-      )}
-
-      {/* Action buttons for pending */}
-      {isPending && (
-        <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
-          <button
-            type="button"
-            onClick={() => onApprove(decision.id)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-          >
-            <Check size={14} />
-            {t('aiPilot.approve')}
-          </button>
-          <button
-            type="button"
-            onClick={() => onReject(decision.id)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
-          >
-            <X size={14} />
-            {t('aiPilot.reject')}
-          </button>
-        </div>
-      )}
-    </div>
+    </article>
   );
 }
 
@@ -612,6 +419,22 @@ function PerformanceImpactSection({
   chartData: BeforeAfterChartData[];
 }): React.ReactElement {
   const { t } = useI18n();
+
+  if (metrics.length === 0 && chartData.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={18} className="text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">{t('aiPilot.performanceImpactTitle')}</h3>
+        </div>
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
+  }
+
   function formatValue(value: number, format: PerformanceMetric['format']): string {
     switch (format) {
       case 'roas':
@@ -735,7 +558,6 @@ export default function AiPilotPage(): React.ReactElement {
     Record<string, DecisionStatus>
   >({});
 
-  // tRPC queries with fallback to mock
   const decisionsQuery = trpc.aiAutopilot.decisions.list.useQuery({}, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -749,10 +571,8 @@ export default function AiPilotPage(): React.ReactElement {
   const approveMutation = trpc.aiAutopilot.decisions.approve.useMutation();
   const rejectMutation = trpc.aiAutopilot.decisions.reject.useMutation();
 
-  // Resolve data with fallback
-  const rawDecisions: AiDecision[] = decisionsQuery.error
-    ? getMockDecisions(t)
-    : (decisionsQuery.data as unknown as AiDecision[] | undefined) ?? getMockDecisions(t);
+  const rawDecisions: AiDecision[] =
+    (decisionsQuery.data as unknown as AiDecision[] | undefined) ?? [];
 
   // Apply local optimistic overrides
   const decisions = rawDecisions.map((d) => {
@@ -760,9 +580,8 @@ export default function AiPilotPage(): React.ReactElement {
     return override ? { ...d, status: override } : d;
   });
 
-  const isActive = settingsQuery.error
-    ? true
-    : (settingsQuery.data as { isActive?: boolean } | undefined)?.isActive ?? true;
+  const isActive =
+    (settingsQuery.data as { isActive?: boolean } | undefined)?.isActive ?? true;
 
   const triggering = triggerMutation.isPending;
 
@@ -892,19 +711,107 @@ export default function AiPilotPage(): React.ReactElement {
         </div>
       )}
 
-      {/* Status panel */}
-      <StatusPanel
-        cards={getMockStatusCardDefs(t).map((def) => ({
-          label: t(def.labelKey),
-          value: def.value,
-          subLabel: def.subLabelKey ? t(def.subLabelKey) : def.subLabelLiteral,
-        }))}
-        isActive={isActive}
-        statusLabel={t('aiPilot.status')}
-      />
+      {/* Navy hero — system state */}
+      <NavyHero ambientGlow gridOverlay>
+        <div className="flex flex-wrap items-center justify-between gap-6 p-6">
+          <div className="flex flex-wrap items-center gap-8">
+            {/* State */}
+            <div className="flex flex-col gap-1.5">
+              <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/50">
+                <span
+                  className={cn(
+                    'h-2 w-2 rounded-full',
+                    isActive ? 'bg-success animate-pulse' : 'bg-destructive',
+                  )}
+                />
+                System State
+              </span>
+              <span className="flex items-center gap-2 text-lg font-medium text-white">
+                {isActive ? t('aiPilot.running') : t('aiPilot.stopped')}
+                <span className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-white/60">
+                  承認モード
+                </span>
+              </span>
+            </div>
 
-      {/* Strategy summary */}
-      <StrategySummaryCard summary={getMockStrategySummary(t)} updatedAt={t('aipilot.h2012e9')} />
+            <span className="h-10 w-px bg-white/10" />
+
+            {/* Live decision count */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
+                本日の判断件数
+              </span>
+              <span className="font-mono text-2xl font-medium tabular-nums tracking-tight text-white">
+                {decisions.length}
+              </span>
+            </div>
+
+            {/* Pending */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
+                承認待ち
+              </span>
+              <span
+                className={cn(
+                  'font-mono text-2xl font-medium tabular-nums tracking-tight',
+                  pendingCount > 0 ? 'text-warning' : 'text-white',
+                )}
+              >
+                {pendingCount}
+              </span>
+            </div>
+
+          </div>
+
+          {/* Master controls */}
+          <div className="flex items-center gap-2">
+            <a
+              href="/settings/ai"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-3 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Settings size={14} />
+              {t('aiPilot.settings')}
+            </a>
+            <Button
+              size="md"
+              onClick={handleManualTrigger}
+              disabled={triggering}
+              loading={triggering}
+              leadingIcon={!triggering ? <Zap size={14} /> : undefined}
+              className="shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+            >
+              {t('aiPilot.manualRun')}
+            </Button>
+          </div>
+        </div>
+      </NavyHero>
+
+      {/* Guardrails ribbon */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-primary/5 px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <Shield size={12} className="text-primary" />
+            Active Guardrails
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {GUARDRAIL_RULES.map((rule) => (
+              <span
+                key={rule}
+                className="rounded border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-muted-foreground shadow-xs"
+              >
+                {rule}
+              </span>
+            ))}
+          </div>
+        </div>
+        <a
+          href="/settings/ai"
+          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+        >
+          ルールを編集
+          <ArrowRight size={12} />
+        </a>
+      </div>
 
       {/* Filter bar */}
       <div>
@@ -939,8 +846,8 @@ export default function AiPilotPage(): React.ReactElement {
 
       {/* Performance impact */}
       <PerformanceImpactSection
-        metrics={MOCK_PERFORMANCE_METRICS}
-        chartData={BEFORE_AFTER_CHART_DATA}
+        metrics={[]}
+        chartData={[]}
       />
     </div>
   );

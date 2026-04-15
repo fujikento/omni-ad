@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   Bell,
@@ -190,99 +190,6 @@ const COOLDOWN_OPTIONS = [
   { value: 240, labelKey: 'autoRules.cooldown4h' },
   { value: 1440, labelKey: 'autoRules.cooldown24h' },
 ];
-
-// ============================================================
-// Mock Data
-// ============================================================
-
-function getMockRules(t: (key: string, params?: Record<string, string | number>) => string): AutoRule[] {
-  return [
-  {
-    id: 'r1',
-    name: t('autorules.h8710de'),
-    enabled: true,
-    conditions: [
-      { type: 'metric_threshold', metric: 'cpa', operator: 'gt', value: 5000, duration: '3days' },
-    ],
-    actions: [
-      { type: 'pause_campaign' },
-    ],
-    triggerCount: 8,
-    lastTriggered: t('autorules.h5bf96a'),
-    cooldownMinutes: 60,
-  },
-  {
-    id: 'r2',
-    name: t('autorules.haebfb7'),
-    enabled: true,
-    conditions: [
-      { type: 'metric_threshold', metric: 'roas', operator: 'lt', value: 1.2, duration: 'daily' },
-    ],
-    actions: [
-      { type: 'adjust_budget', adjustmentType: 'percent', value: 20, direction: 'decrease' },
-      { type: 'send_notification', channels: ['slack'], message: t('autorules.hfe63e0') },
-    ],
-    triggerCount: 15,
-    lastTriggered: t('autorules.heabfe8'),
-    cooldownMinutes: 240,
-  },
-  {
-    id: 'r3',
-    name: t('autorules.hdab0d8'),
-    enabled: true,
-    conditions: [
-      { type: 'creative_fatigue', ctrDeclinePercent: 15, days: 5 },
-    ],
-    actions: [
-      { type: 'rotate_creative' },
-    ],
-    triggerCount: 6,
-    lastTriggered: t('autorules.ha601b9'),
-    cooldownMinutes: 1440,
-  },
-  {
-    id: 'r4',
-    name: t('autorules.hb08352'),
-    enabled: true,
-    conditions: [
-      { type: 'time_based', dayOfWeek: [1, 2, 3, 4, 5], hourRange: [0, 6] },
-    ],
-    actions: [
-      { type: 'pause_campaign' },
-    ],
-    triggerCount: 42,
-    lastTriggered: t('autorules.ha45695'),
-    cooldownMinutes: 30,
-  },
-  {
-    id: 'r5',
-    name: t('autorules.h5b8abb'),
-    enabled: false,
-    conditions: [
-      { type: 'budget_pacing', pace: 'over', threshold: 20 },
-    ],
-    actions: [
-      { type: 'send_notification', channels: ['dashboard', 'slack'], message: t('autorules.h0e4efe') },
-    ],
-    triggerCount: 0,
-    lastTriggered: null,
-    cooldownMinutes: 120,
-  },
-];
-}
-
-function getMockExecutions(t: (key: string, params?: Record<string, string | number>) => string): RuleExecution[] {
-  return [
-  { id: 'e1', datetime: '2026-04-02 09:15', ruleName: t('autorules.h8710de'), campaignName: t('autorules.hb2cb88'), conditionValue: 'CPA: ¥5,420', executedAction: t('autorules.hd75535'), status: 'success' },
-  { id: 'e2', datetime: '2026-04-02 06:00', ruleName: t('autorules.hb08352'), campaignName: t('autorules.hc6f094'), conditionValue: t('autorules.h196fa3'), executedAction: t('autorules.hd75535'), status: 'success' },
-  { id: 'e3', datetime: '2026-04-01 18:30', ruleName: t('autorules.haebfb7'), campaignName: t('autorules.h5f8f25'), conditionValue: 'ROAS: 0.95', executedAction: t('autorules.h238687'), status: 'success' },
-  { id: 'e4', datetime: '2026-04-01 14:00', ruleName: t('autorules.hdab0d8'), campaignName: t('autorules.h986608'), conditionValue: t('autorules.h2297ed'), executedAction: t('autorules.h36d8aa'), status: 'failed' },
-  { id: 'e5', datetime: '2026-04-01 10:00', ruleName: t('autorules.h8710de'), campaignName: t('autorules.h72fcf2'), conditionValue: 'CPA: ¥4,800', executedAction: t('autorules.hd75535'), status: 'skipped' },
-  { id: 'e6', datetime: '2026-03-31 22:00', ruleName: t('autorules.haebfb7'), campaignName: t('autorules.hb2cb88'), conditionValue: 'ROAS: 1.1', executedAction: t('autorules.h238687'), status: 'success' },
-  { id: 'e7', datetime: '2026-03-31 15:30', ruleName: t('autorules.hb08352'), campaignName: t('autorules.h5f8f25'), conditionValue: t('autorules.h196fa3'), executedAction: t('autorules.hd75535'), status: 'success' },
-  { id: 'e8', datetime: '2026-03-31 09:00', ruleName: t('autorules.h8710de'), campaignName: t('autorules.hc6f094'), conditionValue: 'CPA: ¥5,100', executedAction: t('autorules.hd75535'), status: 'success' },
-];
-}
 
 // ============================================================
 // Helper Functions
@@ -1190,6 +1097,13 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
 
       {expanded && (
         <div className="border-t border-border">
+          {executions.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <Clock size={28} className="text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            </div>
+          ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -1245,6 +1159,8 @@ function ExecutionHistorySection({ executions }: { executions: RuleExecution[] }
               </div>
             </div>
           )}
+          </>
+          )}
         </div>
       )}
     </div>
@@ -1259,8 +1175,19 @@ export default function AutoRulesPage(): React.ReactElement {
   const { t } = useI18n();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [rules, setRules] = useState<AutoRule[]>(getMockRules(t));
+  const [rules, setRules] = useState<AutoRule[]>([]);
   const [evaluating, setEvaluating] = useState(false);
+
+  const rulesQuery = trpc.rules.list.useQuery(undefined, { retry: false });
+  const executionsQuery = trpc.rules.executions.useQuery({}, { retry: false });
+
+  useEffect(() => {
+    const data = rulesQuery.data as AutoRule[] | undefined;
+    if (data) setRules(data);
+  }, [rulesQuery.data]);
+
+  const executions: RuleExecution[] =
+    (executionsQuery.data as RuleExecution[] | undefined) ?? [];
 
   const evaluateMutation = trpc.rules.evaluate.useMutation({
     onSettled: () => setEvaluating(false),
@@ -1353,7 +1280,7 @@ export default function AutoRulesPage(): React.ReactElement {
       )}
 
       {/* Execution history */}
-      <ExecutionHistorySection executions={getMockExecutions(t)} />
+      <ExecutionHistorySection executions={executions} />
 
       {/* Create rule modal */}
       <CreateRuleModal

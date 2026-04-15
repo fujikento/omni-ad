@@ -116,52 +116,13 @@ const TRANSITION_ICONS: Record<string, string> = {
   zoom: 'Zoom',
 };
 
-function getMockScript(t: (key: string, params?: Record<string, string | number>) => string): VideoScript {
-  return {
-  scenes: [
-    {
-      id: 's1',
-      order: 1,
-      duration: 3,
-      description: t('creatives.videostudio.h107067'),
-      textOverlay: t('creatives.videostudio.h4bcced'),
-      transition: 'fade',
-      visualStyle: 'cinematic',
-    },
-    {
-      id: 's2',
-      order: 2,
-      duration: 4,
-      description: t('creatives.videostudio.ha8e970'),
-      textOverlay: t('creatives.videostudio.h0c1ff8'),
-      transition: 'slide',
-      visualStyle: 'lifestyle',
-    },
-    {
-      id: 's3',
-      order: 3,
-      duration: 4,
-      description: t('creatives.videostudio.h54759f'),
-      textOverlay: t('creatives.videostudio.h71fadb'),
-      transition: 'zoom',
-      visualStyle: 'comparison',
-    },
-    {
-      id: 's4',
-      order: 4,
-      duration: 4,
-      description: t('creatives.videostudio.h475190'),
-      textOverlay: t('creatives.videostudio.h294692'),
-      transition: 'cut',
-      visualStyle: 'brand',
-    },
-  ],
-  voiceover: t('creatives.videostudio.h9b3706'),
-  musicMood: 'uplifting',
-  ctaTiming: 12,
-  totalDuration: 15,
+const EMPTY_SCRIPT: VideoScript = {
+  scenes: [],
+  voiceover: '',
+  musicMood: '',
+  ctaTiming: 0,
+  totalDuration: 0,
 };
-}
 
 // ============================================================
 // Subcomponents
@@ -626,16 +587,23 @@ function ScriptPreviewStep({
       {/* Timeline */}
       <div>
         <h4 className="mb-3 text-sm font-semibold text-foreground">{t('videoStudio.timeline')}</h4>
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {script.scenes.map((scene) => (
-            <SceneCard
-              key={scene.id}
-              scene={scene}
-              totalDuration={script.totalDuration}
-              onEdit={onEditScene}
-            />
-          ))}
-        </div>
+        {script.scenes.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-12 text-center">
+            <Film size={28} className="text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {script.scenes.map((scene) => (
+              <SceneCard
+                key={scene.id}
+                scene={scene}
+                totalDuration={script.totalDuration}
+                onEdit={onEditScene}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Voiceover */}
@@ -925,7 +893,7 @@ export default function VideoStudioPage(): React.ReactElement {
     language: 'ja',
     keigoLevel: 'polite',
   });
-  const [script, setScript] = useState<VideoScript>(getMockScript(t));
+  const [script, setScript] = useState<VideoScript>(EMPTY_SCRIPT);
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
   const [assetProgress, setAssetProgress] = useState<SceneGenerationProgress>({
     sceneIndex: 0,
@@ -935,14 +903,14 @@ export default function VideoStudioPage(): React.ReactElement {
   const [approved, setApproved] = useState(false);
 
   function handleGenerateScript(): void {
-    // Simulate script generation
-    setScript(getMockScript(t));
+    // TODO: call tRPC videoProjects.create / getStatus to produce the script
+    setScript(EMPTY_SCRIPT);
     setCurrentStep(2);
   }
 
   function handleRegenerate(): void {
-    // In production this would call the AI again
-    setScript({ ...getMockScript(t) });
+    // TODO: call tRPC to regenerate scenes via AI
+    setScript(EMPTY_SCRIPT);
   }
 
   function handleEditScene(sceneId: string): void {

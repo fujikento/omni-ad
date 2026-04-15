@@ -42,6 +42,7 @@ import {
 import { Badge, Button, PageHeader } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 // ============================================================
@@ -122,13 +123,6 @@ interface WeakWindowCell {
   competitorCpc: number;
   avgCpc: number;
   impressionShare: number;
-}
-
-interface KpiCardData {
-  label: string;
-  value: string;
-  trend: string;
-  trendPositive: boolean;
 }
 
 // ============================================================
@@ -282,477 +276,7 @@ const STRATEGY_RADIO_OPTIONS: {
 ];
 
 // ============================================================
-// Mock Data
 // ============================================================
-
-const MOCK_ALERTS: CompetitorAlert[] = [
-  {
-    id: 'a1',
-    type: 'new_creative',
-    competitorName: 'CompetitorA',
-    messageKey: 'competitors.alertNewCreatives',
-    messageParams: { name: 'CompetitorA', count: 5 },
-    timestamp: '2h',
-    acknowledged: false,
-  },
-  {
-    id: 'a2',
-    type: 'budget_increase',
-    competitorName: 'CompetitorC',
-    messageKey: 'competitors.alertBudgetIncrease',
-    messageParams: { name: 'CompetitorC', percent: 30 },
-    timestamp: '4h',
-    acknowledged: false,
-  },
-  {
-    id: 'a3',
-    type: 'position_change',
-    competitorName: 'CompetitorE',
-    messageKey: 'competitors.alertPositionGain',
-    messageParams: { name: 'CompetitorE' },
-    timestamp: '5h',
-    acknowledged: false,
-  },
-  {
-    id: 'a4',
-    type: 'new_keyword',
-    competitorName: 'CompetitorA',
-    messageKey: 'competitors.alertNewKeywords',
-    messageParams: { name: 'CompetitorA', count: 12 },
-    timestamp: '6h',
-    acknowledged: true,
-  },
-  {
-    id: 'a5',
-    type: 'new_campaign',
-    competitorName: 'CompetitorB',
-    messageKey: 'competitors.alertNewCampaign',
-    messageParams: { name: 'CompetitorB' },
-    timestamp: '8h',
-    acknowledged: true,
-  },
-  {
-    id: 'a6',
-    type: 'budget_increase',
-    competitorName: 'CompetitorD',
-    messageKey: 'competitors.alertBudgetDouble',
-    messageParams: { name: 'CompetitorD', platform: 'TikTok' },
-    timestamp: '12h',
-    acknowledged: true,
-  },
-  {
-    id: 'a7',
-    type: 'position_change',
-    competitorName: 'CompetitorC',
-    messageKey: 'competitors.alertPositionImproved',
-    messageParams: { name: 'CompetitorC', delta: '0.5' },
-    timestamp: '1d',
-    acknowledged: true,
-  },
-  {
-    id: 'a8',
-    type: 'new_creative',
-    competitorName: 'CompetitorE',
-    messageKey: 'competitors.alertNewVideoAds',
-    messageParams: { name: 'CompetitorE', count: 3 },
-    timestamp: '1d',
-    acknowledged: true,
-  },
-];
-
-function getMockCompetitors(t: (key: string, params?: Record<string, string | number>) => string): Competitor[] {
-  return [
-  {
-    id: 'c1',
-    name: 'CompetitorA',
-    domain: 'competitor-a.co.jp',
-    active: true,
-    strategy: 'aggressive',
-    platforms: ['google', 'meta', 'tiktok'],
-    adCount: 85,
-    estimatedMonthlyBudget: 3800000,
-    overlapRate: 62,
-    latestActivity: t('competitors.hf954e0'),
-    latestActivityTime: t('competitors.h2012e9'),
-  },
-  {
-    id: 'c2',
-    name: 'CompetitorB',
-    domain: 'competitor-b.jp',
-    active: true,
-    strategy: 'defensive',
-    platforms: ['google', 'line_yahoo'],
-    adCount: 42,
-    estimatedMonthlyBudget: 1800000,
-    overlapRate: 45,
-    latestActivity: t('competitors.h539b6c'),
-    latestActivityTime: t('competitors.hc8d38c'),
-  },
-  {
-    id: 'c3',
-    name: 'CompetitorC',
-    domain: 'competitor-c.com',
-    active: true,
-    strategy: 'opportunistic',
-    platforms: ['google', 'meta', 'tiktok', 'line_yahoo', 'amazon'],
-    adCount: 210,
-    estimatedMonthlyBudget: 5200000,
-    overlapRate: 71,
-    latestActivity: t('competitors.h18b19c'),
-    latestActivityTime: t('competitors.hcf7356'),
-  },
-  {
-    id: 'c4',
-    name: 'CompetitorD',
-    domain: 'competitor-d.co.jp',
-    active: true,
-    strategy: 'defensive',
-    platforms: ['meta', 'tiktok'],
-    adCount: 67,
-    estimatedMonthlyBudget: 2400000,
-    overlapRate: 38,
-    latestActivity: t('competitors.h380c0a'),
-    latestActivityTime: t('competitors.h3dfa67'),
-  },
-  {
-    id: 'c5',
-    name: 'CompetitorE',
-    domain: 'competitor-e.jp',
-    active: true,
-    strategy: 'aggressive',
-    platforms: ['google', 'amazon'],
-    adCount: 93,
-    estimatedMonthlyBudget: 3100000,
-    overlapRate: 55,
-    latestActivity: t('competitors.hf81811'),
-    latestActivityTime: t('competitors.h00bb20'),
-  },
-];
-}
-
-const MOCK_KPI_CARDS: (Omit<KpiCardData, 'label' | 'value' | 'trend'> & { labelKey: string; valueKey?: string; value: string; trendKey?: string; trend: string })[] = [
-  {
-    labelKey: 'competitors.kpiAvgImpressionShare',
-    value: '42.3%',
-    trend: '+2.1%',
-    trendPositive: true,
-  },
-  {
-    labelKey: 'competitors.kpiAvgPosition',
-    value: '1.8',
-    valueKey: 'competitors.positionUnit',
-    trend: '+0.3',
-    trendPositive: true,
-  },
-  {
-    labelKey: 'competitors.kpiDetectedCount',
-    value: '7',
-    valueKey: 'competitors.companiesUnit',
-    trend: '+2',
-    trendPositive: false,
-  },
-  {
-    labelKey: 'competitors.kpiMonthlyActions',
-    value: '23',
-    valueKey: 'competitors.timesUnit',
-    trendKey: 'competitors.successCount',
-    trend: '18',
-    trendPositive: true,
-  },
-];
-
-function generateImpressionShareData(): ImpressionShareDataPoint[] {
-  const data: ImpressionShareDataPoint[] = [];
-  const baseDate = new Date('2026-03-03');
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() + i);
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    data.push({
-      date: `${month}/${day}`,
-      ours: 38 + Math.round(Math.sin(i / 4) * 5 + Math.random() * 3),
-      competitorA:
-        22 + Math.round(Math.cos(i / 5) * 4 + Math.random() * 2),
-      competitorB:
-        15 + Math.round(Math.sin(i / 6) * 3 + Math.random() * 2),
-      competitorC:
-        18 + Math.round(Math.cos(i / 3) * 4 + Math.random() * 2),
-    });
-  }
-  return data;
-}
-
-function getMockImpressionShareData(): ImpressionShareDataPoint[] {
-  return generateImpressionShareData();
-}
-
-function getMockCounterActions(t: (key: string, params?: Record<string, string | number>) => string): CounterAction[] {
-  return [
-  {
-    id: 'ca1',
-    type: 'bid_adjustment',
-    status: 'executed',
-    competitorName: 'CompetitorA',
-    campaignName: t('competitors.hcaf606'),
-    reasoning:
-      t('competitors.h7bb11d'),
-    confidence: 92,
-    risk: 'low',
-    actionDetail: t('competitors.h4f34a6'),
-    result: t('competitors.h486852'),
-    timestamp: '2026-04-02T13:00:00Z',
-    timeAgo: t('competitors.h6ff847'),
-  },
-  {
-    id: 'ca2',
-    type: 'budget_shift',
-    status: 'executed',
-    competitorName: 'CompetitorC',
-    campaignName: t('competitors.h890fdc'),
-    reasoning:
-      t('competitors.h05eae3'),
-    confidence: 85,
-    risk: 'medium',
-    actionDetail: t('competitors.h0ee6ba'),
-    result: 'ROAS: 3.2 → 3.5 (+9%)',
-    timestamp: '2026-04-02T12:00:00Z',
-    timeAgo: t('competitors.h2012e9'),
-  },
-  {
-    id: 'ca3',
-    type: 'creative_counter',
-    status: 'proposed',
-    competitorName: 'CompetitorA',
-    campaignName: t('competitors.hc46dba'),
-    reasoning:
-      t('competitors.hb8c1fe'),
-    confidence: 78,
-    risk: 'low',
-    actionDetail: t('competitors.hed9430'),
-    result: null,
-    timestamp: '2026-04-02T11:30:00Z',
-    timeAgo: t('competitors.hf72dd0'),
-  },
-  {
-    id: 'ca4',
-    type: 'keyword_defense',
-    status: 'executed',
-    competitorName: 'CompetitorE',
-    campaignName: t('competitors.h7551ef'),
-    reasoning:
-      t('competitors.hcfea07'),
-    confidence: 88,
-    risk: 'medium',
-    actionDetail:
-      t('competitors.hbbed9f'),
-    result: t('competitors.h5f3f94'),
-    timestamp: '2026-04-02T10:00:00Z',
-    timeAgo: t('competitors.hcf7356'),
-  },
-  {
-    id: 'ca5',
-    type: 'timing_attack',
-    status: 'executed',
-    competitorName: 'CompetitorB',
-    campaignName: t('competitors.hf4903b'),
-    reasoning:
-      t('competitors.hd3b024'),
-    confidence: 82,
-    risk: 'low',
-    actionDetail: t('competitors.hc5c92e'),
-    result: 'CPA: ¥3,200 → ¥2,700 (-16%)',
-    timestamp: '2026-04-02T09:00:00Z',
-    timeAgo: t('competitors.h00bb20'),
-  },
-  {
-    id: 'ca6',
-    type: 'targeting_expansion',
-    status: 'executed',
-    competitorName: 'CompetitorC',
-    campaignName: t('competitors.h16aa88'),
-    reasoning:
-      t('competitors.hcbe9dd'),
-    confidence: 75,
-    risk: 'medium',
-    actionDetail: t('competitors.hb84b45'),
-    result: t('competitors.h1ec5b3'),
-    timestamp: '2026-04-02T08:00:00Z',
-    timeAgo: t('competitors.ha45695'),
-  },
-  {
-    id: 'ca7',
-    type: 'skip',
-    status: 'executed',
-    competitorName: 'CompetitorD',
-    campaignName: t('competitors.hb40af6'),
-    reasoning:
-      t('competitors.hb3a27d'),
-    confidence: 90,
-    risk: 'low',
-    actionDetail: t('competitors.he4ef7c'),
-    result: null,
-    timestamp: '2026-04-02T07:00:00Z',
-    timeAgo: t('competitors.hc00d00'),
-  },
-  {
-    id: 'ca8',
-    type: 'bid_adjustment',
-    status: 'rolled_back',
-    competitorName: 'CompetitorA',
-    campaignName: t('competitors.hcdc49a'),
-    reasoning:
-      t('competitors.h360f03'),
-    confidence: 65,
-    risk: 'high',
-    actionDetail: t('competitors.h196708'),
-    result: t('competitors.h69348a'),
-    timestamp: '2026-04-01T20:00:00Z',
-    timeAgo: t('competitors.h3bdef6'),
-  },
-  {
-    id: 'ca9',
-    type: 'budget_shift',
-    status: 'executed',
-    competitorName: 'CompetitorE',
-    campaignName: t('competitors.ha821eb'),
-    reasoning:
-      t('competitors.h30a347'),
-    confidence: 80,
-    risk: 'low',
-    actionDetail: t('competitors.h30ea54'),
-    result: 'ACoS: 15% → 13% (-2pt)',
-    timestamp: '2026-04-01T18:00:00Z',
-    timeAgo: t('competitors.h930405'),
-  },
-  {
-    id: 'ca10',
-    type: 'creative_counter',
-    status: 'executed',
-    competitorName: 'CompetitorC',
-    campaignName: t('competitors.haaff51'),
-    reasoning:
-      t('competitors.hf424c2'),
-    confidence: 84,
-    risk: 'low',
-    actionDetail: t('competitors.h5a63f2'),
-    result: 'CTR: 2.1% → 2.8% (+33%)',
-    timestamp: '2026-04-01T15:00:00Z',
-    timeAgo: t('competitors.h749b81'),
-  },
-  {
-    id: 'ca11',
-    type: 'keyword_defense',
-    status: 'executed',
-    competitorName: 'CompetitorA',
-    campaignName: t('competitors.hcaf606'),
-    reasoning:
-      t('competitors.h352b33'),
-    confidence: 95,
-    risk: 'low',
-    actionDetail:
-      t('competitors.he0d125'),
-    result: t('competitors.h012102'),
-    timestamp: '2026-04-01T12:00:00Z',
-    timeAgo: t('competitors.heabfe8'),
-  },
-  {
-    id: 'ca12',
-    type: 'timing_attack',
-    status: 'proposed',
-    competitorName: 'CompetitorC',
-    campaignName: t('competitors.h7551ef'),
-    reasoning:
-      t('competitors.hcaef81'),
-    confidence: 72,
-    risk: 'low',
-    actionDetail: t('competitors.h8160cc'),
-    result: null,
-    timestamp: '2026-04-02T13:30:00Z',
-    timeAgo: t('competitors.h98a92c'),
-  },
-  {
-    id: 'ca13',
-    type: 'targeting_expansion',
-    status: 'proposed',
-    competitorName: 'CompetitorD',
-    campaignName: t('competitors.h75882c'),
-    reasoning:
-      t('competitors.h68d7a4'),
-    confidence: 68,
-    risk: 'medium',
-    actionDetail:
-      t('competitors.h5597c2'),
-    result: null,
-    timestamp: '2026-04-02T13:15:00Z',
-    timeAgo: t('competitors.h6ab184'),
-  },
-  {
-    id: 'ca14',
-    type: 'bid_adjustment',
-    status: 'executed',
-    competitorName: 'CompetitorB',
-    campaignName: t('competitors.h70836d'),
-    reasoning:
-      t('competitors.h3ac1e0'),
-    confidence: 87,
-    risk: 'low',
-    actionDetail: 'LINE CPC: ¥85 → ¥92 (+8%)',
-    result: t('competitors.he5f300'),
-    timestamp: '2026-04-01T10:00:00Z',
-    timeAgo: t('competitors.heabfe8'),
-  },
-  {
-    id: 'ca15',
-    type: 'budget_shift',
-    status: 'executed',
-    competitorName: 'CompetitorA',
-    campaignName: t('competitors.ha90af4'),
-    reasoning:
-      t('competitors.hcf9aa1'),
-    confidence: 79,
-    risk: 'low',
-    actionDetail: t('competitors.h075ba5'),
-    result: 'CVR: 1.8% → 2.2% (+22%)',
-    timestamp: '2026-04-01T08:00:00Z',
-    timeAgo: t('competitors.heabfe8'),
-  },
-];
-}
-
-function generateWeakWindowData(): WeakWindowCell[] {
-  const cells: WeakWindowCell[] = [];
-  for (let day = 0; day < 7; day++) {
-    for (let hour = 0; hour < 24; hour++) {
-      const baseCompetitorCpc =
-        120 + Math.sin((hour - 12) / 3) * 40 + (day >= 5 ? -30 : 0);
-      const cpc = Math.max(
-        50,
-        Math.round(baseCompetitorCpc + (Math.random() - 0.5) * 20)
-      );
-      const avgCpc = 130;
-      const shareBase =
-        45 + Math.sin((hour - 14) / 4) * 15 + (day >= 5 ? 10 : 0);
-      const share = Math.max(
-        15,
-        Math.min(
-          85,
-          Math.round(shareBase + (Math.random() - 0.5) * 10)
-        )
-      );
-      cells.push({
-        day,
-        hour,
-        competitorCpc: cpc,
-        avgCpc,
-        impressionShare: share,
-      });
-    }
-  }
-  return cells;
-}
-
-const MOCK_WEAK_WINDOWS = generateWeakWindowData();
 
 // ============================================================
 // Subcomponents
@@ -812,12 +336,33 @@ function AlertBanner({
   );
 }
 
+interface KpiCardInput {
+  labelKey: string;
+  value: string;
+  valueKey?: string;
+  trend: string;
+  trendKey?: string;
+  trendPositive: boolean;
+}
+
 function KpiCardRow({
   cards,
 }: {
-  cards: typeof MOCK_KPI_CARDS;
+  cards: KpiCardInput[];
 }): React.ReactElement {
   const { t } = useI18n();
+
+  if (cards.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <BarChart3 size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {cards.map((card) => (
@@ -907,6 +452,12 @@ function ImpressionShareChart({
       <h2 className="mb-4 text-lg font-semibold text-foreground">
         {t('competitors.impressionShareTrend')}
       </h2>
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <BarChart3 size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
       <ResponsiveContainer width="100%" height={350}>
         <LineChart
           data={data}
@@ -981,6 +532,7 @@ function ImpressionShareChart({
           />
         </LineChart>
       </ResponsiveContainer>
+      )}
     </div>
   );
 }
@@ -1226,9 +778,16 @@ function CounterActionTimeline({
 
       {expanded && (
         <div className="space-y-3 px-6 pb-6">
-          {actions.map((action) => (
-            <CounterActionCard key={action.id} action={action} />
-          ))}
+          {actions.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <Zap size={28} className="text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            </div>
+          ) : (
+            actions.map((action) => (
+              <CounterActionCard key={action.id} action={action} />
+            ))
+          )}
         </div>
       )}
     </div>
@@ -1252,6 +811,23 @@ function WeakWindowsHeatmap({
     if (ratio < 1.05) return 'bg-yellow-300/40';
     if (ratio < 1.15) return 'bg-orange-400/60';
     return 'bg-red-500/80';
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-1 text-lg font-semibold text-foreground">
+          {t('competitors.weakWindowMap')}
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          {t('competitors.weakWindowDesc')}
+        </p>
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Clock size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1665,26 +1241,52 @@ export default function CompetitorsPage(): React.ReactElement {
   const { t } = useI18n();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [counterLogExpanded, setCounterLogExpanded] = useState(true);
-  const [alerts, setAlerts] =
-    useState<CompetitorAlert[]>(MOCK_ALERTS);
+  const [alertOverrides, setAlertOverrides] = useState<Record<string, true>>({});
   const [scanning, setScanning] = useState(false);
 
-  // TODO: Wire to tRPC when backend is ready
-  // const { data, isLoading } = trpc.competitors.list.useQuery();
-  // const scanMutation = trpc.competitors.scan.useMutation();
+  const competitorsQuery = trpc.competitiveIntel.competitors.list.useQuery(
+    undefined,
+    { retry: false },
+  );
+  const alertsQuery = trpc.competitiveIntel.alerts.list.useQuery(
+    {},
+    { retry: false },
+  );
+  const trendQuery = trpc.competitiveIntel.auctionInsights.trend.useQuery(
+    {},
+    { retry: false },
+  );
+  const counterActionsQuery = trpc.competitiveIntel.counterActions.list.useQuery(
+    {},
+    { retry: false },
+  );
+
+  const competitors: Competitor[] =
+    (competitorsQuery.data as Competitor[] | undefined) ?? [];
+  const alertsData: CompetitorAlert[] =
+    (alertsQuery.data as CompetitorAlert[] | undefined) ?? [];
+  const trendData: ImpressionShareDataPoint[] =
+    (trendQuery.data as ImpressionShareDataPoint[] | undefined) ?? [];
+  const counterActions: CounterAction[] =
+    (counterActionsQuery.data as CounterAction[] | undefined) ?? [];
+
+  // Apply local acknowledgement overrides on top of API data.
+  const alerts: CompetitorAlert[] = alertsData.map((a) =>
+    alertOverrides[a.id] ? { ...a, acknowledged: true } : a,
+  );
+
+  // KPI cards: empty until backend provides aggregated stats.
+  const kpiCards: KpiCardInput[] = [];
+  // Weak window heatmap: empty until backend provides data.
+  const weakWindows: WeakWindowCell[] = [];
 
   const monitoringEnabled = true;
 
   function handleAcknowledgeAlert(id: string): void {
-    setAlerts((prev) =>
-      prev.map((a) =>
-        a.id === id ? { ...a, acknowledged: true } : a
-      )
-    );
+    setAlertOverrides((prev) => ({ ...prev, [id]: true }));
   }
 
   function handleScan(): void {
-    const { t } = useI18n();
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
@@ -1737,40 +1339,47 @@ export default function CompetitorsPage(): React.ReactElement {
       />
 
       {/* KPI cards */}
-      <KpiCardRow cards={MOCK_KPI_CARDS} />
+      <KpiCardRow cards={kpiCards} />
 
       {/* Impression share chart */}
-      <ImpressionShareChart data={getMockImpressionShareData()} />
+      <ImpressionShareChart data={trendData} />
 
       {/* Competitor map */}
       <div>
         <h2 className="mb-4 text-lg font-semibold text-foreground">
           {t('competitors.competitorMap')}
         </h2>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {getMockCompetitors(t).map((competitor) => (
-            <CompetitorMapCard
-              key={competitor.id}
-              competitor={competitor}
-              onSettings={() => {
-                showToast(t('competitors.settingsToast', { name: competitor.name }));
-              }}
-              onDelete={() => {
-                if (window.confirm(t('competitors.deleteConfirm', { name: competitor.name }))) {
-                  showToast(t('competitors.deleteToast', { name: competitor.name }));
-                }
-              }}
-            />
-          ))}
-        </div>
+        {competitors.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-12 text-center">
+            <Shield size={28} className="text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {competitors.map((competitor) => (
+              <CompetitorMapCard
+                key={competitor.id}
+                competitor={competitor}
+                onSettings={() => {
+                  showToast(t('competitors.settingsToast', { name: competitor.name }));
+                }}
+                onDelete={() => {
+                  if (window.confirm(t('competitors.deleteConfirm', { name: competitor.name }))) {
+                    showToast(t('competitors.deleteToast', { name: competitor.name }));
+                  }
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Weak windows heatmap */}
-      <WeakWindowsHeatmap data={MOCK_WEAK_WINDOWS} />
+      <WeakWindowsHeatmap data={weakWindows} />
 
       {/* Counter-action timeline */}
       <CounterActionTimeline
-        actions={getMockCounterActions(t)}
+        actions={counterActions}
         expanded={counterLogExpanded}
         onToggle={() => setCounterLogExpanded((prev) => !prev)}
       />

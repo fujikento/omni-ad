@@ -10,6 +10,7 @@ import {
   Edit3,
   Eye,
   Image,
+  Inbox,
   Monitor,
   MousePointerClick,
   Pause,
@@ -38,6 +39,7 @@ import {
 } from 'recharts';
 import { Badge, Button, PageHeader, Tabs } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 
 // ============================================================
 // Types
@@ -49,16 +51,6 @@ type DateRange = 'last7' | 'last14' | 'last30';
 type CampaignStatus = 'active' | 'paused' | 'draft' | 'completed';
 type Platform = 'meta' | 'google' | 'x' | 'tiktok' | 'line_yahoo' | 'amazon' | 'microsoft';
 type HistoryFilter = 'all' | 'manual' | 'automated';
-
-interface DailyMetric {
-  date: string;
-  platform: Platform;
-  impressions: number;
-  clicks: number;
-  conversions: number;
-  spend: number;
-  revenue: number;
-}
 
 interface PlatformSummary {
   platform: Platform;
@@ -179,124 +171,15 @@ function getHistoryFilterOptions(t: (key: string, params?: Record<string, string
 }
 
 // ============================================================
-// Mock Data
+// Derived Types
 // ============================================================
 
-function getCampaignData(t: (key: string, params?: Record<string, string | number>) => string) {
-  return {
-  id: '1',
-  name: t('campaigns.id.hc6f094'),
-  status: 'active' as CampaignStatus,
-  objective: 'conversion',
-  budget: 500000,
-  dailyLimit: 50000,
-};
-}
-
-function generateDailyMetrics(): DailyMetric[] {
-  const platforms: Platform[] = ['meta', 'google', 'tiktok'];
-  const metrics: DailyMetric[] = [];
-  const baseDate = new Date(2026, 2, 20);
-
-  for (let day = 0; day < 14; day++) {
-    const date = new Date(baseDate);
-    date.setDate(baseDate.getDate() + day);
-    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-
-    for (const platform of platforms) {
-      const multiplier = platform === 'google' ? 1.2 : platform === 'meta' ? 1.0 : 0.7;
-      const dayVariance = 0.8 + Math.sin(day / 3) * 0.3 + (day % 3) * 0.05;
-
-      metrics.push({
-        date: dateStr,
-        platform,
-        impressions: Math.round(8000 * multiplier * dayVariance),
-        clicks: Math.round(320 * multiplier * dayVariance),
-        conversions: Math.round(12 * multiplier * dayVariance),
-        spend: Math.round(3500 * multiplier * dayVariance),
-        revenue: Math.round(12000 * multiplier * dayVariance),
-      });
-    }
-  }
-  return metrics;
-}
-
-const MOCK_DAILY_METRICS = generateDailyMetrics();
-
-function aggregateDailyTotals(): { date: string; impressions: number; clicks: number; conversions: number; spend: number }[] {
-  const byDate = new Map<string, { impressions: number; clicks: number; conversions: number; spend: number }>();
-
-  for (const m of MOCK_DAILY_METRICS) {
-    const existing = byDate.get(m.date) ?? { impressions: 0, clicks: 0, conversions: 0, spend: 0 };
-    existing.impressions += m.impressions;
-    existing.clicks += m.clicks;
-    existing.conversions += m.conversions;
-    existing.spend += m.spend;
-    byDate.set(m.date, existing);
-  }
-
-  return Array.from(byDate.entries()).map(([date, vals]) => ({ date, ...vals }));
-}
-
-const MOCK_DAILY_TOTALS = aggregateDailyTotals();
-
-function computePlatformSummaries(): PlatformSummary[] {
-  const platforms: Platform[] = ['meta', 'google', 'tiktok'];
-  return platforms.map((platform) => {
-    const rows = MOCK_DAILY_METRICS.filter((m) => m.platform === platform);
-    const impressions = rows.reduce((s, r) => s + r.impressions, 0);
-    const clicks = rows.reduce((s, r) => s + r.clicks, 0);
-    const conversions = rows.reduce((s, r) => s + r.conversions, 0);
-    const spend = rows.reduce((s, r) => s + r.spend, 0);
-    const revenue = rows.reduce((s, r) => s + r.revenue, 0);
-    return {
-      platform,
-      impressions,
-      clicks,
-      ctr: clicks / impressions,
-      conversions,
-      cpa: conversions > 0 ? spend / conversions : 0,
-      spend,
-      roas: spend > 0 ? revenue / spend : 0,
-    };
-  });
-}
-
-function getMockPlatformSummaries(): PlatformSummary[] {
-  return computePlatformSummaries();
-}
-
-function getMockCreatives(t: (key: string, params?: Record<string, string | number>) => string): Creative[] {
-  return [
-  { id: 'c1', headline: t('campaigns.id.h4b9984'), performanceScore: 92, platforms: ['meta', 'google'] },
-  { id: 'c2', headline: t('campaigns.id.h0b3741'), performanceScore: 78, platforms: ['tiktok', 'meta'] },
-  { id: 'c3', headline: t('campaigns.id.hfb3ecd'), performanceScore: 85, platforms: ['google'] },
-];
-}
-
-function getMockTargeting(t: (key: string, params?: Record<string, string | number>) => string): TargetingConfig {
-  return {
-  age: '25-55',
-  gender: [t('campaigns.id.hcd9fc0'), t('campaigns.id.h188e06')],
-  regions: [t('campaigns.id.h707ba1'), t('campaigns.id.hd94e2b'), t('campaigns.id.h20b7eb')],
-  interests: [t('campaigns.id.h081747'), t('campaigns.id.hb93315')],
-  devices: [t('campaigns.id.h74cc8d'), t('campaigns.id.h042cd2')],
-};
-}
-
-function getMockHistory(t: (key: string, params?: Record<string, string | number>) => string): HistoryEntry[] {
-  return [
-  { id: 'h1', user: t('campaigns.id.ha2aa03'), action: t('campaigns.id.h922ccc'), detail: t('campaigns.id.h8c7a0e'), timestamp: '2026/04/01 15:30', type: 'manual' },
-  { id: 'h2', user: t('campaigns.id.he8c8ca'), action: t('campaigns.id.h5b6d21'), detail: t('campaigns.id.h84a1fe'), timestamp: '2026/04/01 12:00', type: 'automated' },
-  { id: 'h3', user: t('campaigns.id.hcef95e'), action: t('campaigns.id.hd937aa'), detail: t('campaigns.id.he6540b'), timestamp: '2026/03/31 16:45', type: 'manual' },
-  { id: 'h4', user: t('campaigns.id.he8c8ca'), action: t('campaigns.id.ha8d176'), detail: t('campaigns.id.hf3a4a2'), timestamp: '2026/03/31 09:00', type: 'automated' },
-  { id: 'h5', user: t('campaigns.id.ha2aa03'), action: t('campaigns.id.h2b2764'), detail: t('campaigns.id.h42a300'), timestamp: '2026/03/30 10:00', type: 'manual' },
-  { id: 'h6', user: t('campaigns.id.he8c8ca'), action: t('campaigns.id.h02b47e'), detail: t('campaigns.id.heb890c'), timestamp: '2026/03/29 18:00', type: 'automated' },
-  { id: 'h7', user: t('campaigns.id.hcef95e'), action: t('campaigns.id.h36d8aa'), detail: t('campaigns.id.h750f4a'), timestamp: '2026/03/29 14:30', type: 'manual' },
-  { id: 'h8', user: t('campaigns.id.he8c8ca'), action: t('campaigns.id.h00caa9'), detail: 'Meta: 40% → 35%, Google: 35% → 40%, TikTok: 25% → 25%', timestamp: '2026/03/28 12:00', type: 'automated' },
-  { id: 'h9', user: t('campaigns.id.ha2aa03'), action: t('campaigns.id.h216423'), detail: t('campaigns.id.h51f5cc'), timestamp: '2026/03/27 11:00', type: 'manual' },
-  { id: 'h10', user: t('campaigns.id.ha2aa03'), action: t('campaigns.id.h08f9fa'), detail: t('campaigns.id.h89dab2'), timestamp: '2026/03/25 09:00', type: 'manual' },
-];
+interface DailyTotal {
+  date: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spend: number;
 }
 
 // ============================================================
@@ -312,27 +195,31 @@ function formatNumber(value: number): string {
   return value.toLocaleString('ja-JP');
 }
 
-function computeKpis(t: (key: string, params?: Record<string, string | number>) => string): KpiCardData[] {
-  const totals = MOCK_DAILY_METRICS.reduce(
-    (acc, m) => ({
-      impressions: acc.impressions + m.impressions,
-      clicks: acc.clicks + m.clicks,
-      conversions: acc.conversions + m.conversions,
-      spend: acc.spend + m.spend,
-      revenue: acc.revenue + m.revenue,
+function computeKpis(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  summaries: PlatformSummary[],
+): KpiCardData[] {
+  const totals = summaries.reduce(
+    (acc, s) => ({
+      impressions: acc.impressions + s.impressions,
+      clicks: acc.clicks + s.clicks,
+      conversions: acc.conversions + s.conversions,
+      spend: acc.spend + s.spend,
+      // revenue is recovered from roas * spend
+      revenue: acc.revenue + s.spend * s.roas,
     }),
     { impressions: 0, clicks: 0, conversions: 0, spend: 0, revenue: 0 },
   );
 
-  const ctr = totals.clicks / totals.impressions;
-  const cvr = totals.conversions / totals.clicks;
+  const ctr = totals.impressions > 0 ? totals.clicks / totals.impressions : 0;
+  const cvr = totals.clicks > 0 ? totals.conversions / totals.clicks : 0;
   const roas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
 
   return [
     {
       label: t('campaigns.id.h5b3de2'),
       value: formatNumber(totals.impressions),
-      trend: 12.5,
+      trend: 0,
       icon: <Eye size={20} className="text-blue-500" />,
     },
     {
@@ -340,7 +227,7 @@ function computeKpis(t: (key: string, params?: Record<string, string | number>) 
       value: formatNumber(totals.clicks),
       subLabel: 'CTR',
       subValue: `${(ctr * 100).toFixed(2)}%`,
-      trend: 8.3,
+      trend: 0,
       icon: <MousePointerClick size={20} className="text-green-500" />,
     },
     {
@@ -348,32 +235,30 @@ function computeKpis(t: (key: string, params?: Record<string, string | number>) 
       value: formatNumber(totals.conversions),
       subLabel: 'CVR',
       subValue: `${(cvr * 100).toFixed(2)}%`,
-      trend: -3.2,
+      trend: 0,
       icon: <ShoppingCart size={20} className="text-purple-500" />,
     },
     {
       label: t('campaigns.id.hb627b2'),
       value: formatYen(totals.spend),
-      trend: 5.1,
+      trend: 0,
       icon: <Wallet size={20} className="text-orange-500" />,
     },
     {
       label: t('campaigns.id.h718987'),
-      value: formatYen(totals.revenue),
-      trend: 15.4,
+      value: formatYen(Math.round(totals.revenue)),
+      trend: 0,
       icon: <TrendingUp size={20} className="text-emerald-500" />,
     },
     {
       label: 'ROAS',
       value: `${roas.toFixed(2)}x`,
-      trend: 10.2,
+      trend: 0,
       icon: <Target size={20} className="text-rose-500" />,
       colorClass: roas >= 3 ? 'text-green-600' : roas >= 1 ? 'text-yellow-600' : 'text-red-600',
     },
   ];
 }
-
-// KPIs computed inside component via t()
 
 // ============================================================
 // Sparkline
@@ -411,11 +296,11 @@ function Sparkline({ data, color }: { data: number[]; color: string }): React.Re
 // Subcomponents
 // ============================================================
 
-function KpiCard({ card }: { card: KpiCardData }): React.ReactElement {
+function KpiCard({ card, dailyTotals }: { card: KpiCardData; dailyTotals: DailyTotal[] }): React.ReactElement {
   const { t } = useI18n();
 
   const isPositive = card.trend >= 0;
-  const sparkData = MOCK_DAILY_TOTALS.map((d) => {
+  const sparkData = dailyTotals.map((d) => {
     switch (card.label) {
       case t('campaigns.id.h5b3de2'): return d.impressions;
       case t('campaigns.id.h7c2317'): return d.clicks;
@@ -424,6 +309,8 @@ function KpiCard({ card }: { card: KpiCardData }): React.ReactElement {
       default: return d.impressions;
     }
   });
+
+  const hasSparkData = sparkData.length > 1;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -435,21 +322,23 @@ function KpiCard({ card }: { card: KpiCardData }): React.ReactElement {
         <p className={cn('text-2xl font-bold text-foreground', card.colorClass)}>
           {card.value}
         </p>
-        {card.label !== 'ROAS' && card.label !== t('campaigns.id.h718987') && (
+        {hasSparkData && card.label !== 'ROAS' && card.label !== t('campaigns.id.h718987') && (
           <Sparkline data={sparkData} color={isPositive ? '#22c55e' : '#ef4444'} />
         )}
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          {isPositive ? (
-            <TrendingUp size={12} className="text-green-500" />
-          ) : (
-            <TrendingDown size={12} className="text-red-500" />
-          )}
-          <span className={cn('text-xs font-medium', isPositive ? 'text-green-600' : 'text-red-600')}>
-            {isPositive ? '+' : ''}{card.trend.toFixed(1)}%
-          </span>
-        </div>
+        {card.trend !== 0 && (
+          <div className="flex items-center gap-1">
+            {isPositive ? (
+              <TrendingUp size={12} className="text-green-500" />
+            ) : (
+              <TrendingDown size={12} className="text-red-500" />
+            )}
+            <span className={cn('text-xs font-medium', isPositive ? 'text-green-600' : 'text-red-600')}>
+              {isPositive ? '+' : ''}{card.trend.toFixed(1)}%
+            </span>
+          </div>
+        )}
         {card.subLabel && (
           <span className="text-xs text-muted-foreground">
             {card.subLabel}: {card.subValue}
@@ -493,14 +382,18 @@ function OverviewTab({
   onToggleMetric,
   dateRange,
   onDateRangeChange,
+  platformSummaries,
+  dailyTotals,
 }: {
   selectedMetrics: Set<MetricToggle>;
   onToggleMetric: (metric: MetricToggle) => void;
   dateRange: DateRange;
   onDateRangeChange: (range: DateRange) => void;
+  platformSummaries: PlatformSummary[];
+  dailyTotals: DailyTotal[];
 }): React.ReactElement {
   const { t } = useI18n();
-  const platformSpendData = getMockPlatformSummaries().map((p) => ({
+  const platformSpendData = platformSummaries.map((p) => ({
     platform: PLATFORM_CONFIG[p.platform].label,
     spend: p.spend,
   }));
@@ -509,8 +402,8 @@ function OverviewTab({
     <div className="space-y-6">
       {/* KPI Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {computeKpis(t).map((kpi) => (
-          <KpiCard key={kpi.label} card={kpi} />
+        {computeKpis(t, platformSummaries).map((kpi) => (
+          <KpiCard key={kpi.label} card={kpi} dailyTotals={dailyTotals} />
         ))}
       </div>
 
@@ -553,8 +446,14 @@ function OverviewTab({
             </div>
           </div>
         </div>
+        {dailyTotals.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <Inbox size={28} className="text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={MOCK_DAILY_TOTALS} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          <LineChart data={dailyTotals} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
             <XAxis
               dataKey="date"
@@ -586,12 +485,20 @@ function OverviewTab({
             ))}
           </LineChart>
         </ResponsiveContainer>
+        )}
       </div>
 
       {/* Platform Breakdown */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground">{t('campaignDetail.platformBreakdown')}</h3>
 
+        {platformSummaries.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-12 text-center">
+            <Inbox size={28} className="text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+          </div>
+        ) : (
+          <>
         {/* Horizontal bar chart */}
         <div className="rounded-lg border border-border bg-card p-6">
           <ResponsiveContainer width="100%" height={160}>
@@ -639,7 +546,7 @@ function OverviewTab({
               </tr>
             </thead>
             <tbody>
-              {getMockPlatformSummaries().map((row) => (
+              {platformSummaries.map((row) => (
                 <tr key={row.platform} className="border-b border-border transition-colors hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <PlatformBadge platform={row.platform} />
@@ -662,18 +569,20 @@ function OverviewTab({
             </tbody>
           </table>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function CreativesTab(): React.ReactElement {
+function CreativesTab({ creatives }: { creatives: Creative[] }): React.ReactElement {
   const { t } = useI18n();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-foreground">
-          {t('campaignDetail.creativesCount', { count: String(getMockCreatives(t).length) })}
+          {t('campaignDetail.creativesCount', { count: String(creatives.length) })}
         </h3>
         <button
           type="button"
@@ -683,8 +592,14 @@ function CreativesTab(): React.ReactElement {
           {t('campaigns.id.ha22bdb')}
         </button>
       </div>
+      {creatives.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {getMockCreatives(t).map((creative) => (
+        {creatives.map((creative) => (
           <div key={creative.id} className="rounded-lg border border-border bg-card p-4 transition-shadow hover:shadow-md">
             {/* Thumbnail placeholder */}
             <div className="mb-3 flex h-36 items-center justify-center rounded-md bg-muted/50">
@@ -702,18 +617,41 @@ function CreativesTab(): React.ReactElement {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
 
-function TargetingTab(): React.ReactElement {
+function TargetingTab({ targeting }: { targeting: TargetingConfig | null }): React.ReactElement {
   const { t } = useI18n();
+
+  if (!targeting) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-foreground">{t('campaignDetail.targetingSettings')}</h3>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Edit3 size={16} />
+            {t('campaigns.id.h5a18d1')}
+          </button>
+        </div>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
+  }
+
   const sections: { label: string; values: string[]; icon: React.ReactNode }[] = [
-    { label: t('campaigns.id.h26de11'), values: [getMockTargeting(t).age], icon: <Target size={16} /> },
-    { label: t('campaigns.id.h428895'), values: getMockTargeting(t).gender, icon: <Target size={16} /> },
-    { label: t('campaigns.id.h4d7d44'), values: getMockTargeting(t).regions, icon: <Target size={16} /> },
-    { label: t('campaigns.id.ha96ae1'), values: getMockTargeting(t).interests, icon: <Zap size={16} /> },
-    { label: t('campaigns.id.h169d8b'), values: getMockTargeting(t).devices, icon: getMockTargeting(t).devices.includes(t('campaigns.id.h74cc8d')) ? <Smartphone size={16} /> : <Monitor size={16} /> },
+    { label: t('campaigns.id.h26de11'), values: [targeting.age], icon: <Target size={16} /> },
+    { label: t('campaigns.id.h428895'), values: targeting.gender, icon: <Target size={16} /> },
+    { label: t('campaigns.id.h4d7d44'), values: targeting.regions, icon: <Target size={16} /> },
+    { label: t('campaigns.id.ha96ae1'), values: targeting.interests, icon: <Zap size={16} /> },
+    { label: t('campaigns.id.h169d8b'), values: targeting.devices, icon: targeting.devices.includes(t('campaigns.id.h74cc8d')) ? <Smartphone size={16} /> : <Monitor size={16} /> },
   ];
 
   return (
@@ -752,13 +690,13 @@ function TargetingTab(): React.ReactElement {
   );
 }
 
-function HistoryTab(): React.ReactElement {
+function HistoryTab({ history }: { history: HistoryEntry[] }): React.ReactElement {
   const { t } = useI18n();
   const [filter, setFilter] = useState<HistoryFilter>('all');
 
   const filteredHistory = filter === 'all'
-    ? getMockHistory(t)
-    : getMockHistory(t).filter((h) => h.type === filter);
+    ? history
+    : history.filter((h) => h.type === filter);
 
   return (
     <div className="space-y-4">
@@ -784,8 +722,9 @@ function HistoryTab(): React.ReactElement {
       </div>
 
       {filteredHistory.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-12 text-center">
-          <p className="text-sm text-muted-foreground">{t('campaignDetail.noMatchingHistory')}</p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{history.length === 0 ? t('common.noData') : t('campaignDetail.noMatchingHistory')}</p>
         </div>
       ) : (
         <div className="space-y-0">
@@ -845,9 +784,40 @@ export default function CampaignDetailPage(): React.ReactElement {
   );
   const [dateRange, setDateRange] = useState<DateRange>('last14');
 
-  // In production this would fetch by params.id via tRPC
-  const campaignId = params.id;
-  const campaign = { ...getCampaignData(t), id: campaignId ?? getCampaignData(t).id };
+  const campaignId = params.id ?? '';
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isValidId = uuidRegex.test(campaignId);
+
+  const campaignQuery = trpc.campaigns.get.useQuery(
+    { id: campaignId },
+    { enabled: isValidId, retry: false },
+  );
+
+  interface CampaignData {
+    id: string;
+    name: string;
+    status: CampaignStatus;
+    objective: string;
+    budget?: number;
+    dailyLimit?: number;
+  }
+
+  const campaignData = campaignQuery.data as CampaignData | undefined;
+  const campaign: CampaignData = campaignData ?? {
+    id: campaignId,
+    name: t('common.noData'),
+    status: 'draft',
+    objective: 'conversion',
+  };
+
+  // Placeholders for data not yet wired to API. When wired, swap to actual
+  // tRPC queries (e.g. trpc.analytics.byCampaign) and pass results below.
+  const platformSummaries: PlatformSummary[] = [];
+  const dailyTotals: DailyTotal[] = [];
+  const creatives: Creative[] = [];
+  const targeting: TargetingConfig | null = null;
+  const history: HistoryEntry[] = [];
+
   const status = getStatusConfig(t)[campaign.status];
   const objectiveLabel = getObjectiveLabels(t)[campaign.objective] ?? campaign.objective;
 
@@ -930,11 +900,13 @@ export default function CampaignDetailPage(): React.ReactElement {
           onToggleMetric={handleToggleMetric}
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
+          platformSummaries={platformSummaries}
+          dailyTotals={dailyTotals}
         />
       )}
-      {activeTab === 'creatives' && <CreativesTab />}
-      {activeTab === 'targeting' && <TargetingTab />}
-      {activeTab === 'history' && <HistoryTab />}
+      {activeTab === 'creatives' && <CreativesTab creatives={creatives} />}
+      {activeTab === 'targeting' && <TargetingTab targeting={targeting} />}
+      {activeTab === 'history' && <HistoryTab history={history} />}
     </div>
   );
 }

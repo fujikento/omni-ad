@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpDown, RefreshCw, Users } from 'lucide-react';
+import { ArrowUpDown, Inbox, RefreshCw, Users } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -14,6 +14,7 @@ import {
 import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/lib/show-toast';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 // ============================================================
@@ -65,52 +66,11 @@ interface TopCustomerRow {
   platform: string;
 }
 
-// ============================================================
-// Mock Data
-// ============================================================
-
-function getMockKpi(t: (key: string) => string): KpiCardData[] {
-  return [
-    { label: t('ltv.avgLtv'), value: '¥42,800', trend: 'up', trendValue: '+8.2%', colorClass: 'text-blue-500' },
-    { label: t('ltv.avgCac'), value: '¥12,500', trend: 'down', trendValue: '-3.1%', colorClass: 'text-orange-500' },
-    { label: t('ltv.ltvCacRatio'), value: '3.4x', trend: 'up', trendValue: '+0.4', colorClass: 'text-green-500' },
-    { label: t('ltv.repeatRate'), value: '38%', trend: 'up', trendValue: '+2.3%', colorClass: 'text-purple-500' },
-  ];
+interface LtvOverview {
+  kpi?: KpiCardData[];
+  distribution?: LtvDistributionEntry[];
+  platformComparison?: PlatformLtvRow[];
 }
-
-const MOCK_COHORTS: CohortRow[] = [
-  { cohort: '2026-01', acquired: 342, totalCost: 4104000, cac: 12000, avgLtv: 38500, ltvCacRatio: 3.2, retention1m: 72, retention3m: 45, retention6m: 28 },
-  { cohort: '2026-02', acquired: 415, totalCost: 5187500, cac: 12500, avgLtv: 41200, ltvCacRatio: 3.3, retention1m: 74, retention3m: 48, retention6m: 0 },
-  { cohort: '2026-03', acquired: 389, totalCost: 5057000, cac: 13000, avgLtv: 44800, ltvCacRatio: 3.4, retention1m: 76, retention3m: 0, retention6m: 0 },
-  { cohort: '2026-04', acquired: 128, totalCost: 1536000, cac: 12000, avgLtv: 42800, ltvCacRatio: 3.6, retention1m: 0, retention3m: 0, retention6m: 0 },
-];
-
-const MOCK_LTV_DISTRIBUTION: LtvDistributionEntry[] = [
-  { range: '¥0-10K', count: 245 },
-  { range: '¥10K-30K', count: 412 },
-  { range: '¥30K-50K', count: 328 },
-  { range: '¥50K-100K', count: 186 },
-  { range: '¥100K+', count: 103 },
-];
-
-function getMockPlatformLtv(t: (key: string, params?: Record<string, string | number>) => string): PlatformLtvRow[] {
-  return [
-  { platform: 'Google', avgLtv: 48200, avgCac: 11800, ltvCacRatio: 4.1, bestCampaign: t('ltv.hc6f094') },
-  { platform: 'Meta', avgLtv: 42500, avgCac: 12200, ltvCacRatio: 3.5, bestCampaign: t('ltv.h5ec7c4') },
-  { platform: 'LINE', avgLtv: 39800, avgCac: 10500, ltvCacRatio: 3.8, bestCampaign: t('ltv.hbd9acd') },
-  { platform: 'TikTok', avgLtv: 35400, avgCac: 14200, ltvCacRatio: 2.5, bestCampaign: t('ltv.hfc027b') },
-  { platform: 'Yahoo!', avgLtv: 31200, avgCac: 15800, ltvCacRatio: 2.0, bestCampaign: t('ltv.hd4d8ab') },
-  { platform: 'X', avgLtv: 28600, avgCac: 18500, ltvCacRatio: 1.5, bestCampaign: t('ltv.hfb7a86') },
-];
-}
-
-const MOCK_TOP_CUSTOMERS: TopCustomerRow[] = [
-  { hashedId: 'c8a2f1...d3e4', totalRevenue: 285000, conversions: 12, firstAcquisition: '2026-01-15', platform: 'Google' },
-  { hashedId: 'b7e3a0...f1c2', totalRevenue: 218000, conversions: 9, firstAcquisition: '2026-01-22', platform: 'Meta' },
-  { hashedId: 'a1d4c9...e2b5', totalRevenue: 195000, conversions: 8, firstAcquisition: '2026-02-03', platform: 'Google' },
-  { hashedId: 'f5b8e2...a3d1', totalRevenue: 172000, conversions: 7, firstAcquisition: '2026-02-18', platform: 'LINE' },
-  { hashedId: 'e9c1d7...b4f6', totalRevenue: 156000, conversions: 6, firstAcquisition: '2026-01-08', platform: 'Meta' },
-];
 
 // ============================================================
 // Helpers
@@ -187,6 +147,19 @@ function SortableHeader({
   );
 }
 
+function EmptyRow({ colSpan, message }: { colSpan: number; message: string }): React.ReactElement {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-4 py-12">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // ============================================================
 // Main Page
 // ============================================================
@@ -197,6 +170,16 @@ export default function LtvPage(): React.ReactElement {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [refreshing, setRefreshing] = useState(false);
 
+  const overviewQuery = trpc.ltvTracking.overview.useQuery(undefined, { retry: false });
+  const cohortTrendQuery = trpc.ltvTracking.cohortTrend.useQuery(
+    { months: 12 },
+    { retry: false },
+  );
+  const topCustomersQuery = trpc.ltvTracking.topCustomers.useQuery(
+    { limit: 20 },
+    { retry: false },
+  );
+
   function handleSort(field: SortField): void {
     if (sortField === field) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -206,7 +189,14 @@ export default function LtvPage(): React.ReactElement {
     }
   }
 
-  const sortedCohorts = [...MOCK_COHORTS].sort((a, b) => {
+  const overview = (overviewQuery.data as LtvOverview | undefined) ?? {};
+  const kpiCards = overview.kpi ?? [];
+  const distribution = overview.distribution ?? [];
+  const platformComparison = overview.platformComparison ?? [];
+  const cohorts = (cohortTrendQuery.data as CohortRow[] | undefined) ?? [];
+  const topCustomers = (topCustomersQuery.data as TopCustomerRow[] | undefined) ?? [];
+
+  const sortedCohorts = [...cohorts].sort((a, b) => {
     const multiplier = sortDirection === 'asc' ? 1 : -1;
     const aVal = a[sortField];
     const bVal = b[sortField];
@@ -225,11 +215,18 @@ export default function LtvPage(): React.ReactElement {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {getMockKpi(t).map((card) => (
-          <KpiCard key={card.label} card={card} />
-        ))}
-      </div>
+      {kpiCards.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card py-12 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {kpiCards.map((card) => (
+            <KpiCard key={card.label} card={card} />
+          ))}
+        </div>
+      )}
 
       {/* Cohort Analysis Table */}
       <div className="overflow-hidden rounded-lg border border-border bg-card">
@@ -253,29 +250,33 @@ export default function LtvPage(): React.ReactElement {
               </tr>
             </thead>
             <tbody>
-              {sortedCohorts.map((row) => (
-                <tr key={row.cohort} className="border-b border-border transition-colors hover:bg-muted/30">
-                  <td className="px-4 py-3 text-right font-medium text-foreground">{row.cohort}</td>
-                  <td className="px-4 py-3 text-right text-foreground">{row.acquired.toLocaleString('ja-JP')}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{formatYen(row.totalCost)}</td>
-                  <td className="px-4 py-3 text-right text-foreground">{formatYen(row.cac)}</td>
-                  <td className="px-4 py-3 text-right font-medium text-foreground">{formatYen(row.avgLtv)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', getRatioBgClass(row.ltvCacRatio))}>
-                      {row.ltvCacRatio.toFixed(1)}x
-                    </span>
-                  </td>
-                  <td className={cn('px-4 py-3 text-right font-medium', getRetentionColorClass(row.retention1m))}>
-                    {row.retention1m > 0 ? `${row.retention1m}%` : '-'}
-                  </td>
-                  <td className={cn('px-4 py-3 text-right font-medium', getRetentionColorClass(row.retention3m))}>
-                    {row.retention3m > 0 ? `${row.retention3m}%` : '-'}
-                  </td>
-                  <td className={cn('px-4 py-3 text-right font-medium', getRetentionColorClass(row.retention6m))}>
-                    {row.retention6m > 0 ? `${row.retention6m}%` : '-'}
-                  </td>
-                </tr>
-              ))}
+              {sortedCohorts.length === 0 ? (
+                <EmptyRow colSpan={9} message={t('common.noData')} />
+              ) : (
+                sortedCohorts.map((row) => (
+                  <tr key={row.cohort} className="border-b border-border transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3 text-right font-medium text-foreground">{row.cohort}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{row.acquired.toLocaleString('ja-JP')}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{formatYen(row.totalCost)}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{formatYen(row.cac)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-foreground">{formatYen(row.avgLtv)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', getRatioBgClass(row.ltvCacRatio))}>
+                        {row.ltvCacRatio.toFixed(1)}x
+                      </span>
+                    </td>
+                    <td className={cn('px-4 py-3 text-right font-medium', getRetentionColorClass(row.retention1m))}>
+                      {row.retention1m > 0 ? `${row.retention1m}%` : '-'}
+                    </td>
+                    <td className={cn('px-4 py-3 text-right font-medium', getRetentionColorClass(row.retention3m))}>
+                      {row.retention3m > 0 ? `${row.retention3m}%` : '-'}
+                    </td>
+                    <td className={cn('px-4 py-3 text-right font-medium', getRetentionColorClass(row.retention6m))}>
+                      {row.retention6m > 0 ? `${row.retention6m}%` : '-'}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -288,23 +289,30 @@ export default function LtvPage(): React.ReactElement {
           <h2 className="text-lg font-semibold text-foreground">{t('ltv.ltvDistribution')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t('ltv.ltvDistributionDescription')}</p>
           <div className="mt-4">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={MOCK_LTV_DISTRIBUTION} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="range" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    color: 'hsl(var(--foreground))',
-                  }}
-                  formatter={(value: number) => [`${value}`, t('ltv.customerCount')]}
-                />
-                <Bar dataKey="count" name={t('ltv.customerCount')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {distribution.length === 0 ? (
+              <div className="flex h-[300px] flex-col items-center justify-center gap-3 text-center">
+                <Inbox size={28} className="text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={distribution} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="range" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                    formatter={(value: number) => [`${value}`, t('ltv.customerCount')]}
+                  />
+                  <Bar dataKey="count" name={t('ltv.customerCount')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -324,19 +332,23 @@ export default function LtvPage(): React.ReactElement {
                 </tr>
               </thead>
               <tbody>
-                {getMockPlatformLtv(t).map((row) => (
-                  <tr key={row.platform} className="border-b border-border transition-colors hover:bg-muted/30">
-                    <td className="px-3 py-2 font-medium text-foreground">{row.platform}</td>
-                    <td className="px-3 py-2 text-right text-foreground">{formatYen(row.avgLtv)}</td>
-                    <td className="px-3 py-2 text-right text-muted-foreground">{formatYen(row.avgCac)}</td>
-                    <td className="px-3 py-2 text-right">
-                      <span className={cn('font-semibold', getRatioColorClass(row.ltvCacRatio))}>
-                        {row.ltvCacRatio.toFixed(1)}x
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.bestCampaign}</td>
-                  </tr>
-                ))}
+                {platformComparison.length === 0 ? (
+                  <EmptyRow colSpan={5} message={t('common.noData')} />
+                ) : (
+                  platformComparison.map((row) => (
+                    <tr key={row.platform} className="border-b border-border transition-colors hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium text-foreground">{row.platform}</td>
+                      <td className="px-3 py-2 text-right text-foreground">{formatYen(row.avgLtv)}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{formatYen(row.avgCac)}</td>
+                      <td className="px-3 py-2 text-right">
+                        <span className={cn('font-semibold', getRatioColorClass(row.ltvCacRatio))}>
+                          {row.ltvCacRatio.toFixed(1)}x
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.bestCampaign}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -358,10 +370,10 @@ export default function LtvPage(): React.ReactElement {
             disabled={refreshing}
             onClick={() => {
               setRefreshing(true);
-              setTimeout(() => {
+              void topCustomersQuery.refetch().finally(() => {
                 setRefreshing(false);
                 showToast(t('ltv.dataRefreshed'));
-              }, 1500);
+              });
             }}
             className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
@@ -382,16 +394,20 @@ export default function LtvPage(): React.ReactElement {
               </tr>
             </thead>
             <tbody>
-              {MOCK_TOP_CUSTOMERS.map((customer, idx) => (
-                <tr key={customer.hashedId} className="border-b border-border transition-colors hover:bg-muted/30">
-                  <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
-                  <td className="px-4 py-3 font-mono text-sm text-foreground">{customer.hashedId}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-foreground">{formatYen(customer.totalRevenue)}</td>
-                  <td className="px-4 py-3 text-right text-foreground">{customer.conversions}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{customer.firstAcquisition}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{customer.platform}</td>
-                </tr>
-              ))}
+              {topCustomers.length === 0 ? (
+                <EmptyRow colSpan={6} message={t('common.noData')} />
+              ) : (
+                topCustomers.map((customer, idx) => (
+                  <tr key={customer.hashedId} className="border-b border-border transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-foreground">{customer.hashedId}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{formatYen(customer.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{customer.conversions}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{customer.firstAcquisition}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{customer.platform}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

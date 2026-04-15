@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Check,
   Clock,
+  Inbox,
   Minus,
   Plus,
   TrendingUp,
@@ -97,55 +98,6 @@ const SHARE_PLATFORMS: { id: SharePlatform; label: string }[] = [
   { id: 'x', label: 'X' },
   { id: 'meta', label: 'Meta' },
   { id: 'tiktok', label: 'TikTok' },
-];
-
-function getMockGroups(t: (key: string, params?: Record<string, string | number>) => string): GroupBuyGroup[] {
-  return [
-  { id: 'GB-001', initiator: t('campaigns.groupbuy.ha2aa03'), currentParticipants: 7, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 18, createdAt: '2026-04-01 14:30' },
-  { id: 'GB-002', initiator: t('campaigns.groupbuy.ha378db'), currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-04-01 10:00' },
-  { id: 'GB-003', initiator: t('campaigns.groupbuy.h1b5221'), currentParticipants: 4, targetParticipants: 10, currentTier: 1, status: 'active', remainingHours: 36, createdAt: '2026-04-01 18:00' },
-  { id: 'GB-004', initiator: t('campaigns.groupbuy.h614a7a'), currentParticipants: 5, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 12, createdAt: '2026-04-01 16:00' },
-  { id: 'GB-005', initiator: t('campaigns.groupbuy.ha163dd'), currentParticipants: 2, targetParticipants: 10, currentTier: 0, status: 'expired', remainingHours: 0, createdAt: '2026-03-30 09:00' },
-  { id: 'GB-006', initiator: t('campaigns.groupbuy.h06ed61'), currentParticipants: 8, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 6, createdAt: '2026-04-02 08:00' },
-  { id: 'GB-007', initiator: t('campaigns.groupbuy.h841e64'), currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-04-01 11:30' },
-  { id: 'GB-008', initiator: t('campaigns.groupbuy.h73d821'), currentParticipants: 6, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 24, createdAt: '2026-04-02 06:00' },
-  { id: 'GB-009', initiator: t('campaigns.groupbuy.hf30e74'), currentParticipants: 3, targetParticipants: 10, currentTier: 1, status: 'active', remainingHours: 42, createdAt: '2026-04-02 09:00' },
-  { id: 'GB-010', initiator: t('campaigns.groupbuy.h5a79f9'), currentParticipants: 9, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 4, createdAt: '2026-04-02 07:00' },
-  { id: 'GB-011', initiator: t('campaigns.groupbuy.he77f4c'), currentParticipants: 10, targetParticipants: 10, currentTier: 3, status: 'completed', remainingHours: 0, createdAt: '2026-03-31 15:00' },
-  { id: 'GB-012', initiator: t('campaigns.groupbuy.h846175'), currentParticipants: 5, targetParticipants: 10, currentTier: 2, status: 'active', remainingHours: 20, createdAt: '2026-04-02 10:00' },
-];
-}
-
-const MOCK_SHARE_DATA: ShareData[] = [
-  { platform: 'LINE', count: 420, color: '#06C755' },
-  { platform: 'X', count: 180, color: '#1DA1F2' },
-  { platform: 'Meta', count: 250, color: '#1877F2' },
-  { platform: 'TikTok', count: 150, color: '#FF0050' },
-];
-
-const MOCK_GROWTH_DATA: ViralGrowthPoint[] = [
-  { hour: '0h', groups: 2, participants: 6 },
-  { hour: '4h', groups: 4, participants: 14 },
-  { hour: '8h', groups: 6, participants: 24 },
-  { hour: '12h', groups: 8, participants: 38 },
-  { hour: '16h', groups: 9, participants: 52 },
-  { hour: '20h', groups: 10, participants: 64 },
-  { hour: '24h', groups: 12, participants: 78 },
-];
-
-const REFERRAL_CHAIN_DATA = [
-  { depth: 1, count: 45 },
-  { depth: 2, count: 28 },
-  { depth: 3, count: 12 },
-  { depth: 4, count: 5 },
-  { depth: 5, count: 2 },
-];
-
-const CONVERSION_BY_PLATFORM = [
-  { platform: 'LINE', rate: 12.4 },
-  { platform: 'X', rate: 6.8 },
-  { platform: 'Meta', rate: 9.2 },
-  { platform: 'TikTok', rate: 8.1 },
 ];
 
 const DEFAULT_TIERS: DiscountTier[] = [
@@ -440,60 +392,71 @@ function GroupsTable({ groups }: { groups: GroupBuyGroup[] }): React.ReactElemen
             </tr>
           </thead>
           <tbody>
-            {groups.map((group) => {
-              const statusConfig = GROUP_STATUS_CONFIG[group.status];
-              const pct = (group.currentParticipants / group.targetParticipants) * 100;
-              return (
-                <tr key={group.id} className="border-b border-border last:border-0 hover:bg-muted/50">
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-mono font-medium text-foreground">{group.id}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm text-foreground">{group.initiator}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={cn(
-                            'h-full rounded-full transition-all',
-                            pct >= 100 ? 'bg-green-500' : 'bg-primary',
-                          )}
-                          style={{ width: `${Math.min(pct, 100)}%` }}
-                        />
+            {groups.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12">
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <Inbox size={28} className="text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              groups.map((group) => {
+                const statusConfig = GROUP_STATUS_CONFIG[group.status];
+                const pct = (group.currentParticipants / group.targetParticipants) * 100;
+                return (
+                  <tr key={group.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-mono font-medium text-foreground">{group.id}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-foreground">{group.initiator}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-all',
+                              pct >= 100 ? 'bg-green-500' : 'bg-primary',
+                            )}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {group.currentParticipants}/{group.targetParticipants}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {group.currentParticipants}/{group.targetParticipants}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {group.currentTier > 0 ? (
+                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-xs font-bold text-primary">
+                          Tier {group.currentTier}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', statusConfig.className)}>
+                        {t(statusConfig.labelKey)}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {group.currentTier > 0 ? (
-                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-xs font-bold text-primary">
-                        Tier {group.currentTier}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', statusConfig.className)}>
-                      {t(statusConfig.labelKey)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {group.status === 'active' ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock size={12} />
-                        {group.remainingHours}h
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {group.status === 'active' ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock size={12} />
+                          {group.remainingHours}h
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -503,6 +466,20 @@ function GroupsTable({ groups }: { groups: GroupBuyGroup[] }): React.ReactElemen
 
 function ViralSpreadChart({ data }: { data: ViralGrowthPoint[] }): React.ReactElement {
   const { t } = useI18n();
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">
+          {t('groupBuy.viralGrowth')}
+        </h3>
+        <div className="flex h-48 flex-col items-center justify-center gap-3 text-center">
+          <Inbox size={28} className="text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -547,92 +524,62 @@ function ShareAnalytics({
 }): React.ReactElement {
   const { t } = useI18n();
 
+  const emptyCard = (titleKey: string): React.ReactElement => (
+    <div key={titleKey} className="rounded-lg border border-border bg-card p-4">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">{t(titleKey)}</h3>
+      <div className="flex h-40 flex-col items-center justify-center gap-3 text-center">
+        <Inbox size={24} className="text-muted-foreground/40" />
+        <p className="text-xs text-muted-foreground">{t('common.noData')}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {/* Pie chart */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="mb-3 text-sm font-semibold text-foreground">
-          {t('groupBuy.platformBreakdown')}
-        </h3>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={shareData}
-                dataKey="count"
-                nameKey="platform"
-                cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={70}
-              >
-                {shareData.map((entry) => (
-                  <Cell key={entry.platform} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+      {shareData.length === 0 ? (
+        emptyCard('groupBuy.platformBreakdown')
+      ) : (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">
+            {t('groupBuy.platformBreakdown')}
+          </h3>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={shareData}
+                  dataKey="count"
+                  nameKey="platform"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={70}
+                >
+                  {shareData.map((entry) => (
+                    <Cell key={entry.platform} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-3">
+            {shareData.map((entry) => (
+              <div key={entry.platform} className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                <span className="text-[10px] text-muted-foreground">{entry.platform}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-2 flex flex-wrap justify-center gap-3">
-          {shareData.map((entry) => (
-            <div key={entry.platform} className="flex items-center gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-[10px] text-muted-foreground">{entry.platform}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Referral chain */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="mb-3 text-sm font-semibold text-foreground">
-          {t('groupBuy.referralChain')}
-        </h3>
-        <div className="space-y-2">
-          {REFERRAL_CHAIN_DATA.map((item) => {
-            const maxCount = REFERRAL_CHAIN_DATA[0]?.count ?? 1;
-            const pct = (item.count / maxCount) * 100;
-            return (
-              <div key={item.depth} className="flex items-center gap-2">
-                <span className="w-16 text-xs text-muted-foreground">
-                  {t('groupBuy.depth')} {item.depth}
-                </span>
-                <div className="flex-1 h-4 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary/60"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <span className="w-8 text-right text-xs font-medium text-foreground">{item.count}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {emptyCard('groupBuy.referralChain')}
 
       {/* Conversion by platform */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="mb-3 text-sm font-semibold text-foreground">
-          {t('groupBuy.conversionByPlatform')}
-        </h3>
-        <div className="space-y-3">
-          {CONVERSION_BY_PLATFORM.map((item) => (
-            <div key={item.platform} className="flex items-center justify-between">
-              <span className="text-sm text-foreground">{item.platform}</span>
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-green-500"
-                    style={{ width: `${(item.rate / 15) * 100}%` }}
-                  />
-                </div>
-                <span className="w-10 text-right text-xs font-semibold text-foreground">{item.rate}%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {emptyCard('groupBuy.conversionByPlatform')}
     </div>
   );
 }
@@ -645,12 +592,19 @@ export default function GroupBuyPage(): React.ReactElement {
   const { t } = useI18n();
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const activeGroups = getMockGroups(t).filter((g) => g.status === 'active');
-  const totalParticipants = getMockGroups(t).reduce((sum, g) => sum + g.currentParticipants, 0);
-  const viralCoefficient = 2.3;
-  const tierAchievementRate = Math.round(
-    (getMockGroups(t).filter((g) => g.status === 'completed').length / getMockGroups(t).length) * 100,
-  );
+  // trpc.groupBuy.listGroups requires a campaignId; this page is the
+  // cross-campaign summary, so we render empty state until a campaign
+  // context is available.
+  const groups: GroupBuyGroup[] = [];
+  const growthData: ViralGrowthPoint[] = [];
+  const shareData: ShareData[] = [];
+
+  const activeGroups = groups.filter((g) => g.status === 'active');
+  const totalParticipants = groups.reduce((sum, g) => sum + g.currentParticipants, 0);
+  const completedCount = groups.filter((g) => g.status === 'completed').length;
+  const viralCoefficient = 0;
+  const tierAchievementRate =
+    groups.length > 0 ? Math.round((completedCount / groups.length) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -706,17 +660,17 @@ export default function GroupBuyPage(): React.ReactElement {
       </div>
 
       {/* Groups table */}
-      <GroupsTable groups={getMockGroups(t)} />
+      <GroupsTable groups={groups} />
 
       {/* Viral growth chart */}
-      <ViralSpreadChart data={MOCK_GROWTH_DATA} />
+      <ViralSpreadChart data={growthData} />
 
       {/* Share analytics */}
       <div>
         <h2 className="mb-3 text-base font-semibold text-foreground">
           {t('groupBuy.shareAnalytics')}
         </h2>
-        <ShareAnalytics shareData={MOCK_SHARE_DATA} />
+        <ShareAnalytics shareData={shareData} />
       </div>
 
       {/* Create modal */}

@@ -15,6 +15,7 @@ import {
   type DbPlatformKey,
 } from '@omni-ad/shared';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'expired';
@@ -37,16 +38,6 @@ const STATUS_CONFIG: Record<ConnectionStatus, { labelKey: string; variant: Statu
   expired: { labelKey: 'settings.expired', variant: 'warning' },
 };
 
-const MOCK_CONNECTIONS: PlatformConnection[] = [
-  { platform: 'meta', status: 'connected', accountName: 'OMNI-AD Meta', lastSync: '2026-04-02T05:00:00Z', lastAnalysis: '2026-04-01 14:20', score: 71 },
-  { platform: 'google', status: 'connected', accountName: 'OMNI-AD Google', lastSync: '2026-04-02T05:30:00Z', lastAnalysis: '2026-04-03 09:30', score: 62 },
-  { platform: 'x', status: 'expired', accountName: 'OMNI-AD X' },
-  { platform: 'tiktok', status: 'disconnected' },
-  { platform: 'line_yahoo', status: 'connected', accountName: 'OMNI-AD LINE/Yahoo', lastSync: '2026-04-01T22:00:00Z', lastAnalysis: '2026-03-28 10:00', score: 78 },
-  { platform: 'amazon', status: 'disconnected' },
-  { platform: 'microsoft', status: 'disconnected' },
-];
-
 function getScoreClasses(score: number): string {
   if (score > 70) return 'bg-success/10 text-success';
   if (score >= 40) return 'bg-warning/15 text-warning';
@@ -56,8 +47,10 @@ function getScoreClasses(score: number): string {
 export default function AccountAnalysisListPage(): React.ReactElement {
   const { t } = useI18n();
   const [navigating, setNavigating] = useState<DbPlatformKey | null>(null);
-  const connectedPlatforms = MOCK_CONNECTIONS.filter((c) => c.status === 'connected');
-  const otherPlatforms = MOCK_CONNECTIONS.filter((c) => c.status !== 'connected');
+  const platformsQuery = trpc.platforms.list.useQuery(undefined, { retry: false });
+  const connections = (platformsQuery.data as PlatformConnection[] | undefined) ?? [];
+  const connectedPlatforms = connections.filter((c) => c.status === 'connected');
+  const otherPlatforms = connections.filter((c) => c.status !== 'connected');
 
   function handleNavigate(platform: DbPlatformKey): void {
     setNavigating(platform);

@@ -65,36 +65,7 @@ const FORMAT_LABEL_KEYS: Record<CreativeFormat, string> = {
   responsive: 'creatives.format.responsive',
 };
 
-function getMockCreatives(t: (key: string, params?: Record<string, string | number>) => string): Creative[] {
-  return [
-  {
-    id: '1', headline: t('creatives.h017432'), description: t('creatives.h566725'), format: 'image',
-    platforms: ['google', 'meta'], thumbnail: '', score: 92, impressions: 45000, clicks: 2100, ctr: 4.7,
-  },
-  {
-    id: '2', headline: t('creatives.hf90c9c'), description: t('creatives.h7cea7d'), format: 'carousel',
-    platforms: ['meta', 'tiktok'], thumbnail: '', score: 87, impressions: 38000, clicks: 1800, ctr: 4.3,
-  },
-  {
-    id: '3', headline: t('creatives.h1c0e47'), description: t('creatives.h579e92'), format: 'video',
-    platforms: ['tiktok', 'line_yahoo'], thumbnail: '', score: 78, impressions: 32000, clicks: 1200, ctr: 3.8,
-  },
-  {
-    id: '4', headline: t('creatives.h824c21'), description: t('creatives.haab543'), format: 'text',
-    platforms: ['google', 'line_yahoo'], thumbnail: '', score: 71, impressions: 25000, clicks: 900, ctr: 3.6,
-  },
-  {
-    id: '5', headline: t('creatives.ha20bff'), description: t('creatives.he27284'), format: 'image',
-    platforms: ['meta', 'line_yahoo', 'x'], thumbnail: '', score: 85, impressions: 42000, clicks: 1950, ctr: 4.6,
-  },
-  {
-    id: '6', headline: t('creatives.h96e1ed'), description: t('creatives.h1369bd'), format: 'responsive',
-    platforms: ['google', 'meta', 'line_yahoo'], thumbnail: '', score: 65, impressions: 18000, clicks: 600, ctr: 3.3,
-  },
-];
-}
-
-// -- Batch Types & Mock --
+// -- Batch Types --
 
 type BatchStatus = 'processing' | 'completed' | 'failed';
 
@@ -121,14 +92,6 @@ const BATCH_STATUS_CONFIG: Record<BatchStatus, { labelKey: string; className: st
     className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
 };
-
-function getMockBatches(t: (key: string, params?: Record<string, string | number>) => string): CreativeBatch[] {
-  return [
-  { id: 'b1', name: t('creatives.h5d3b9f'), status: 'completed', total: 200, completed: 200, createdAt: '2026-04-01' },
-  { id: 'b2', name: t('creatives.h938cac'), status: 'processing', total: 350, completed: 128, createdAt: '2026-04-02' },
-  { id: 'b3', name: t('creatives.h7fdac3'), status: 'completed', total: 150, completed: 150, createdAt: '2026-03-28' },
-];
-}
 
 function BatchRow({ batch }: { batch: CreativeBatch }): React.ReactElement {
   const { t } = useI18n();
@@ -834,9 +797,9 @@ export default function CreativesPage(): React.ReactElement {
 
   const creativesQuery = trpc.creatives.list.useQuery(undefined, { retry: false });
 
-  // Use mock data when API is not available
-  const creatives = creativesQuery.error ? getMockCreatives(t) : (creativesQuery.data as Creative[] | undefined) ?? getMockCreatives(t);
-  const isLoading = creativesQuery.isLoading && !creativesQuery.error;
+  const creatives = (creativesQuery.data as Creative[] | undefined) ?? [];
+  const batches: CreativeBatch[] = [];
+  const isLoading = creativesQuery.isLoading;
 
   const selectedCreative = creatives.find((c) => c.id === selectedId) ?? null;
 
@@ -903,9 +866,16 @@ export default function CreativesPage(): React.ReactElement {
           </Link>
         </div>
         <div className="mt-3 space-y-2">
-          {getMockBatches(t).map((batch) => (
-            <BatchRow key={batch.id} batch={batch} />
-          ))}
+          {batches.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border py-10 text-center">
+              <Rocket size={28} className="text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            </div>
+          ) : (
+            batches.map((batch) => (
+              <BatchRow key={batch.id} batch={batch} />
+            ))
+          )}
         </div>
       </section>
 

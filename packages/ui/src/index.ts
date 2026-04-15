@@ -21,4 +21,23 @@ export {
 export { Tabs, type TabItem, type TabsProps } from './components/tabs.js';
 export { Skeleton } from './components/skeleton.js';
 export { EmptyState, type EmptyStateProps } from './components/empty-state.js';
+export { ErrorState, type ErrorStateProps } from './components/error-state.js';
 export { PageHeader, type PageHeaderProps } from './components/page-header.js';
+export {
+  NavyHero,
+  NavyHeroCell,
+  type NavyHeroProps,
+  type NavyHeroCellProps,
+} from './components/navy-hero.js';
+export { Sparkline, type SparklineProps, type SparklineTone } from './components/sparkline.js';
+export {
+  Timeline,
+  TimelineItem,
+  type TimelineItemProps,
+} from './components/timeline.js';
+export {
+  SegmentedControl,
+  type SegmentedOption,
+  type SegmentedControlProps,
+} from './components/segmented-control.js';
+export { KbdHint, type KbdHintProps } from './components/kbd-hint.js';

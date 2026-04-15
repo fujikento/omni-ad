@@ -1,12 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Eye,
-  MousePointerClick,
-  ShoppingCart,
-  TrendingUp,
-} from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -33,7 +28,6 @@ interface KpiCard {
   label: string;
   value: string;
   change: number;
-  icon: React.ReactNode;
 }
 
 interface PlatformMetric {
@@ -59,6 +53,12 @@ interface TopCampaign {
   roas: number;
 }
 
+interface AnalyticsOverview {
+  kpi?: KpiCard[];
+  roasTrend?: DailyRoas[];
+  topCampaigns?: TopCampaign[];
+}
+
 // -- Constants --
 
 const DATE_RANGE_KEYS: { value: DateRange; key: string }[] = [
@@ -68,53 +68,6 @@ const DATE_RANGE_KEYS: { value: DateRange; key: string }[] = [
   { value: 'last30', key: 'analytics.last30days' },
   { value: 'custom', key: 'analytics.custom' },
 ];
-
-// Mock data for demonstration — labels use i18n keys resolved at render time
-interface MockKpiDef {
-  labelKey: string;
-  value: string;
-  change: number;
-  icon: React.ReactNode;
-}
-
-const MOCK_KPI_DEFS: MockKpiDef[] = [
-  { labelKey: 'analytics.totalImpressions', value: '1,234,567', change: 12.5, icon: <Eye size={20} className="text-blue-500" /> },
-  { labelKey: 'analytics.totalClicks', value: '45,678', change: 8.3, icon: <MousePointerClick size={20} className="text-green-500" /> },
-  { labelKey: 'analytics.totalConversions', value: '1,234', change: -3.2, icon: <ShoppingCart size={20} className="text-purple-500" /> },
-  { labelKey: 'metrics.roas', value: '3.2x', change: 15.1, icon: <TrendingUp size={20} className="text-orange-500" /> },
-];
-
-const MOCK_PLATFORM_DATA: PlatformMetric[] = [
-  { platform: 'Google', impressions: 450000, clicks: 18000, conversions: 520, spend: 180000 },
-  { platform: 'Meta', impressions: 380000, clicks: 12000, conversions: 380, spend: 150000 },
-  { platform: 'TikTok', impressions: 220000, clicks: 8500, conversions: 180, spend: 80000 },
-  { platform: 'LINE', impressions: 120000, clicks: 4500, conversions: 95, spend: 60000 },
-  { platform: 'X', impressions: 45000, clicks: 1800, conversions: 35, spend: 25000 },
-  { platform: 'Yahoo!', impressions: 19567, clicks: 878, conversions: 24, spend: 15000 },
-];
-
-const MOCK_ROAS_TREND: DailyRoas[] = Array.from({ length: 30 }, (_, i) => {
-  const date = new Date(2026, 2, 3 + i);
-  return {
-    date: `${date.getMonth() + 1}/${date.getDate()}`,
-    roas: 2.5 + Math.sin(i / 5) * 0.8 + Math.random() * 0.4,
-  };
-});
-
-function getMockTopCampaigns(t: (key: string, params?: Record<string, string | number>) => string): TopCampaign[] {
-  return [
-  { id: '1', name: t('analytics.hc6f094'), platform: 'Google', impressions: 250000, clicks: 10000, conversions: 320, roas: 4.5 },
-  { id: '2', name: t('analytics.h890fdc'), platform: 'Meta', impressions: 180000, clicks: 7200, conversions: 250, roas: 4.2 },
-  { id: '3', name: t('analytics.h34e78e'), platform: 'LINE', impressions: 80000, clicks: 3200, conversions: 65, roas: 3.8 },
-  { id: '4', name: t('analytics.h03d928'), platform: 'Google', impressions: 200000, clicks: 8000, conversions: 200, roas: 3.5 },
-  { id: '5', name: t('analytics.h3a1cca'), platform: 'TikTok', impressions: 150000, clicks: 6000, conversions: 120, roas: 3.2 },
-  { id: '6', name: t('analytics.hb217be'), platform: 'Yahoo!', impressions: 19567, clicks: 878, conversions: 24, roas: 2.8 },
-  { id: '7', name: t('analytics.h1729c5'), platform: 'X', impressions: 45000, clicks: 1800, conversions: 35, roas: 2.5 },
-  { id: '8', name: t('analytics.haaff51'), platform: 'Meta', impressions: 120000, clicks: 4800, conversions: 130, roas: 2.3 },
-  { id: '9', name: t('analytics.ha36b4e'), platform: 'Google', impressions: 95000, clicks: 3800, conversions: 85, roas: 2.1 },
-  { id: '10', name: t('analytics.h334526'), platform: 'TikTok', impressions: 70000, clicks: 2500, conversions: 60, roas: 1.9 },
-];
-}
 
 // -- Subcomponents --
 
@@ -126,7 +79,6 @@ function KpiCardComponent({ card }: { card: KpiCard }): React.ReactElement {
       value={card.value}
       delta={card.change}
       deltaLabel={t('analytics.comparedToPrevious')}
-      icon={card.icon}
     />
   );
 }
@@ -148,6 +100,18 @@ function SkeletonChart(): React.ReactElement {
   return (
     <div className="flex h-80 animate-pulse items-center justify-center rounded-md bg-muted/30">
       <div className="h-4 w-32 rounded bg-muted" />
+    </div>
+  );
+}
+
+function EmptyState({ message, height }: { message: string; height?: number }): React.ReactElement {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-3 text-center"
+      style={{ minHeight: height ? `${height}px` : undefined }}
+    >
+      <Inbox size={28} className="text-muted-foreground/40" />
+      <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -198,25 +162,18 @@ export default function AnalyticsPage(): React.ReactElement {
     { retry: false },
   );
 
-  const isLoading = overviewQuery.isLoading && !overviewQuery.error;
+  const topCampaignsQuery = trpc.analytics.byCampaign.useQuery(
+    { startDate, endDate, limit: 20 },
+    { retry: false },
+  );
 
-  // Resolve mock KPI labels with i18n
-  const resolvedMockKpi: KpiCard[] = MOCK_KPI_DEFS.map((def) => ({
-    label: t(def.labelKey),
-    value: def.value,
-    change: def.change,
-    icon: def.icon,
-  }));
+  const isLoading = overviewQuery.isLoading;
 
-  // Use mock data when API is not available
-  const kpiCards = overviewQuery.error
-    ? resolvedMockKpi
-    : (overviewQuery.data as KpiCard[] | undefined) ?? resolvedMockKpi;
-  const platformData = platformQuery.error
-    ? MOCK_PLATFORM_DATA
-    : (platformQuery.data as PlatformMetric[] | undefined) ?? MOCK_PLATFORM_DATA;
-  const roasTrend = MOCK_ROAS_TREND;
-  const topCampaigns = getMockTopCampaigns(t);
+  const overview = (overviewQuery.data as AnalyticsOverview | undefined) ?? {};
+  const kpiCards = overview.kpi ?? [];
+  const roasTrend = overview.roasTrend ?? [];
+  const platformData = (platformQuery.data as PlatformMetric[] | undefined) ?? [];
+  const topCampaigns = (topCampaignsQuery.data as TopCampaign[] | undefined) ?? [];
 
   return (
     <div className="space-y-6">
@@ -252,7 +209,13 @@ export default function AnalyticsPage(): React.ReactElement {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)
-          : kpiCards.map((card) => <KpiCardComponent key={card.label} card={card} />)}
+          : kpiCards.length === 0
+            ? (
+              <div className="col-span-full rounded-lg border border-border bg-card py-10">
+                <EmptyState message={t('common.noData')} />
+              </div>
+            )
+            : kpiCards.map((card) => <KpiCardComponent key={card.label} card={card} />)}
       </div>
 
       {/* Charts row */}
@@ -264,6 +227,8 @@ export default function AnalyticsPage(): React.ReactElement {
           </h2>
           {isLoading ? (
             <SkeletonChart />
+          ) : platformData.length === 0 ? (
+            <EmptyState message={t('common.noData')} height={320} />
           ) : (
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={platformData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -295,6 +260,8 @@ export default function AnalyticsPage(): React.ReactElement {
           </h2>
           {isLoading ? (
             <SkeletonChart />
+          ) : roasTrend.length === 0 ? (
+            <EmptyState message={t('common.noData')} height={320} />
           ) : (
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={roasTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -347,29 +314,37 @@ export default function AnalyticsPage(): React.ReactElement {
               </tr>
             </thead>
             <tbody>
-              {isLoading
-                ? Array.from({ length: 5 }, (_, i) => (
-                    <tr key={i} className="animate-pulse border-b border-border">
-                      {Array.from({ length: 7 }, (__, j) => (
-                        <td key={j} className="px-4 py-3"><div className="h-4 w-16 rounded bg-muted" /></td>
-                      ))}
-                    </tr>
-                  ))
-                : topCampaigns.map((c, i) => (
-                    <tr key={c.id} className="border-b border-border transition-colors hover:bg-muted/30">
-                      <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
-                      <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{c.platform}</td>
-                      <td className="px-4 py-3 text-right text-foreground">{c.impressions.toLocaleString('ja-JP')}</td>
-                      <td className="px-4 py-3 text-right text-foreground">{c.clicks.toLocaleString('ja-JP')}</td>
-                      <td className="px-4 py-3 text-right text-foreground">{c.conversions.toLocaleString('ja-JP')}</td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={cn('font-semibold tabular-nums', c.roas >= 3 ? 'text-success' : c.roas >= 2 ? 'text-warning' : 'text-destructive')}>
-                          {c.roas.toFixed(1)}x
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+              {isLoading ? (
+                Array.from({ length: 5 }, (_, i) => (
+                  <tr key={i} className="animate-pulse border-b border-border">
+                    {Array.from({ length: 7 }, (__, j) => (
+                      <td key={j} className="px-4 py-3"><div className="h-4 w-16 rounded bg-muted" /></td>
+                    ))}
+                  </tr>
+                ))
+              ) : topCampaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12">
+                    <EmptyState message={t('common.noData')} />
+                  </td>
+                </tr>
+              ) : (
+                topCampaigns.map((c, i) => (
+                  <tr key={c.id} className="border-b border-border transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{c.platform}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{c.impressions.toLocaleString('ja-JP')}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{c.clicks.toLocaleString('ja-JP')}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{c.conversions.toLocaleString('ja-JP')}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={cn('font-semibold tabular-nums', c.roas >= 3 ? 'text-success' : c.roas >= 2 ? 'text-warning' : 'text-destructive')}>
+                        {c.roas.toFixed(1)}x
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
