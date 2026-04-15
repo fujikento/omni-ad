@@ -121,11 +121,26 @@ export type WebhookEventType =
   | 'policy_update'
   | 'budget_alert';
 
+export type ConversionStage = 'cv1' | 'cv2' | 'cv3' | 'other';
+
 export interface WebhookEvent {
   platform: Platform;
   eventType: WebhookEventType;
   payload: Record<string, unknown>;
   receivedAt: Date;
+  /**
+   * Optional stage classification. Populated by LINE/Yahoo today; other
+   * adapters may fill it later. Downstream conversion ingestion reads
+   * this to pick the right event_name when writing to conversion_events.
+   */
+  stage?: ConversionStage;
+  /**
+   * Optional canonical event name derived from the stage, e.g.
+   * "LINE_CLICK" for cv1. Consumers should prefer
+   * LineYahooPlatformMapping.cvXEventName on the endpoint when
+   * available, and fall back to this value.
+   */
+  eventName?: string;
 }
 
 // ---------------------------------------------------------------------------

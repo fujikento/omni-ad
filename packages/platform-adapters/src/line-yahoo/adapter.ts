@@ -24,8 +24,55 @@ import type {
   CreateAudienceInput,
   AudienceListData,
   CreativeUploadInput,
+  ConversionStage,
   WebhookEvent,
 } from '../types.js';
+
+const LINE_DEFAULT_EVENT_NAMES: Record<ConversionStage, string> = {
+  cv1: 'LINE_CLICK',
+  cv2: 'LINE_REGISTER',
+  cv3: 'FORM_SUBMIT',
+  other: 'LINE_OTHER',
+};
+
+/**
+ * Classifies a LINE/Yahoo webhook payload into a CV stage. LINE's
+ * webhook bodies vary by tag type — payloads observed in the wild
+ * include fields like event_type, event_name, action, type, and
+ * tag. We look at the union of those keys (lowercased) and match
+ * against well-known substrings. Anything we can't identify falls
+ * through to 'other' and is recorded for later inspection.
+ */
+function classifyLineWebhookStage(payload: Record<string, unknown>): ConversionStage {
+  const candidateKeys = ['event_type', 'eventType', 'event_name', 'eventName', 'action', 'type', 'tag'] as const;
+  const raw = candidateKeys
+    .map((k) => payload[k])
+    .find((v): v is string => typeof v === 'string');
+  if (!raw) return 'other';
+  const normalized = raw.toLowerCase();
+  if (normalized.includes('click') || normalized.includes('impression_click') || normalized.includes('widget')) {
+    return 'cv1';
+  }
+  if (
+    normalized.includes('friend_add') ||
+    normalized.includes('friend-add') ||
+    normalized.includes('add_friend') ||
+    normalized.includes('register') ||
+    normalized.includes('follow')
+  ) {
+    return 'cv2';
+  }
+  if (
+    normalized.includes('form') ||
+    normalized.includes('submit') ||
+    normalized.includes('purchase') ||
+    normalized.includes('checkout') ||
+    normalized.includes('conversion')
+  ) {
+    return 'cv3';
+  }
+  return 'other';
+}
 import { LYClient } from './client.js';
 import {
   toNormalizedCampaign,
@@ -492,11 +539,16 @@ export class LineYahooAdapter extends BaseAdapter {
 
   parseWebhook(headers: Record<string, string>, body: unknown): WebhookEvent {
     void headers;
+    const payload = (body ?? {}) as Record<string, unknown>;
+    const stage = classifyLineWebhookStage(payload);
+    const eventName = LINE_DEFAULT_EVENT_NAMES[stage];
     return {
       platform: Platform.LINE_YAHOO,
       eventType: 'conversion',
-      payload: body as Record<string, unknown>,
+      payload,
       receivedAt: new Date(),
+      stage,
+      eventName,
     };
   }
 
