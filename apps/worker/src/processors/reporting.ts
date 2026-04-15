@@ -1,6 +1,6 @@
 import { generateReportJobSchema, type GenerateReportJob } from '@omni-ad/queue';
 import { db } from '@omni-ad/db';
-import { campaigns, metricsDaily, notifications } from '@omni-ad/db/schema';
+import { campaigns, metricsDaily, notifications, reports } from '@omni-ad/db/schema';
 import { and, between, eq, sql, desc } from 'drizzle-orm';
 
 interface ProcessorLogger {
@@ -73,10 +73,25 @@ export async function processReporting(job: { name: string; data: unknown }): Pr
       topCampaignCount: topCampaigns.length,
     });
 
-    // TODO(schema): a dedicated `reports` table does not yet exist in
-    // packages/db/src/schema — add one (id, orgId, type, range, payload,
-    // createdAt) and persist the full report here. Until then, surface the
-    // completion via a dashboard notification so the UI can react.
+    // Persist the full report payload so the UI and downstream exports can
+    // retrieve it later. The accompanying notification surfaces completion
+    // to the dashboard in real time.
+    const reportPayload = {
+      reportType: data.reportType,
+      startDate,
+      endDate,
+      summary,
+      platformBreakdown,
+      topCampaigns,
+    } satisfies Record<string, unknown>;
+
+    await db.insert(reports).values({
+      organizationId: data.organizationId,
+      type: data.reportType,
+      format: 'json',
+      data: reportPayload,
+    });
+
     await db.insert(notifications).values({
       organizationId: data.organizationId,
       userId: null,
