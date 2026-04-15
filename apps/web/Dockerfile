@@ -20,6 +20,8 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
 FROM deps AS build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 COPY apps/web/ ./apps/web/
