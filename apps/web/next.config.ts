@@ -1,7 +1,10 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@omni-ad/shared', '@omni-ad/ui'],
   webpack: (config) => {
     // Workspace packages ship TypeScript source that uses NodeNext-style
