@@ -257,49 +257,28 @@ export async function updatePreferences(
   userId: string,
   preferences: UpdatePreferencesInput[],
 ): Promise<PreferenceSelect[]> {
-  const results: PreferenceSelect[] = [];
+  if (preferences.length === 0) return [];
 
-  for (const pref of preferences) {
-    // Upsert: check if preference exists, then update or insert
-    const existing = await db.query.notificationPreferences.findFirst({
-      where: and(
-        eq(notificationPreferences.userId, userId),
-        eq(notificationPreferences.channel, pref.channel),
-      ),
-    });
+  const rows = preferences.map((pref) => ({
+    userId,
+    channel: pref.channel,
+    enabled: pref.enabled,
+    criticalOnly: pref.criticalOnly ?? false,
+    webhookUrl: pref.webhookUrl ?? null,
+  }));
 
-    if (existing) {
-      const [updated] = await db
-        .update(notificationPreferences)
-        .set({
-          enabled: pref.enabled,
-          criticalOnly: pref.criticalOnly ?? existing.criticalOnly,
-          webhookUrl:
-            pref.webhookUrl !== undefined
-              ? pref.webhookUrl
-              : existing.webhookUrl,
-        })
-        .where(eq(notificationPreferences.id, existing.id))
-        .returning();
-
-      if (updated) results.push(updated);
-    } else {
-      const [inserted] = await db
-        .insert(notificationPreferences)
-        .values({
-          userId,
-          channel: pref.channel,
-          enabled: pref.enabled,
-          criticalOnly: pref.criticalOnly ?? false,
-          webhookUrl: pref.webhookUrl ?? null,
-        })
-        .returning();
-
-      if (inserted) results.push(inserted);
-    }
-  }
-
-  return results;
+  return db
+    .insert(notificationPreferences)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [notificationPreferences.userId, notificationPreferences.channel],
+      set: {
+        enabled: sql`excluded.enabled`,
+        criticalOnly: sql`excluded.critical_only`,
+        webhookUrl: sql`excluded.webhook_url`,
+      },
+    })
+    .returning();
 }
 
 // ---------------------------------------------------------------------------
