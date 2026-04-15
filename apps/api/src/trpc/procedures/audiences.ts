@@ -45,12 +45,17 @@ export const audiencesRouter = router({
       z
         .object({
           platform: DbPlatform.optional(),
+          limit: z.number().int().min(1).max(500).default(100).optional(),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
       try {
-        return await listAudiences(ctx.organizationId, input?.platform);
+        return await listAudiences(
+          ctx.organizationId,
+          input?.platform,
+          input?.limit ?? 100,
+        );
       } catch (error) {
         handleServiceError(error);
       }

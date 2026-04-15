@@ -114,9 +114,16 @@ function handleServiceError(error: unknown): never {
 
 export const campaignsRouter = router({
   list: organizationProcedure
-    .query(async ({ ctx }) => {
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(500).default(100).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
       try {
-        return await listCampaigns(ctx.organizationId);
+        return await listCampaigns(ctx.organizationId, input?.limit ?? 100);
       } catch (error) {
         handleServiceError(error);
       }

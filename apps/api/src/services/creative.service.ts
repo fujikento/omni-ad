@@ -21,10 +21,12 @@ interface GenerateCreativeInput {
 
 export async function listCreatives(
   organizationId: string,
+  limit = 100,
 ): Promise<CreativeWithVariants[]> {
   return db.query.creatives.findMany({
     where: eq(creatives.organizationId, organizationId),
     orderBy: [desc(creatives.createdAt)],
+    limit,
     with: {
       variants: true,
     },

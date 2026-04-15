@@ -112,10 +112,12 @@ export async function createRule(
 
 export async function listRules(
   organizationId: string,
+  limit = 100,
 ): Promise<AutomationRuleSelect[]> {
   return db.query.automationRules.findMany({
     where: eq(automationRules.organizationId, organizationId),
     orderBy: [desc(automationRules.createdAt)],
+    limit,
   });
 }
 
