@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Edit3,
   Eye,
-  Globe,
   Home,
   LayoutDashboard,
   Link2,
@@ -25,6 +24,8 @@ import {
   Target,
   Users,
 } from 'lucide-react';
+import { PlatformIcon } from '@omni-ad/ui';
+import { Platform, type DbPlatformKey } from '@omni-ad/shared';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -37,9 +38,9 @@ type CampaignObjective = 'awareness' | 'traffic' | 'conversion' | 'retargeting';
 type ConversionGoal = 'purchase' | 'lead' | 'app_install';
 
 interface PlatformCard {
-  id: string;
+  id: DbPlatformKey;
   name: string;
-  icon: React.ReactNode;
+  enumKey: Platform;
   color: string;
 }
 
@@ -70,13 +71,13 @@ const STEPS: { labelKey: string; number: number }[] = [
 ];
 
 const PLATFORMS: PlatformCard[] = [
-  { id: 'meta', name: 'META (Facebook / Instagram)', icon: <Globe size={28} />, color: 'border-indigo-200 hover:border-indigo-400 dark:border-indigo-800' },
-  { id: 'google', name: 'Google Ads', icon: <Globe size={28} />, color: 'border-blue-200 hover:border-blue-400 dark:border-blue-800' },
-  { id: 'x', name: 'X (Twitter)', icon: <Globe size={28} />, color: 'border-gray-200 hover:border-gray-400 dark:border-gray-700' },
-  { id: 'tiktok', name: 'TikTok Ads', icon: <Globe size={28} />, color: 'border-pink-200 hover:border-pink-400 dark:border-pink-800' },
-  { id: 'line_yahoo', name: 'LINE / Yahoo!', icon: <Globe size={28} />, color: 'border-green-200 hover:border-green-400 dark:border-green-800' },
-  { id: 'amazon', name: 'Amazon Ads', icon: <Globe size={28} />, color: 'border-orange-200 hover:border-orange-400 dark:border-orange-800' },
-  { id: 'microsoft', name: 'Microsoft Ads', icon: <Globe size={28} />, color: 'border-cyan-200 hover:border-cyan-400 dark:border-cyan-800' },
+  { id: 'meta', name: 'Meta (Facebook / Instagram)', enumKey: Platform.META, color: 'border-border hover:border-indigo-400 dark:hover:border-indigo-500' },
+  { id: 'google', name: 'Google Ads', enumKey: Platform.GOOGLE, color: 'border-border hover:border-blue-400 dark:hover:border-blue-500' },
+  { id: 'x', name: 'X (Twitter)', enumKey: Platform.X, color: 'border-border hover:border-muted-foreground' },
+  { id: 'tiktok', name: 'TikTok Ads', enumKey: Platform.TIKTOK, color: 'border-border hover:border-pink-400 dark:hover:border-pink-500' },
+  { id: 'line_yahoo', name: 'LINE / Yahoo!', enumKey: Platform.LINE_YAHOO, color: 'border-border hover:border-green-400 dark:hover:border-green-500' },
+  { id: 'amazon', name: 'Amazon Ads', enumKey: Platform.AMAZON, color: 'border-border hover:border-orange-400 dark:hover:border-orange-500' },
+  { id: 'microsoft', name: 'Microsoft Ads', enumKey: Platform.MICROSOFT, color: 'border-border hover:border-cyan-400 dark:hover:border-cyan-500' },
 ];
 
 const CONVERSION_GOALS: { value: ConversionGoal; labelKey: string }[] = [
@@ -219,34 +220,35 @@ function PlatformStep({
 
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {PLATFORMS.map((platform) => {
-          const isConnected = connectedPlatforms.has(platform.id);
+          const isSelected = connectedPlatforms.has(platform.id);
           return (
             <button
               key={platform.id}
               type="button"
               onClick={() => onToggle(platform.id)}
+              aria-pressed={isSelected}
               className={cn(
-                'flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all',
-                isConnected
+                'relative flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all',
+                isSelected
                   ? 'border-primary bg-primary/5'
                   : platform.color,
               )}
             >
               <div className={cn(
-                'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg',
-                isConnected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-card',
+                isSelected ? 'ring-2 ring-primary/30' : '',
               )}>
-                {platform.icon}
+                <PlatformIcon platform={platform.enumKey} size={28} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground">{platform.name}</p>
-                {isConnected ? (
+                {isSelected ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
                     <Check size={12} />
-                    {t('onboarding.platformConnected')}
+                    {t('onboarding.platformSelected')}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">{t('onboarding.platformConnect')}</span>
+                  <span className="text-xs text-muted-foreground">{t('onboarding.platformSelect')}</span>
                 )}
               </div>
             </button>
