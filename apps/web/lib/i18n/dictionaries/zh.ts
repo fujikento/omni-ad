@@ -584,6 +584,9 @@ export const zh: TranslationDictionary = {
 
   // Funnels
   'funnels.title': '漏斗构建器',
+  'funnels.monthlyReport': '月度报告',
+  'funnels.selectFunnel': '选择漏斗',
+  'funnels.noFunnelsToReport': '没有可报告的漏斗。请先创建一个漏斗。',
   'funnels.description': '设计和分析转化漏斗',
   'funnels.aiAutoConstruct': 'AI自动构建',
   'funnels.budgetAllocation': '预算分配：',

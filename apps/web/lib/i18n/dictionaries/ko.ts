@@ -584,6 +584,9 @@ export const ko: TranslationDictionary = {
 
   // Funnels
   'funnels.title': '퍼널 빌더',
+  'funnels.monthlyReport': '월간 리포트',
+  'funnels.selectFunnel': '퍼널 선택',
+  'funnels.noFunnelsToReport': '리포트 대상 퍼널이 없습니다. 먼저 퍼널을 만드세요.',
   'funnels.description': '전환 퍼널 설계 및 분석',
   'funnels.aiAutoConstruct': 'AI 자동 구축',
   'funnels.budgetAllocation': '예산 배분:',

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowDown,
+  BarChart3,
   ChevronDown,
   GripVertical,
   Inbox,
@@ -311,9 +313,18 @@ export default function FunnelsPage(): React.ReactElement {
 
       {/* Funnel name */}
       {!isLoading && funnel && (
-        <div className="rounded-lg border border-border bg-card px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">{funnel.name}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{funnel.description}</p>
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-card px-6 py-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-foreground">{funnel.name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{funnel.description}</p>
+          </div>
+          <Link
+            href={`/funnels/${funnel.id}/monthly`}
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary"
+          >
+            <BarChart3 size={14} />
+            {t('funnels.monthlyReport')}
+          </Link>
         </div>
       )}
 

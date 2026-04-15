@@ -584,6 +584,9 @@ export const en: TranslationDictionary = {
 
   // Funnels
   'funnels.title': 'Funnel Builder',
+  'funnels.monthlyReport': 'Monthly Report',
+  'funnels.selectFunnel': 'Select a funnel',
+  'funnels.noFunnelsToReport': 'No funnels to report on. Create a funnel first.',
   'funnels.description': 'Design and analyze conversion funnels',
   'funnels.aiAutoConstruct': 'AI Auto-Construct',
   'funnels.budgetAllocation': 'Budget Allocation:',

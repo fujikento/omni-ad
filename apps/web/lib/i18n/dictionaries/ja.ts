@@ -584,6 +584,9 @@ export const ja: TranslationDictionary = {
 
   // Funnels
   'funnels.title': 'ファネルビルダー',
+  'funnels.monthlyReport': '月次レポート',
+  'funnels.selectFunnel': 'ファネルを選択',
+  'funnels.noFunnelsToReport': 'レポート対象のファネルがありません。先にファネルを作成してください。',
   'funnels.description': 'コンバージョンファネルの設計と分析',
   'funnels.aiAutoConstruct': 'AI自動構築',
   'funnels.budgetAllocation': '予算配分:',
