@@ -11,7 +11,6 @@ import type { AppRouter } from '../../api/src/trpc/router';
 //   2. We re-export it with an explicit CreateTRPCReactBase & router type
 //      to bypass the ProtectedIntersection check at the type level.
 //
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- type-only workaround
 const _trpc = createTRPCReact<AppRouter>() as ReturnType<typeof createTRPCReact<AppRouter>>;
 
 // Re-export with the same type, resolving false-positive collision

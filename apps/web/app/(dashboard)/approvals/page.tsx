@@ -254,7 +254,7 @@ function PendingRequestCard({
         <button
           type="button"
           onClick={onApprove}
-          className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+          className="inline-flex items-center gap-1.5 rounded-md bg-success px-4 py-2 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
         >
           <Check size={14} />
           {t('approvals.approve')}
@@ -275,7 +275,7 @@ function PendingRequestCard({
                 onReject();
                 setShowRejectInput(false);
               }}
-              className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+              className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
             >
               {t('approvals.reject')}
             </button>
@@ -291,7 +291,7 @@ function PendingRequestCard({
           <button
             type="button"
             onClick={() => setShowRejectInput(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
           >
             <XCircle size={14} />
             {t('approvals.reject')}
@@ -668,7 +668,7 @@ function PoliciesTab(): React.ReactElement {
                       </button>
                       <button
                         type="button"
-                        className="rounded p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                        className="rounded p-1.5 text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
                         aria-label={t('approvals.hc6577c')}
                       >
                         <Trash2 size={14} />

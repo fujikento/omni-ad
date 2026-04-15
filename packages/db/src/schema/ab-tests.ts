@@ -92,7 +92,10 @@ export const abTests = pgTable('ab_tests', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgStatusIdx: index('ab_tests_org_status_idx').on(table.organizationId, table.status),
+  orgCreatedAtIdx: index('ab_tests_org_created_at_idx').on(table.organizationId, table.createdAt),
+}));
 
 export const abTestEvents = pgTable(
   'ab_test_events',

@@ -61,10 +61,12 @@ type Platform = typeof campaignPlatformDeployments.$inferInsert['platform'];
 
 export async function listCampaigns(
   organizationId: string,
+  limit = 100,
 ): Promise<CampaignWithDeployments[]> {
   const result = await db.query.campaigns.findMany({
     where: eq(campaigns.organizationId, organizationId),
     orderBy: [desc(campaigns.createdAt)],
+    limit,
     with: {
       platformDeployments: true,
     },

@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   date,
+  index,
   jsonb,
   numeric,
   pgTable,
@@ -84,7 +85,10 @@ export const campaigns = pgTable('campaigns', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgStatusIdx: index('campaigns_org_status_idx').on(table.organizationId, table.status),
+  orgCreatedAtIdx: index('campaigns_org_created_at_idx').on(table.organizationId, table.createdAt),
+}));
 
 export const campaignPlatformDeployments = pgTable(
   'campaign_platform_deployments',

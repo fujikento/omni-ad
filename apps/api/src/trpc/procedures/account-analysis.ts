@@ -89,13 +89,21 @@ export const accountAnalysisRouter = router({
     }),
 
   /** List all analyses for the organization */
-  list: organizationProcedure.query(async ({ ctx }) => {
-    try {
-      return await listAnalyses(ctx.organizationId);
-    } catch (error) {
-      handleServiceError(error);
-    }
-  }),
+  list: organizationProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(500).default(100).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await listAnalyses(ctx.organizationId, input?.limit ?? 100);
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
 
   /** Re-run analysis for a connection */
   reanalyze: organizationProcedure

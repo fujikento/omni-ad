@@ -18,11 +18,12 @@
     "@omni-ad/shared": "workspace:*",
     "@omni-ad/ai-engine": "workspace:*",
     "bullmq": "^5.30.0",
-    "drizzle-orm": "^0.38.0"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "@types/node": "^22.0.0"
-  }
+  },
+  "license": "UNLICENSED"
 }

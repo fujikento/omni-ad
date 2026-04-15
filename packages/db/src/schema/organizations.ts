@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { planTierEnum, userRoleEnum } from './enums';
 
@@ -38,7 +38,9 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  organizationIdIdx: index('users_organization_id_idx').on(table.organizationId),
+}));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),

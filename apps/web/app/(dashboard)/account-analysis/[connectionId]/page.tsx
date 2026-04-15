@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   AlertTriangle,
@@ -435,13 +436,13 @@ export default function AccountAnalysisPage(): React.ReactElement {
         className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
         aria-label={t('accountAnalysis.breadcrumbLabel')}
       >
-        <a href="/settings" className="transition-colors hover:text-foreground">
+        <Link href="/settings" className="transition-colors hover:text-foreground">
           {t('accountAnalysis.breadcrumbSettings')}
-        </a>
+        </Link>
         <ChevronRight size={12} />
-        <a href="/account-analysis" className="transition-colors hover:text-foreground">
+        <Link href="/account-analysis" className="transition-colors hover:text-foreground">
           {t('accountAnalysis.breadcrumbAnalysis')}
-        </a>
+        </Link>
         <ChevronRight size={12} />
         <span className="text-foreground">{data.platformLabel}</span>
       </nav>
@@ -589,7 +590,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {/* Top Performers */}
           <div>
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-green-600">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-success">
               <TrendingUp size={16} />
               {t('accountAnalysis.topPerformers')}
             </h3>
@@ -602,7 +603,7 @@ export default function AccountAnalysisPage(): React.ReactElement {
 
           {/* Under Performers */}
           <div>
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-600">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-destructive">
               <TrendingDown size={16} />
               {t('accountAnalysis.underPerformers')}
             </h3>

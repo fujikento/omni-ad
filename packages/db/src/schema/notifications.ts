@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -87,6 +88,10 @@ export const notificationPreferences = pgTable(
   },
   (table) => [
     index('notification_prefs_user_idx').on(table.userId),
+    uniqueIndex('notification_prefs_user_channel_uniq').on(
+      table.userId,
+      table.channel,
+    ),
   ],
 );
 

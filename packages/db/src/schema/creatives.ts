@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -32,7 +33,9 @@ export const creatives = pgTable('creatives', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgCreatedAtIdx: index('creatives_org_created_at_idx').on(table.organizationId, table.createdAt),
+}));
 
 export const creativeVariants = pgTable('creative_variants', {
   id: uuid('id')

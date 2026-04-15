@@ -233,12 +233,12 @@ function CampaignTable({ campaigns }: { campaigns: OptimizationCampaign[] }): Re
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-100 px-2 text-xs font-medium text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-destructive/10 px-2 text-xs font-medium text-destructive">
                     {campaign.killedVariants}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-green-100 px-2 text-xs font-medium text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-success/10 px-2 text-xs font-medium text-success">
                     {campaign.winners}
                   </span>
                 </td>
@@ -305,7 +305,7 @@ function WinningPatternsPanel({ patterns }: { patterns: WinningPattern[] }): Rea
             <div className="mt-2 flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <TrendingUp size={12} className="text-green-500" />
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                <span className="text-xs font-semibold text-success">
                   +{pattern.liftPercent}%
                 </span>
               </div>

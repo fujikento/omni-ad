@@ -12,7 +12,7 @@ import {
   metricsHourly,
   metricsDaily,
 } from '@omni-ad/db/schema';
-import { and, eq, sql, gte, between } from 'drizzle-orm';
+import { and, eq, sql, gte, between, inArray } from 'drizzle-orm';
 import { createNotification } from './notification.service.js';
 
 // ---------------------------------------------------------------------------
@@ -119,24 +119,32 @@ export async function getDailyPacing(
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
 
+  // Batch: aggregate today's spend for all active campaigns in one query
+  const campaignIds = activeCampaigns.map((c) => c.id);
+  const spendRows = campaignIds.length
+    ? await db
+        .select({
+          campaignId: metricsHourly.campaignId,
+          totalSpend: sql<string>`COALESCE(SUM(${metricsHourly.spend}), 0)::numeric(14,2)::text`,
+        })
+        .from(metricsHourly)
+        .where(
+          and(
+            inArray(metricsHourly.campaignId, campaignIds),
+            gte(metricsHourly.timestamp, todayStart),
+          ),
+        )
+        .groupBy(metricsHourly.campaignId)
+    : [];
+  const spendByCampaign = new Map(
+    spendRows.map((r) => [r.campaignId, Number(r.totalSpend)]),
+  );
+
   const campaignPacings: DailyCampaignPacing[] = [];
 
   for (const campaign of activeCampaigns) {
-    // Fetch today's spend from hourly metrics
-    const [spendRow] = await db
-      .select({
-        totalSpend: sql<string>`COALESCE(SUM(${metricsHourly.spend}), 0)::numeric(14,2)::text`,
-      })
-      .from(metricsHourly)
-      .where(
-        and(
-          eq(metricsHourly.campaignId, campaign.id),
-          gte(metricsHourly.timestamp, todayStart),
-        ),
-      );
-
     const dailyBudget = Number(campaign.dailyBudget);
-    const spendToday = Number(spendRow?.totalSpend ?? '0');
+    const spendToday = spendByCampaign.get(campaign.id) ?? 0;
     const expectedSpendByNow =
       hoursElapsed > 0 ? (hoursElapsed / 24) * dailyBudget : 0;
 
@@ -227,25 +235,33 @@ export async function getMonthlyPacing(
     ),
   });
 
+  // Batch: aggregate month-to-date spend for all active campaigns in one query
+  const campaignIds = activeCampaigns.map((c) => c.id);
+  const spendRows = campaignIds.length
+    ? await db
+        .select({
+          campaignId: metricsDaily.campaignId,
+          totalSpend: sql<string>`COALESCE(SUM(${metricsDaily.spend}), 0)::numeric(14,2)::text`,
+        })
+        .from(metricsDaily)
+        .where(
+          and(
+            inArray(metricsDaily.campaignId, campaignIds),
+            between(metricsDaily.date, monthStart, today),
+          ),
+        )
+        .groupBy(metricsDaily.campaignId)
+    : [];
+  const spendByCampaign = new Map(
+    spendRows.map((r) => [r.campaignId, Number(r.totalSpend)]),
+  );
+
   const campaignPacings: MonthlyCampaignPacing[] = [];
 
   for (const campaign of activeCampaigns) {
-    // Fetch month-to-date spend from daily metrics
-    const [spendRow] = await db
-      .select({
-        totalSpend: sql<string>`COALESCE(SUM(${metricsDaily.spend}), 0)::numeric(14,2)::text`,
-      })
-      .from(metricsDaily)
-      .where(
-        and(
-          eq(metricsDaily.campaignId, campaign.id),
-          between(metricsDaily.date, monthStart, today),
-        ),
-      );
-
     const dailyBudget = Number(campaign.dailyBudget);
     const monthlyBudget = dailyBudget * daysInMonth;
-    const spentThisMonth = Number(spendRow?.totalSpend ?? '0');
+    const spentThisMonth = spendByCampaign.get(campaign.id) ?? 0;
 
     // Project end-of-month spend based on daily average so far
     const dailyAverage =

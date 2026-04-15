@@ -293,7 +293,7 @@ function EndpointCard({
         <button
           type="button"
           onClick={onDelete}
-          className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+          className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-1.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
         >
           <Trash2 size={14} />
           {t('settings.conversions.hc6577c')}

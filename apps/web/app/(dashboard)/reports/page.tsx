@@ -329,6 +329,27 @@ function generateReportCSV(report: Report): string {
   return '\uFEFF' + [header, ...rows].join('\n');
 }
 
+/**
+ * Generate a standalone, print-ready HTML report.
+ *
+ * IMPORTANT — design-token exception:
+ * The hex values below are intentionally NOT routed through `hsl(var(--*))`
+ * CSS custom properties. This HTML string is rendered inside a sandboxed
+ * <iframe srcDoc> (or opened in a new browser window) where the host
+ * document's :root variables are not in scope. It is also exported to
+ * users as a self-contained file for printing / PDF conversion, so it must
+ * be fully inlined and portable.
+ *
+ * These print-only constants mirror the light-theme tokens:
+ *   #1a1a1a  ≈ --foreground
+ *   #2563eb  ≈ --primary
+ *   #f8fafc  ≈ --muted
+ *   #64748b  ≈ --muted-foreground
+ *   #e2e8f0  ≈ --border
+ *   #94a3b8  ≈ --muted-foreground (dim)
+ *
+ * If the light-theme palette shifts, update the constants below in lockstep.
+ */
 function generateReportHTML(report: Report): string {
   const insightsHtml = report.insights.length > 0
     ? `<div style="margin-top:24px;">
@@ -345,6 +366,7 @@ function generateReportHTML(report: Report): string {
   <meta charset="UTF-8">
   <title>${report.title} - OMNI-AD</title>
   <style>
+    /* Print-only palette — see generateReportHTML() docblock for rationale. */
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a; }
     h1 { font-size: 24px; font-weight: 700; border-bottom: 2px solid #2563eb; padding-bottom: 12px; }
     .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }

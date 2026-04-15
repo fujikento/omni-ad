@@ -282,10 +282,12 @@ export async function getLatestAnalysis(
 
 export async function listAnalyses(
   organizationId: string,
+  limit = 100,
 ): Promise<AccountAnalysisSelect[]> {
   return db.query.accountAnalyses.findMany({
     where: eq(accountAnalyses.organizationId, organizationId),
     orderBy: [desc(accountAnalyses.analyzedAt)],
+    limit,
   });
 }
 

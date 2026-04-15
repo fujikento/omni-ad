@@ -11,6 +11,7 @@ type Platform = AudienceSelect['platform'];
 export async function listAudiences(
   organizationId: string,
   platform?: Platform,
+  limit = 100,
 ): Promise<AudienceSelect[]> {
   const conditions = [eq(audiences.organizationId, organizationId)];
   if (platform) {
@@ -20,6 +21,7 @@ export async function listAudiences(
   return db.query.audiences.findMany({
     where: and(...conditions),
     orderBy: [desc(audiences.createdAt)],
+    limit,
   });
 }
 

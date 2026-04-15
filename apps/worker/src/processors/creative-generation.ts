@@ -14,7 +14,21 @@ import {
   generateAdVideo,
   adaptForPlatform,
 } from '@omni-ad/ai-engine';
+import { db } from '@omni-ad/db';
+import { creatives, creativeVariants } from '@omni-ad/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { resolveApiKey } from '../utils/resolve-api-key.js';
+import { getStorageClient, isStorageConfigured } from '../storage/index.js';
+
+// Platform string type matching the DB platform enum used by creativeVariants.
+type DbPlatform =
+  | 'meta'
+  | 'google'
+  | 'x'
+  | 'tiktok'
+  | 'line_yahoo'
+  | 'amazon'
+  | 'microsoft';
 
 interface ProcessorLogger {
   info(message: string, meta?: Record<string, unknown>): void;
@@ -87,7 +101,13 @@ async function tryProcessTextGeneration(job: { name: string; data: unknown }): P
         model: variants[0]?.model ?? 'unknown',
       });
 
-      // TODO: Store variants in creativeVariants table
+      // Persist each variant: one creative row + one creativeVariants row per generated text.
+      await persistTextVariants({
+        organizationId: data.organizationId,
+        platform: platform as DbPlatform,
+        variants,
+        productName: data.productInfo.name,
+      });
     }
 
     return true;
@@ -130,7 +150,15 @@ async function tryProcessImageGeneration(job: { name: string; data: unknown }): 
       model: images[0]?.model ?? 'unknown',
     });
 
-    // TODO: Upload images to storage and update creative record
+    // Upload generated images to durable object storage when a provider is
+    // registered; otherwise keep the provider URL so the data remains usable.
+    const uploadedImages = await uploadImagesOrFallback(data.creativeId, images);
+
+    await persistImageResults({
+      creativeId: data.creativeId,
+      platforms: data.platforms as DbPlatform[],
+      images: uploadedImages,
+    });
     return true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -178,7 +206,15 @@ async function tryProcessVideoGeneration(job: { name: string; data: unknown }): 
       duration: video.durationSeconds,
     });
 
-    // TODO: Upload video to storage and update creative record
+    // Upload generated video to durable object storage when a provider is
+    // registered; otherwise keep the provider URL.
+    const uploadedVideo = await uploadVideoOrFallback(data.creativeId, video);
+
+    await persistVideoResult({
+      creativeId: data.creativeId,
+      platforms: data.platforms as DbPlatform[],
+      video: uploadedVideo,
+    });
     return true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -220,7 +256,11 @@ async function tryProcessPlatformAdaptation(job: { name: string; data: unknown }
       targetPlatform: adapted.platform,
     });
 
-    // TODO: Store adapted variant in creativeVariants table
+    await persistAdaptedVariant({
+      creativeId: data.creativeId,
+      targetPlatform: data.targetPlatform as DbPlatform,
+      adapted,
+    });
     return true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -229,5 +269,265 @@ async function tryProcessPlatformAdaptation(job: { name: string; data: unknown }
       error: message,
     });
     throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Persistence helpers
+// ---------------------------------------------------------------------------
+
+interface GeneratedTextVariant {
+  headline: string;
+  body: string;
+  cta: string;
+  variant: number;
+  model: string;
+}
+
+async function persistTextVariants(args: {
+  organizationId: string;
+  platform: DbPlatform;
+  variants: GeneratedTextVariant[];
+  productName: string;
+}): Promise<void> {
+  // Text jobs do not carry a creativeId (only campaignId), so we create a new
+  // creative row per generated variant and a paired creativeVariants row.
+  for (const variant of args.variants) {
+    const [creative] = await db
+      .insert(creatives)
+      .values({
+        organizationId: args.organizationId,
+        type: 'text',
+        baseContent: {
+          headline: variant.headline,
+          body: variant.body,
+          cta: variant.cta,
+          variantIndex: variant.variant,
+        },
+        aiGenerated: true,
+        promptUsed: `Text generation for ${args.productName} on ${args.platform}`,
+        modelUsed: variant.model,
+      })
+      .returning();
+
+    if (!creative) continue;
+
+    await db.insert(creativeVariants).values({
+      creativeId: creative.id,
+      platform: args.platform,
+      adaptedContent: {
+        headline: variant.headline,
+        body: variant.body,
+        cta: variant.cta,
+      },
+      width: 1200,
+      height: 628,
+      format: 'text',
+    });
+  }
+}
+
+async function persistImageResults(args: {
+  creativeId: string;
+  platforms: DbPlatform[];
+  images: { url: string; width: number; height: number; model: string }[];
+}): Promise<void> {
+  if (args.images.length === 0) return;
+
+  // Merge the first image URL + all image URLs into creatives.baseContent so
+  // consumers can render the primary image without a storage hop yet.
+  const imageUrls = args.images.map((i) => i.url);
+  const primary = args.images[0];
+  if (!primary) return;
+
+  const patch: Record<string, unknown> = {
+    imageUrl: primary.url,
+    imageUrls,
+    imageModel: primary.model,
+  };
+
+  await db
+    .update(creatives)
+    .set({
+      baseContent: sql`${creatives.baseContent} || ${JSON.stringify(patch)}::jsonb`,
+      modelUsed: primary.model,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(creatives.id, args.creativeId));
+
+  // Create one variant row per requested platform, pairing the first image
+  // dimensions. Per-platform multi-size rendering is a separate concern and
+  // lands with the platform-specific adaptation step.
+  for (const platform of args.platforms) {
+    await db.insert(creativeVariants).values({
+      creativeId: args.creativeId,
+      platform,
+      adaptedContent: {
+        imageUrl: primary.url,
+        imageUrls,
+      },
+      width: primary.width,
+      height: primary.height,
+      format: 'image',
+      fileUrl: primary.url,
+    });
+  }
+}
+
+async function persistVideoResult(args: {
+  creativeId: string;
+  platforms: DbPlatform[];
+  video: {
+    url: string;
+    durationSeconds: number;
+    aspectRatio: string;
+    model: string;
+  };
+}): Promise<void> {
+  const patch: Record<string, unknown> = {
+    videoUrl: args.video.url,
+    videoDurationSeconds: args.video.durationSeconds,
+    videoAspectRatio: args.video.aspectRatio,
+    videoModel: args.video.model,
+  };
+
+  await db
+    .update(creatives)
+    .set({
+      baseContent: sql`${creatives.baseContent} || ${JSON.stringify(patch)}::jsonb`,
+      modelUsed: args.video.model,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(creatives.id, args.creativeId));
+
+  // Default to 1200x628 when aspect ratio parsing is non-trivial; refined
+  // per-platform sizing is handled once storage upload is implemented.
+  for (const platform of args.platforms) {
+    await db.insert(creativeVariants).values({
+      creativeId: args.creativeId,
+      platform,
+      adaptedContent: {
+        videoUrl: args.video.url,
+        durationSeconds: args.video.durationSeconds,
+        aspectRatio: args.video.aspectRatio,
+      },
+      width: 1200,
+      height: 628,
+      format: 'video',
+      fileUrl: args.video.url,
+    });
+  }
+}
+
+async function persistAdaptedVariant(args: {
+  creativeId: string;
+  targetPlatform: DbPlatform;
+  adapted: {
+    headline: string;
+    body: string;
+    cta: string;
+    imageUrl: string | null;
+    videoUrl: string | null;
+    platform: string;
+    dimensions: { width: number; height: number };
+  };
+}): Promise<void> {
+  const format = args.adapted.videoUrl
+    ? 'video'
+    : args.adapted.imageUrl
+      ? 'image'
+      : 'text';
+
+  await db.insert(creativeVariants).values({
+    creativeId: args.creativeId,
+    platform: args.targetPlatform,
+    adaptedContent: {
+      headline: args.adapted.headline,
+      body: args.adapted.body,
+      cta: args.adapted.cta,
+      imageUrl: args.adapted.imageUrl,
+      videoUrl: args.adapted.videoUrl,
+    },
+    width: args.adapted.dimensions.width,
+    height: args.adapted.dimensions.height,
+    format,
+    fileUrl: args.adapted.videoUrl ?? args.adapted.imageUrl ?? null,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Storage upload helpers
+// ---------------------------------------------------------------------------
+
+interface GeneratedImage {
+  url: string;
+  width: number;
+  height: number;
+  model: string;
+}
+
+interface GeneratedVideo {
+  url: string;
+  durationSeconds: number;
+  aspectRatio: string;
+  model: string;
+}
+
+async function uploadImagesOrFallback(
+  creativeId: string,
+  images: GeneratedImage[],
+): Promise<GeneratedImage[]> {
+  if (!isStorageConfigured()) {
+    logger.info('Storage not configured, keeping provider URLs for images', {
+      creativeId,
+      imageCount: images.length,
+    });
+    return images;
+  }
+
+  const client = getStorageClient();
+  const uploaded: GeneratedImage[] = [];
+  for (let i = 0; i < images.length; i += 1) {
+    const img = images[i];
+    if (!img) continue;
+    try {
+      const key = `creatives/${creativeId}/image-${i}.png`;
+      const result = await client.uploadImage(img.url, key);
+      uploaded.push({ ...img, url: result.url });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      logger.error('Image upload failed, falling back to provider URL', {
+        creativeId,
+        index: i,
+        error: message,
+      });
+      uploaded.push(img);
+    }
+  }
+  return uploaded;
+}
+
+async function uploadVideoOrFallback(
+  creativeId: string,
+  video: GeneratedVideo,
+): Promise<GeneratedVideo> {
+  if (!isStorageConfigured()) {
+    logger.info('Storage not configured, keeping provider URL for video', {
+      creativeId,
+    });
+    return video;
+  }
+
+  try {
+    const key = `creatives/${creativeId}/video.mp4`;
+    const result = await getStorageClient().uploadVideo(video.url, key);
+    return { ...video, url: result.url };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('Video upload failed, falling back to provider URL', {
+      creativeId,
+      error: message,
+    });
+    return video;
   }
 }

@@ -143,13 +143,21 @@ function handleServiceError(error: unknown): never {
 // ---------------------------------------------------------------------------
 
 export const rulesRouter = router({
-  list: organizationProcedure.query(async ({ ctx }) => {
-    try {
-      return await listRules(ctx.organizationId);
-    } catch (error) {
-      handleServiceError(error);
-    }
-  }),
+  list: organizationProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(500).default(100).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await listRules(ctx.organizationId, input?.limit ?? 100);
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
 
   create: rbacProcedure("settings:manage")
     .input(CreateRuleInput)

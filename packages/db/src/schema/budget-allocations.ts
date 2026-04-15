@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   date,
+  index,
   jsonb,
   numeric,
   pgTable,
@@ -28,7 +29,9 @@ export const budgetAllocations = pgTable('budget_allocations', {
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  orgCreatedAtIdx: index('budget_allocations_org_created_at_idx').on(table.organizationId, table.createdAt),
+}));
 
 // Relations
 
