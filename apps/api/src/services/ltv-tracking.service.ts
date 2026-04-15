@@ -155,13 +155,19 @@ export async function computeCohortAnalysis(
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // Get all customer profiles acquired in this cohort month
+  // Cap the cohort load to avoid pulling >100k customer profiles into
+  // application memory in one shot. computeRetentionRates needs the
+  // full row set, so capping at 50k is the realistic ceiling for
+  // single-tenant cohort sizes in OMNI-AD. Beyond that we either need
+  // to chunk this work or move retention computation into SQL too.
+  const COHORT_LOAD_CAP = 50_000;
   const cohortCustomers = await db.query.customerProfiles.findMany({
     where: and(
       eq(customerProfiles.organizationId, organizationId),
       sql`${customerProfiles.firstConversionAt} >= ${monthStart}`,
       sql`${customerProfiles.firstConversionAt} <= ${monthEnd}`,
     ),
+    limit: COHORT_LOAD_CAP,
   });
 
   const customersAcquired = cohortCustomers.length;

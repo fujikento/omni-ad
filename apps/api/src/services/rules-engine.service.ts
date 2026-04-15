@@ -22,7 +22,7 @@ import type {
   CreativeFatigueCondition,
   TimeBasedCondition,
 } from '@omni-ad/db/schema';
-import { and, desc, eq, sql, between, gte } from 'drizzle-orm';
+import { and, desc, eq, sql, between, gte, inArray } from 'drizzle-orm';
 
 import { pauseCampaign, resumeCampaign } from './campaign.service.js';
 import {
@@ -242,8 +242,8 @@ export async function evaluateRules(
 
   if (activeCampaigns.length === 0) return [];
 
-  // 3. Fetch metrics for all active campaigns
-  const campaignMetrics = await fetchCampaignMetrics(
+  // 3. Batch-fetch metrics for all active campaigns (3 queries total)
+  const metricsById = await fetchCampaignMetricsBatch(
     activeCampaigns.map((c) => c.id),
     organizationId,
   );
@@ -257,7 +257,9 @@ export async function evaluateRules(
       continue;
     }
 
-    for (const metrics of campaignMetrics) {
+    for (const campaign of activeCampaigns) {
+      const metrics = metricsById.get(campaign.id);
+      if (!metrics) continue;
       const result = await evaluateSingleRule(rule, metrics, organizationId);
       results.push(result);
     }
@@ -624,102 +626,175 @@ async function dispatchNotification(
 // Metrics Fetching
 // ---------------------------------------------------------------------------
 
-async function fetchCampaignMetrics(
+interface DailyRow {
+  campaignId: string;
+  date: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spend: string;
+  revenue: string;
+}
+
+/**
+ * Batch-fetch campaign metrics for many campaigns in 3 queries total
+ * (daily metrics, today's hourly spend, campaign budgets) instead of
+ * 3N queries. Returns a Map keyed by campaignId for O(1) lookup.
+ */
+async function fetchCampaignMetricsBatch(
   campaignIds: string[],
   organizationId: string,
-): Promise<CampaignMetrics[]> {
+): Promise<Map<string, CampaignMetrics>> {
+  const result = new Map<string, CampaignMetrics>();
+  if (campaignIds.length === 0) return result;
+
   const today = new Date().toISOString().slice(0, 10);
   const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000)
     .toISOString()
     .slice(0, 10);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
-  const results: CampaignMetrics[] = [];
+  const [dailyByCampaign, hourlyByCampaign, budgetByCampaign] =
+    await Promise.all([
+      fetchDailyRowsBatch(campaignIds, sevenDaysAgo, today),
+      fetchHourlySpendBatch(campaignIds, todayStart),
+      fetchCampaignBudgets(campaignIds),
+    ]);
 
   for (const campaignId of campaignIds) {
-    // Fetch 7-day daily metrics
-    const dailyRows = await db
-      .select({
-        date: metricsDaily.date,
-        impressions: sql<number>`COALESCE(${metricsDaily.impressions}, 0)::int`,
-        clicks: sql<number>`COALESCE(${metricsDaily.clicks}, 0)::int`,
-        conversions: sql<number>`COALESCE(${metricsDaily.conversions}, 0)::int`,
-        spend: sql<string>`COALESCE(${metricsDaily.spend}, 0)::numeric(14,2)::text`,
-        revenue: sql<string>`COALESCE(${metricsDaily.revenue}, 0)::numeric(14,2)::text`,
-      })
-      .from(metricsDaily)
-      .where(
-        and(
-          eq(metricsDaily.campaignId, campaignId),
-          between(metricsDaily.date, sevenDaysAgo, today),
-        ),
-      )
-      .orderBy(metricsDaily.date);
-
-    // Fetch today's hourly spend
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const hourlySpend = await db
-      .select({
-        totalSpend: sql<string>`COALESCE(SUM(${metricsHourly.spend}), 0)::numeric(14,2)::text`,
-      })
-      .from(metricsHourly)
-      .where(
-        and(
-          eq(metricsHourly.campaignId, campaignId),
-          gte(metricsHourly.timestamp, todayStart),
-        ),
-      );
-
-    // Get campaign budget
-    const campaign = await db.query.campaigns.findFirst({
-      where: eq(campaigns.id, campaignId),
-    });
-
-    // Aggregate metrics
-    const totalImpressions = dailyRows.reduce(
-      (sum, r) => sum + r.impressions,
-      0,
-    );
-    const totalClicks = dailyRows.reduce((sum, r) => sum + r.clicks, 0);
-    const totalConversions = dailyRows.reduce(
-      (sum, r) => sum + r.conversions,
-      0,
-    );
-    const totalSpend = dailyRows.reduce(
-      (sum, r) => sum + Number(r.spend),
-      0,
-    );
-    const totalRevenue = dailyRows.reduce(
-      (sum, r) => sum + Number(r.revenue),
-      0,
-    );
-
-    const ctr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
-    const cpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
-    const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-
-    const ctrValues7d = dailyRows.map((r) =>
-      r.impressions > 0 ? r.clicks / r.impressions : 0,
-    );
-
-    results.push({
+    const rows = dailyByCampaign.get(campaignId) ?? [];
+    result.set(
       campaignId,
-      organizationId,
-      dailyBudget: campaign ? Number(campaign.dailyBudget) : 0,
-      cpa,
-      roas,
-      ctr,
-      spend: totalSpend,
-      impressions: totalImpressions,
-      conversions: totalConversions,
-      spendToday: Number(hourlySpend[0]?.totalSpend ?? '0'),
-      ctrValues7d,
-    });
+      buildMetricsBundle({
+        campaignId,
+        organizationId,
+        rows,
+        dailyBudget: budgetByCampaign.get(campaignId) ?? 0,
+        spendToday: hourlyByCampaign.get(campaignId) ?? 0,
+      }),
+    );
   }
 
-  return results;
+  return result;
 }
+
+async function fetchDailyRowsBatch(
+  campaignIds: string[],
+  sevenDaysAgo: string,
+  today: string,
+): Promise<Map<string, DailyRow[]>> {
+  const rows = await db
+    .select({
+      campaignId: metricsDaily.campaignId,
+      date: metricsDaily.date,
+      impressions: sql<number>`COALESCE(${metricsDaily.impressions}, 0)::int`,
+      clicks: sql<number>`COALESCE(${metricsDaily.clicks}, 0)::int`,
+      conversions: sql<number>`COALESCE(${metricsDaily.conversions}, 0)::int`,
+      spend: sql<string>`COALESCE(${metricsDaily.spend}, 0)::numeric(14,2)::text`,
+      revenue: sql<string>`COALESCE(${metricsDaily.revenue}, 0)::numeric(14,2)::text`,
+    })
+    .from(metricsDaily)
+    .where(
+      and(
+        inArray(metricsDaily.campaignId, campaignIds),
+        between(metricsDaily.date, sevenDaysAgo, today),
+      ),
+    )
+    .orderBy(metricsDaily.campaignId, metricsDaily.date);
+
+  const grouped = new Map<string, DailyRow[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.campaignId) ?? [];
+    list.push(row);
+    grouped.set(row.campaignId, list);
+  }
+  return grouped;
+}
+
+async function fetchHourlySpendBatch(
+  campaignIds: string[],
+  todayStart: Date,
+): Promise<Map<string, number>> {
+  const rows = await db
+    .select({
+      campaignId: metricsHourly.campaignId,
+      totalSpend: sql<string>`COALESCE(SUM(${metricsHourly.spend}), 0)::numeric(14,2)::text`,
+    })
+    .from(metricsHourly)
+    .where(
+      and(
+        inArray(metricsHourly.campaignId, campaignIds),
+        gte(metricsHourly.timestamp, todayStart),
+      ),
+    )
+    .groupBy(metricsHourly.campaignId);
+
+  const spendByCampaign = new Map<string, number>();
+  for (const row of rows) {
+    spendByCampaign.set(row.campaignId, Number(row.totalSpend));
+  }
+  return spendByCampaign;
+}
+
+async function fetchCampaignBudgets(
+  campaignIds: string[],
+): Promise<Map<string, number>> {
+  const rows = await db
+    .select({
+      id: campaigns.id,
+      dailyBudget: campaigns.dailyBudget,
+    })
+    .from(campaigns)
+    .where(inArray(campaigns.id, campaignIds));
+
+  const budgetByCampaign = new Map<string, number>();
+  for (const row of rows) {
+    budgetByCampaign.set(row.id, Number(row.dailyBudget));
+  }
+  return budgetByCampaign;
+}
+
+function buildMetricsBundle(args: {
+  campaignId: string;
+  organizationId: string;
+  rows: DailyRow[];
+  dailyBudget: number;
+  spendToday: number;
+}): CampaignMetrics {
+  const { campaignId, organizationId, rows, dailyBudget, spendToday } = args;
+
+  let totalImpressions = 0;
+  let totalClicks = 0;
+  let totalConversions = 0;
+  let totalSpend = 0;
+  let totalRevenue = 0;
+  const ctrValues7d: number[] = [];
+
+  for (const r of rows) {
+    totalImpressions += r.impressions;
+    totalClicks += r.clicks;
+    totalConversions += r.conversions;
+    totalSpend += Number(r.spend);
+    totalRevenue += Number(r.revenue);
+    ctrValues7d.push(r.impressions > 0 ? r.clicks / r.impressions : 0);
+  }
+
+  return {
+    campaignId,
+    organizationId,
+    dailyBudget,
+    cpa: totalConversions > 0 ? totalSpend / totalConversions : 0,
+    roas: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+    ctr: totalImpressions > 0 ? totalClicks / totalImpressions : 0,
+    spend: totalSpend,
+    impressions: totalImpressions,
+    conversions: totalConversions,
+    spendToday,
+    ctrValues7d,
+  };
+}
+
 
 // ---------------------------------------------------------------------------
 // Helpers
