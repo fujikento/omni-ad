@@ -17,7 +17,7 @@
     "@omni-ad/queue": "workspace:*",
     "@omni-ad/shared": "workspace:*",
     "@omni-ad/ai-engine": "workspace:*",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.2",
     "@trpc/server": "^11.0.0",
     "fastify": "^5.2.0",
     "@fastify/cors": "^10.0.0",
