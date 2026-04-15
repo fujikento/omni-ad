@@ -119,7 +119,33 @@ export interface TikTokPlatformMapping {
 export interface LineYahooPlatformMapping {
   tagId: string;
   accessToken: string;
+  /**
+   * Event name fired into `conversion_events.event_name` when a
+   * LINE widget click is observed in a delivered ad.
+   */
+  cv1EventName?: string;
+  /**
+   * Event name for actual friend-add / account registration on the
+   * LINE side (typically from the official-account webhook).
+   */
+  cv2EventName?: string;
+  /**
+   * Event name for the final conversion on the landing page — a form
+   * submission, purchase, or any custom pixel-fired event.
+   */
+  cv3EventName?: string;
 }
+
+/**
+ * Defaults applied when a LINE/Yahoo platform mapping omits the
+ * per-stage event names. Matches the canonical Japanese LINE-ads
+ * reporting convention (CV① / CV② / CV③).
+ */
+export const DEFAULT_LINE_STAGE_MAPPING = {
+  cv1EventName: 'LINE_CLICK',
+  cv2EventName: 'LINE_REGISTER',
+  cv3EventName: 'FORM_SUBMIT',
+} as const;
 
 export interface PlatformMappings {
   meta?: MetaPlatformMapping;
