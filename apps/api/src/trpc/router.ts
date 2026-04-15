@@ -24,6 +24,7 @@ import { abTestEngineRouter } from "./procedures/ab-test-engine.js";
 import { videoProjectsRouter } from "./procedures/video-projects.js";
 import { groupBuyRouter } from "./procedures/group-buy.js";
 import { identityGraphRouter } from "./procedures/identity-graph.js";
+import { monthlyFunnelRouter } from "./procedures/monthly-funnel.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -51,6 +52,7 @@ export const appRouter = router({
   videoProjects: videoProjectsRouter,
   groupBuy: groupBuyRouter,
   identityGraph: identityGraphRouter,
+  monthlyFunnel: monthlyFunnelRouter,
 });
 
 export type AppRouter = typeof appRouter;
