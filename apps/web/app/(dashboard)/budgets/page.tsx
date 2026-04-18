@@ -320,13 +320,18 @@ export default function BudgetsPage(): React.ReactElement {
   const monthlyPacing = (monthlyPacingQuery.data as MonthlyPacing | undefined) ?? null;
   const isLoading = budgetQuery.isLoading;
 
-  function handleOptimize(): void {
+  const utils = trpc.useUtils();
+
+  async function handleOptimize(): Promise<void> {
     setIsOptimizing(true);
-    // Simulate optimization delay
-    setTimeout(() => {
-      setIsOptimizing(false);
+    try {
+      // Trigger a fresh reallocation computation via the orchestrator.
+      // The SpendOrchestratorPanel re-renders with the new plan.
+      await utils.unifiedSpendOrchestrator.preview.invalidate();
       setShowRecommendation(true);
-    }, 2000);
+    } finally {
+      setIsOptimizing(false);
+    }
   }
 
   function updateSimBudget(platform: string, value: number): void {
