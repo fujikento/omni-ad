@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
+import { TodaysMoveCard } from './_components/TodaysMoveCard';
 
 // ============================================================
 // Types
@@ -680,6 +681,9 @@ export function DashboardClient(): React.ReactElement {
 
       {/* Alert Banner */}
       <AlertBanner alerts={visibleAlerts} onViewDetail={setAlertDetail} />
+
+      {/* Today's One Move — highest-impact orchestrator shift as hero CTA */}
+      <TodaysMoveCard />
 
       {/* KPI Cards */}
       {kpiData.length === 0 ? (
