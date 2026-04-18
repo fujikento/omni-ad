@@ -12,6 +12,7 @@
 
 import { db } from '@omni-ad/db';
 import {
+  aiSettings,
   budgetAllocations,
   campaigns,
   metricsHourly,
@@ -185,6 +186,86 @@ export function computePlatformROAS(rows: MetricRow[]): PlatformROAS[] {
  *   3. Pulled budget is distributed to winners proportional to
  *      (roas - target).
  */
+// ---------------------------------------------------------------------------
+// Auto-apply decision (pure)
+// ---------------------------------------------------------------------------
+
+export interface AutoApplySettings {
+  autopilotEnabled: boolean;
+  autopilotMode: 'full_auto' | 'suggest_only' | 'approve_required';
+  budgetAutoAdjust: boolean;
+  maxBudgetChangePercent: number;
+  riskTolerance: 'conservative' | 'moderate' | 'aggressive';
+}
+
+export type AutoApplyDecision =
+  | { autoApply: true; reason: string }
+  | { autoApply: false; reason: string };
+
+/**
+ * Decide whether the orchestrator may auto-apply a plan without human
+ * approval. Pure function — all state comes from arguments.
+ *
+ * Rules (all must pass for auto-apply):
+ *   - autopilotEnabled
+ *   - autopilotMode === 'full_auto'
+ *   - budgetAutoAdjust
+ *   - shift % of total budget <= maxBudgetChangePercent
+ *   - confidence meets riskTolerance floor (conservative=high, moderate=>=medium, aggressive=any)
+ */
+export function shouldAutoApply(
+  plan: ReallocationPlan,
+  settings: AutoApplySettings,
+): AutoApplyDecision {
+  if (!settings.autopilotEnabled) {
+    return { autoApply: false, reason: 'autopilot disabled' };
+  }
+  if (settings.autopilotMode !== 'full_auto') {
+    return {
+      autoApply: false,
+      reason: `autopilot mode is ${settings.autopilotMode}`,
+    };
+  }
+  if (!settings.budgetAutoAdjust) {
+    return { autoApply: false, reason: 'budget auto-adjust disabled' };
+  }
+  if (plan.shifts.length === 0) {
+    return { autoApply: false, reason: 'no shifts proposed' };
+  }
+
+  const totalShifted = plan.shifts.reduce((s, x) => s + x.amount, 0);
+  const shiftPercent =
+    plan.totalBudget > 0 ? (totalShifted / plan.totalBudget) * 100 : 0;
+  if (shiftPercent > settings.maxBudgetChangePercent) {
+    return {
+      autoApply: false,
+      reason: `shift ${shiftPercent.toFixed(1)}% exceeds cap ${settings.maxBudgetChangePercent}%`,
+    };
+  }
+
+  const requiredConfidence: 'low' | 'medium' | 'high' =
+    settings.riskTolerance === 'conservative'
+      ? 'high'
+      : settings.riskTolerance === 'moderate'
+        ? 'medium'
+        : 'low';
+
+  const confidenceOrder = { low: 0, medium: 1, high: 2 } as const;
+  if (
+    confidenceOrder[plan.confidence] < confidenceOrder[requiredConfidence]
+  ) {
+    return {
+      autoApply: false,
+      reason: `confidence ${plan.confidence} below ${settings.riskTolerance} requirement (${requiredConfidence})`,
+    };
+  }
+
+  return {
+    autoApply: true,
+    reason: `confidence ${plan.confidence}, shift ${shiftPercent.toFixed(1)}% under ${settings.maxBudgetChangePercent}%`,
+  };
+}
+
 /**
  * overlap 0 → full shift (new audience), overlap 100 → 60% shift (saturation).
  * Pure. Returns 1.0 when overlap is unknown to preserve backward compat.
@@ -543,6 +624,14 @@ export async function generateReallocationPlan(
 
   const platformROAS = computePlatformROAS(metricRows);
 
+  // Use the org's configured target ROAS as the default cutoff so the
+  // plan reflects what the operator actually optimizes for. Falls back
+  // to the algorithm default when unset.
+  const settingsRow = await db.query.aiSettings.findFirst({
+    where: eq(aiSettings.organizationId, organizationId),
+  });
+  const targetFromSettings = settingsRow?.targetRoas ?? undefined;
+
   // Current allocations = sum of dailyBudget by campaign; we can't infer
   // per-platform split without deployments, so distribute evenly across
   // the platforms actually observed in metrics.
@@ -575,6 +664,9 @@ export async function generateReallocationPlan(
     lookbackHours,
     ...(overlapMatrix && { overlapMatrix }),
     options: {
+      ...(targetFromSettings !== undefined && {
+        targetRoas: targetFromSettings,
+      }),
       ...(opts.targetRoas !== undefined && { targetRoas: opts.targetRoas }),
       ...(opts.maxShiftPercent !== undefined && {
         maxShiftPercent: opts.maxShiftPercent,
@@ -795,6 +887,62 @@ export async function backfillActualRoas(
   }
 
   return { updated, skipped };
+}
+
+export interface AutoApplyRunResult {
+  attempted: boolean;
+  applied: boolean;
+  reason: string;
+  allocationId?: string;
+  shiftsApplied?: number;
+}
+
+/**
+ * Convenience wrapper: generate plan, fetch settings, and either apply
+ * (autopilot in full_auto) or emit a notification for operator approval.
+ * Intended for the scheduled worker processor.
+ */
+export async function autoApplyIfEligible(
+  organizationId: string,
+  plan: ReallocationPlan,
+  userId: string,
+): Promise<AutoApplyRunResult> {
+  const settings = await db.query.aiSettings.findFirst({
+    where: eq(aiSettings.organizationId, organizationId),
+  });
+
+  if (!settings) {
+    return {
+      attempted: false,
+      applied: false,
+      reason: 'no ai_settings row for org',
+    };
+  }
+
+  const decision = shouldAutoApply(plan, {
+    autopilotEnabled: settings.autopilotEnabled,
+    autopilotMode: settings.autopilotMode,
+    budgetAutoAdjust: settings.budgetAutoAdjust,
+    maxBudgetChangePercent: settings.maxBudgetChangePercent,
+    riskTolerance: settings.riskTolerance,
+  });
+
+  if (!decision.autoApply) {
+    return {
+      attempted: true,
+      applied: false,
+      reason: decision.reason,
+    };
+  }
+
+  const result = await applyReallocationPlan(organizationId, plan, userId);
+  return {
+    attempted: true,
+    applied: true,
+    reason: decision.reason,
+    allocationId: result.allocationId,
+    shiftsApplied: result.shiftsApplied,
+  };
 }
 
 export interface AccuracySummary {

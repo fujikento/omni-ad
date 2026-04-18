@@ -7,8 +7,11 @@ import {
   computeWeightedRoas,
   overlapMultiplier,
   safeDivide,
+  shouldAutoApply,
+  type AutoApplySettings,
   type MetricRow,
   type PlatformROAS,
+  type ReallocationPlan,
 } from '../unified-spend-orchestrator.service.js';
 
 function makeRow(partial: Partial<MetricRow> & { platform: MetricRow['platform'] }): MetricRow {
@@ -21,6 +24,105 @@ function makeRow(partial: Partial<MetricRow> & { platform: MetricRow['platform']
     ...partial,
   };
 }
+
+describe('shouldAutoApply', () => {
+  const defaultSettings: AutoApplySettings = {
+    autopilotEnabled: true,
+    autopilotMode: 'full_auto',
+    budgetAutoAdjust: true,
+    maxBudgetChangePercent: 25,
+    riskTolerance: 'moderate',
+  };
+
+  const plan = (overrides: Partial<ReallocationPlan> = {}): ReallocationPlan => ({
+    generatedAt: '2026-04-19T00:00:00Z',
+    lookbackHours: 24,
+    totalBudget: 1000,
+    currentAllocations: { meta: 500, google: 500 },
+    proposedAllocations: { meta: 600, google: 400 },
+    shifts: [
+      {
+        from: 'google',
+        to: 'meta',
+        amount: 100,
+        reason: 'test',
+      },
+    ],
+    platformROAS: [],
+    predictedRoasImprovement: 0.5,
+    confidence: 'high',
+    reasoning: 'test',
+    ...overrides,
+  });
+
+  it('blocks when autopilot disabled', () => {
+    const d = shouldAutoApply(plan(), { ...defaultSettings, autopilotEnabled: false });
+    assert.equal(d.autoApply, false);
+    assert.match(d.reason, /disabled/);
+  });
+
+  it('blocks when mode is not full_auto', () => {
+    const d = shouldAutoApply(plan(), { ...defaultSettings, autopilotMode: 'suggest_only' });
+    assert.equal(d.autoApply, false);
+    assert.match(d.reason, /suggest_only/);
+  });
+
+  it('blocks when budgetAutoAdjust is off', () => {
+    const d = shouldAutoApply(plan(), { ...defaultSettings, budgetAutoAdjust: false });
+    assert.equal(d.autoApply, false);
+  });
+
+  it('blocks when no shifts', () => {
+    const d = shouldAutoApply(plan({ shifts: [] }), defaultSettings);
+    assert.equal(d.autoApply, false);
+  });
+
+  it('blocks when shift exceeds max cap', () => {
+    const d = shouldAutoApply(
+      plan({
+        totalBudget: 1000,
+        shifts: [{ from: 'google', to: 'meta', amount: 300, reason: 'x' }],
+      }),
+      { ...defaultSettings, maxBudgetChangePercent: 20 },
+    );
+    assert.equal(d.autoApply, false);
+    assert.match(d.reason, /30.0% exceeds cap 20%/);
+  });
+
+  it('blocks when conservative requires high but plan is medium', () => {
+    const d = shouldAutoApply(plan({ confidence: 'medium' }), {
+      ...defaultSettings,
+      riskTolerance: 'conservative',
+    });
+    assert.equal(d.autoApply, false);
+  });
+
+  it('allows when conservative and plan is high confidence', () => {
+    const d = shouldAutoApply(plan({ confidence: 'high' }), {
+      ...defaultSettings,
+      riskTolerance: 'conservative',
+    });
+    assert.equal(d.autoApply, true);
+  });
+
+  it('allows aggressive with low confidence', () => {
+    const d = shouldAutoApply(plan({ confidence: 'low' }), {
+      ...defaultSettings,
+      riskTolerance: 'aggressive',
+    });
+    assert.equal(d.autoApply, true);
+  });
+
+  it('allows moderate with medium confidence', () => {
+    const d = shouldAutoApply(plan({ confidence: 'medium' }), defaultSettings);
+    assert.equal(d.autoApply, true);
+  });
+
+  it('blocks moderate with low confidence', () => {
+    const d = shouldAutoApply(plan({ confidence: 'low' }), defaultSettings);
+    assert.equal(d.autoApply, false);
+  });
+});
 
 describe('computeWeightedRoas', () => {
   const pr = (platform: MetricRow['platform'], roas: number): PlatformROAS => ({
