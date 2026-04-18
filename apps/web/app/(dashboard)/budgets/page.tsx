@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
+import { SpendOrchestratorPanel } from './_components/SpendOrchestratorPanel';
 
 // -- Types --
 
@@ -360,6 +361,9 @@ export default function BudgetsPage(): React.ReactElement {
           <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
         </div>
       )}
+
+      {/* Unified Spend Orchestrator — real-time cross-platform ROAS rebalancer */}
+      <SpendOrchestratorPanel />
 
       {/* Current allocation + AI recommendation */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
