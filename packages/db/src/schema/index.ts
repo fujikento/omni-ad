@@ -23,4 +23,5 @@ export * from './video-projects';
 export * from './group-buy';
 export * from './identity-graph';
 export * from './holdout-groups';
+export * from './industry-benchmarks';
 export * from './reports';
