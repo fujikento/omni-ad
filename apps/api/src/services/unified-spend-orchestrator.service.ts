@@ -242,6 +242,127 @@ export async function generateReallocationPlan(
  * Count active creative variants per platform for an organization.
  * Returns 0 for platforms with no variants.
  */
+// ---------------------------------------------------------------------------
+// Campaign-level projection (dry-run)
+// ---------------------------------------------------------------------------
+
+export interface CampaignBudgetChange {
+  campaignId: string;
+  campaignName: string;
+  platform: OrchestratorPlatform;
+  currentDailyBudget: number;
+  proposedDailyBudget: number;
+  deltaPercent: number;
+}
+
+export interface CampaignBudgetProjection {
+  allocationId: string;
+  changes: CampaignBudgetChange[];
+  /** Campaigns that would be paused (proposed ≤ 10% of current). */
+  atRiskCampaigns: string[];
+  /** Campaigns that would get > 100% budget increase (potential shock). */
+  surgingCampaigns: string[];
+}
+
+/**
+ * Translate a saved allocation row into per-campaign dailyBudget changes.
+ * Dry-run only — does NOT mutate campaigns or push to platform adapters.
+ * UI and ops can preview the cascade, approval to execute is manual.
+ *
+ * Distribution: within each platform, the new platform total is split
+ * across active campaigns proportionally to their current dailyBudget.
+ * Campaigns with zero current budget get 0 (no rescue).
+ */
+export async function projectCampaignBudgets(
+  allocationId: string,
+  organizationId: string,
+): Promise<CampaignBudgetProjection | null> {
+  const allocation = await db.query.budgetAllocations.findFirst({
+    where: and(
+      eq(budgetAllocations.id, allocationId),
+      eq(budgetAllocations.organizationId, organizationId),
+    ),
+  });
+  if (!allocation) return null;
+
+  const platformBudgets = allocation.allocations as Record<string, number>;
+
+  const orgCampaigns = await db
+    .select({
+      id: campaigns.id,
+      name: campaigns.name,
+      status: campaigns.status,
+      dailyBudget: campaigns.dailyBudget,
+    })
+    .from(campaigns)
+    .where(eq(campaigns.organizationId, organizationId));
+
+  // Group campaigns by platform via campaign_platform_deployments would be
+  // ideal, but dailyBudget is on the campaign row. For V1 we treat each
+  // campaign as single-platform, matching the architect flow. Future work:
+  // query campaign_platform_deployments and split per-platform-deployment.
+  const changes: CampaignBudgetChange[] = [];
+  const atRisk: string[] = [];
+  const surging: string[] = [];
+
+  const rowPlatforms = await db
+    .select({
+      campaignId: campaigns.id,
+      platform: sql<OrchestratorPlatform>`(
+        SELECT platform FROM campaign_platform_deployments
+        WHERE campaign_id = ${campaigns.id}
+        LIMIT 1
+      )`,
+    })
+    .from(campaigns)
+    .where(eq(campaigns.organizationId, organizationId));
+
+  const platformByCampaignId = new Map(
+    rowPlatforms.map((r) => [r.campaignId, r.platform] as const),
+  );
+
+  // Total current budget per platform
+  const currentTotals: Record<string, number> = {};
+  for (const c of orgCampaigns) {
+    const p = platformByCampaignId.get(c.id);
+    if (!p) continue;
+    currentTotals[p] = (currentTotals[p] ?? 0) + Number(c.dailyBudget);
+  }
+
+  for (const c of orgCampaigns) {
+    const platform = platformByCampaignId.get(c.id);
+    if (!platform) continue;
+    const current = Number(c.dailyBudget);
+    const platformTotal = currentTotals[platform] ?? 0;
+    const platformNew = platformBudgets[platform] ?? 0;
+    const proposed =
+      platformTotal > 0 ? (current / platformTotal) * platformNew : 0;
+    const deltaPercent =
+      current > 0 ? ((proposed - current) / current) * 100 : 0;
+
+    changes.push({
+      campaignId: c.id,
+      campaignName: c.name,
+      platform,
+      currentDailyBudget: round2(current),
+      proposedDailyBudget: round2(proposed),
+      deltaPercent: round2(deltaPercent),
+    });
+
+    if (current > 0 && proposed <= current * 0.1) atRisk.push(c.id);
+    if (current > 0 && proposed > current * 2) surging.push(c.id);
+  }
+
+  return {
+    allocationId,
+    changes: changes.sort(
+      (a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent),
+    ),
+    atRiskCampaigns: atRisk,
+    surgingCampaigns: surging,
+  };
+}
+
 export async function checkCreativePool(
   organizationId: string,
   platforms: OrchestratorPlatform[],

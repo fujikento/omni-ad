@@ -6,6 +6,7 @@ import {
   computeActualRoasForAllocation,
   generateReallocationPlan,
   getAccuracySummary,
+  projectCampaignBudgets,
 } from '../../services/unified-spend-orchestrator.service.js';
 import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
@@ -142,6 +143,19 @@ export const unifiedSpendOrchestratorRouter = router({
         return await getAccuracySummary(
           ctx.organizationId,
           input?.limit ?? 20,
+        );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  projectCampaignBudgets: organizationProcedure
+    .input(z.object({ allocationId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      try {
+        return await projectCampaignBudgets(
+          input.allocationId,
+          ctx.organizationId,
         );
       } catch (error) {
         handleServiceError(error);
