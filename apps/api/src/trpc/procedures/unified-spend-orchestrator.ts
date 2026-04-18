@@ -2,7 +2,10 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import {
   applyReallocationPlan,
+  backfillActualRoas,
+  computeActualRoasForAllocation,
   generateReallocationPlan,
+  getAccuracySummary,
 } from '../../services/unified-spend-orchestrator.service.js';
 import { organizationProcedure, rbacProcedure, router } from '../trpc.js';
 
@@ -82,6 +85,53 @@ export const unifiedSpendOrchestratorRouter = router({
           ctx.organizationId,
           plan,
           ctx.userId,
+        );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  computeActual: rbacProcedure('budgets:manage')
+    .input(z.object({ allocationId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await computeActualRoasForAllocation(
+          input.allocationId,
+          ctx.organizationId,
+        );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  backfillActual: rbacProcedure('budgets:manage')
+    .input(
+      z
+        .object({
+          minAgeHours: z.number().int().min(1).max(168).optional(),
+          maxAgeHours: z.number().int().min(1).max(24 * 90).optional(),
+        })
+        .optional(),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await backfillActualRoas(ctx.organizationId, input ?? {});
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  accuracy: organizationProcedure
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(100).default(20) })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await getAccuracySummary(
+          ctx.organizationId,
+          input?.limit ?? 20,
         );
       } catch (error) {
         handleServiceError(error);

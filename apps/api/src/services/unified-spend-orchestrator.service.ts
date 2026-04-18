@@ -16,7 +16,7 @@ import {
   campaigns,
   metricsHourly,
 } from '@omni-ad/db/schema';
-import { and, eq, gte, inArray } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray } from 'drizzle-orm';
 
 import { getOverlap } from './identity-graph.service.js';
 import { createNotification } from './notification.service.js';
@@ -368,27 +368,36 @@ function finalizePlan(args: {
   };
 }
 
+/**
+ * Weighted ROAS for a budget allocation: Σ(roas × amount) / Σ(amount).
+ * Pure. Platforms without ROAS data are skipped (not treated as zero) so
+ * the weighted average reflects only observable signal.
+ */
+export function computeWeightedRoas(
+  platformROAS: PlatformROAS[],
+  allocation: Record<string, number>,
+): number {
+  const roasOf = new Map(platformROAS.map((p) => [p.platform, p.roas]));
+  let total = 0;
+  let weightSum = 0;
+  for (const [platform, amount] of Object.entries(allocation)) {
+    const roas = roasOf.get(platform as Platform);
+    if (roas === undefined || amount <= 0) continue;
+    total += roas * amount;
+    weightSum += amount;
+  }
+  return safeDivide(total, weightSum);
+}
+
 function estimateRoasImprovement(
   platformROAS: PlatformROAS[],
   proposed: Record<string, number>,
   current: Record<string, number>,
 ): number {
-  // Weighted ROAS using each plan's allocation distribution.
-  const roasOf = new Map(platformROAS.map((p) => [p.platform, p.roas]));
-
-  const weightedROAS = (alloc: Record<string, number>): number => {
-    let total = 0;
-    let weightSum = 0;
-    for (const [platform, amount] of Object.entries(alloc)) {
-      const roas = roasOf.get(platform as Platform);
-      if (roas === undefined || amount <= 0) continue;
-      total += roas * amount;
-      weightSum += amount;
-    }
-    return safeDivide(total, weightSum);
-  };
-
-  return weightedROAS(proposed) - weightedROAS(current);
+  return (
+    computeWeightedRoas(platformROAS, proposed) -
+    computeWeightedRoas(platformROAS, current)
+  );
 }
 
 function classifyConfidence(
@@ -611,6 +620,15 @@ export async function applyReallocationPlan(
   plan: ReallocationPlan,
   userId: string,
 ): Promise<ApplyPlanResult> {
+  // predictedRoas is the weighted ROAS of the PROPOSED allocation — this is
+  // what the orchestrator believes will happen if the operator applies the
+  // plan. Later, computeActualRoasForAllocation fills in actualRoas so the
+  // model can learn from prediction / reality divergence.
+  const predictedRoas = computeWeightedRoas(
+    plan.platformROAS,
+    plan.proposedAllocations,
+  );
+
   const [row] = await db
     .insert(budgetAllocations)
     .values({
@@ -618,7 +636,7 @@ export async function applyReallocationPlan(
       date: new Date().toISOString().slice(0, 10),
       allocations: plan.proposedAllocations,
       totalBudget: plan.totalBudget.toFixed(2),
-      predictedRoas: plan.platformROAS[0]?.roas ?? null,
+      predictedRoas: Number.isFinite(predictedRoas) ? predictedRoas : null,
       actualRoas: null,
       algorithmVersion: 'unified-spend-orchestrator-v1',
     })
@@ -647,5 +665,193 @@ export async function applyReallocationPlan(
   return {
     allocationId: row.id,
     shiftsApplied: plan.shifts.length,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Feedback loop: predicted vs actual ROAS
+// ---------------------------------------------------------------------------
+
+export interface ActualRoasResult {
+  allocationId: string;
+  predictedRoas: number | null;
+  actualRoas: number;
+  spend: number;
+  revenue: number;
+  sampleHours: number;
+}
+
+/**
+ * Compute realized ROAS for an allocation from metrics_hourly since the
+ * allocation was created. Writes actualRoas back to the row so the
+ * predicted/actual delta can be mined for model improvement.
+ *
+ * Returns null when the allocation has too little post-creation data to
+ * produce a meaningful signal (< 4 hours of metrics), so we don't
+ * overwrite with noise.
+ */
+export async function computeActualRoasForAllocation(
+  allocationId: string,
+  organizationId: string,
+): Promise<ActualRoasResult | null> {
+  const allocation = await db.query.budgetAllocations.findFirst({
+    where: and(
+      eq(budgetAllocations.id, allocationId),
+      eq(budgetAllocations.organizationId, organizationId),
+    ),
+  });
+
+  if (!allocation) return null;
+
+  const since = allocation.createdAt;
+  const hoursElapsed = (Date.now() - since.getTime()) / 3_600_000;
+  if (hoursElapsed < 4) return null;
+
+  const orgCampaigns = await db
+    .select({ id: campaigns.id })
+    .from(campaigns)
+    .where(eq(campaigns.organizationId, organizationId));
+  const campaignIds = orgCampaigns.map((c) => c.id);
+  if (campaignIds.length === 0) return null;
+
+  const rows = await db
+    .select({
+      spend: metricsHourly.spend,
+      revenue: metricsHourly.revenue,
+    })
+    .from(metricsHourly)
+    .where(
+      and(
+        gte(metricsHourly.timestamp, since),
+        inArray(metricsHourly.campaignId, campaignIds),
+      ),
+    );
+
+  if (rows.length === 0) return null;
+
+  let totalSpend = 0;
+  let totalRevenue = 0;
+  for (const r of rows) {
+    totalSpend += Number(r.spend);
+    totalRevenue += Number(r.revenue);
+  }
+
+  const actualRoas = safeDivide(totalRevenue, totalSpend);
+
+  await db
+    .update(budgetAllocations)
+    .set({ actualRoas })
+    .where(eq(budgetAllocations.id, allocationId));
+
+  return {
+    allocationId,
+    predictedRoas: allocation.predictedRoas,
+    actualRoas: round4(actualRoas),
+    spend: round2(totalSpend),
+    revenue: round2(totalRevenue),
+    sampleHours: Math.round(hoursElapsed),
+  };
+}
+
+/**
+ * Scan recent allocations lacking actualRoas and fill them in. Returns
+ * the number of allocations updated so the caller can log progress.
+ */
+export async function backfillActualRoas(
+  organizationId: string,
+  options: { maxAgeHours?: number; minAgeHours?: number } = {},
+): Promise<{ updated: number; skipped: number }> {
+  const maxAgeHours = options.maxAgeHours ?? 30 * 24;
+  const minAgeHours = options.minAgeHours ?? 4;
+  const maxAge = new Date(Date.now() - maxAgeHours * 3_600_000);
+  const minAge = new Date(Date.now() - minAgeHours * 3_600_000);
+
+  const candidates = await db
+    .select({ id: budgetAllocations.id })
+    .from(budgetAllocations)
+    .where(
+      and(
+        eq(budgetAllocations.organizationId, organizationId),
+        gte(budgetAllocations.createdAt, maxAge),
+      ),
+    );
+
+  let updated = 0;
+  let skipped = 0;
+  for (const c of candidates) {
+    const row = await db.query.budgetAllocations.findFirst({
+      where: eq(budgetAllocations.id, c.id),
+    });
+    if (!row || row.actualRoas !== null || row.createdAt > minAge) {
+      skipped += 1;
+      continue;
+    }
+    const result = await computeActualRoasForAllocation(c.id, organizationId);
+    if (result) {
+      updated += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+
+  return { updated, skipped };
+}
+
+export interface AccuracySummary {
+  samples: number;
+  meanAbsoluteError: number;
+  meanBias: number;
+  recent: Array<{
+    allocationId: string;
+    predictedRoas: number;
+    actualRoas: number;
+    createdAt: Date;
+  }>;
+}
+
+/**
+ * Summarize prediction accuracy across recent paired (predicted, actual)
+ * allocations. MAE tells you how wrong the model is; mean bias tells you
+ * if it's systematically optimistic (>0) or pessimistic (<0).
+ */
+export async function getAccuracySummary(
+  organizationId: string,
+  limit = 20,
+): Promise<AccuracySummary> {
+  const rows = await db.query.budgetAllocations.findMany({
+    where: eq(budgetAllocations.organizationId, organizationId),
+    orderBy: [desc(budgetAllocations.createdAt)],
+    limit: limit * 3, // overfetch since many will lack actualRoas
+  });
+
+  const paired = rows
+    .filter(
+      (r): r is typeof r & { predictedRoas: number; actualRoas: number } =>
+        r.predictedRoas !== null && r.actualRoas !== null,
+    )
+    .slice(0, limit);
+
+  if (paired.length === 0) {
+    return { samples: 0, meanAbsoluteError: 0, meanBias: 0, recent: [] };
+  }
+
+  let errorSum = 0;
+  let biasSum = 0;
+  for (const p of paired) {
+    const diff = p.predictedRoas - p.actualRoas;
+    errorSum += Math.abs(diff);
+    biasSum += diff;
+  }
+
+  return {
+    samples: paired.length,
+    meanAbsoluteError: round4(errorSum / paired.length),
+    meanBias: round4(biasSum / paired.length),
+    recent: paired.map((p) => ({
+      allocationId: p.id,
+      predictedRoas: p.predictedRoas,
+      actualRoas: p.actualRoas,
+      createdAt: p.createdAt,
+    })),
   };
 }

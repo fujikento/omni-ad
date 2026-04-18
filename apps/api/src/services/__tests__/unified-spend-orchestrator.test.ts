@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   computePlatformROAS,
   computeReallocationPlan,
+  computeWeightedRoas,
   overlapMultiplier,
   safeDivide,
   type MetricRow,
@@ -20,6 +21,58 @@ function makeRow(partial: Partial<MetricRow> & { platform: MetricRow['platform']
     ...partial,
   };
 }
+
+describe('computeWeightedRoas', () => {
+  const pr = (platform: MetricRow['platform'], roas: number): PlatformROAS => ({
+    platform,
+    spend: 0,
+    revenue: 0,
+    conversions: 0,
+    impressions: 0,
+    clicks: 0,
+    roas,
+    cpa: 0,
+    ctr: 0,
+    dataPoints: 1,
+  });
+
+  it('returns 0 when allocation is empty', () => {
+    assert.equal(computeWeightedRoas([pr('meta', 3)], {}), 0);
+  });
+
+  it('returns 0 when no platforms match', () => {
+    assert.equal(
+      computeWeightedRoas([pr('meta', 3)], { google: 100 }),
+      0,
+    );
+  });
+
+  it('returns the single platform ROAS when only one is allocated', () => {
+    assert.equal(
+      computeWeightedRoas([pr('meta', 2.5)], { meta: 500 }),
+      2.5,
+    );
+  });
+
+  it('weights ROAS by allocation amount', () => {
+    const platformROAS = [pr('meta', 4.0), pr('google', 1.0)];
+    const result = computeWeightedRoas(platformROAS, {
+      meta: 800,
+      google: 200,
+    });
+    // (4.0 * 800 + 1.0 * 200) / 1000 = 3.4
+    assert.ok(Math.abs(result - 3.4) < 1e-9);
+  });
+
+  it('skips zero-amount allocations', () => {
+    const platformROAS = [pr('meta', 4.0), pr('google', 1.0)];
+    const result = computeWeightedRoas(platformROAS, {
+      meta: 1000,
+      google: 0,
+    });
+    assert.ok(Math.abs(result - 4.0) < 1e-9);
+  });
+});
 
 describe('overlapMultiplier', () => {
   it('returns 1.0 when overlap is undefined', () => {
