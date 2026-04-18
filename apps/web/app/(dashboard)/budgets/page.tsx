@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
+import { HoldoutGroupsPanel } from './_components/HoldoutGroupsPanel';
 import { SpendOrchestratorPanel } from './_components/SpendOrchestratorPanel';
 
 // -- Types --
@@ -354,6 +355,9 @@ export default function BudgetsPage(): React.ReactElement {
           The legacy "AI recommendation" panel was removed; SpendOrchestratorPanel
           is now the canonical source for proposed reallocations. */}
       <SpendOrchestratorPanel />
+
+      {/* Causal lift experiments via holdout groups */}
+      <HoldoutGroupsPanel />
 
       {/* Current allocation donut — read-only snapshot of the active split */}
       <div className="rounded-lg border border-border bg-card shadow-xs p-6">

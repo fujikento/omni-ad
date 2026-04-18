@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
+import { BenchmarkPanel } from './_components/BenchmarkPanel';
 import { TodaysMoveCard } from './_components/TodaysMoveCard';
 
 // ============================================================
@@ -684,6 +685,9 @@ export function DashboardClient(): React.ReactElement {
 
       {/* Today's One Move — highest-impact orchestrator shift as hero CTA */}
       <TodaysMoveCard />
+
+      {/* Industry benchmark comparison — agency network effect in one glance */}
+      <BenchmarkPanel />
 
       {/* KPI Cards */}
       {kpiData.length === 0 ? (
