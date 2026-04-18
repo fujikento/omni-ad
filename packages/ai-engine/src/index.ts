@@ -43,3 +43,24 @@ export {
   type ComplianceViolation,
   type CreativeInput,
 } from './compliance/policy-checker.js';
+
+// Unified Spend Orchestrator (pure core)
+export {
+  ALL_PLATFORMS,
+  DEFAULT_REALLOCATION_OPTIONS,
+  computePlatformROAS,
+  computeReallocationPlan,
+  computeWeightedRoas,
+  overlapMultiplier,
+  safeDivide as orchestratorSafeDivide,
+  shouldAutoApply,
+  type AutoApplyDecision,
+  type AutoApplySettings,
+  type MetricRow as OrchestratorMetricRow,
+  type OverlapMatrix,
+  type Platform as OrchestratorPlatform,
+  type PlatformROAS,
+  type ReallocationOptions,
+  type ReallocationPlan,
+  type ShiftEntry,
+} from './orchestrator/index.js';

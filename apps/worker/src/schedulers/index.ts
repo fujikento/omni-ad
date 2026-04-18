@@ -57,5 +57,16 @@ export async function registerSchedulers(): Promise<void> {
     { name: 'scheduled-token-refresh', data: {} },
   );
 
-  console.log('Registered 6 job schedulers');
+  // Unified Spend Orchestrator: every hour
+  const orchestratorQueue = new Queue(
+    QUEUE_NAMES.UNIFIED_SPEND_ORCHESTRATOR,
+    { connection },
+  );
+  await orchestratorQueue.upsertJobScheduler(
+    'orchestrator-scheduler',
+    { every: 60 * 60 * 1000 },
+    { name: 'scheduled-orchestrator', data: {} },
+  );
+
+  console.log('Registered 7 job schedulers');
 }
