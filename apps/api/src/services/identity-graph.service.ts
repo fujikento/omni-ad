@@ -304,6 +304,19 @@ export async function listSegments(
   };
 }
 
+export async function getSegment(
+  segmentId: string,
+  organizationId: string,
+): Promise<SegmentSelect | null> {
+  const segment = await db.query.unifiedSegments.findFirst({
+    where: and(
+      eq(unifiedSegments.id, segmentId),
+      eq(unifiedSegments.organizationId, organizationId),
+    ),
+  });
+  return segment ?? null;
+}
+
 export async function getOverlap(
   organizationId: string,
   platformA: string,

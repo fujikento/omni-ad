@@ -35,6 +35,13 @@ export interface CampaignTargetingConfig {
   placements?: string[];
   excludedAudiences?: string[];
   languages?: string[];
+  /**
+   * Links a campaign to a unified_segments row. When set, platform adapters
+   * may resolve the segment's platformIds via identity-graph to constrain
+   * targeting; the spend orchestrator may use it to adjust shift magnitude
+   * based on cross-platform audience overlap.
+   */
+  unifiedSegmentId?: string;
 }
 
 export interface CampaignKpiAlerts {

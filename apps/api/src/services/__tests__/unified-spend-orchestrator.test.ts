@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   computePlatformROAS,
   computeReallocationPlan,
+  overlapMultiplier,
   safeDivide,
   type MetricRow,
   type PlatformROAS,
@@ -19,6 +20,29 @@ function makeRow(partial: Partial<MetricRow> & { platform: MetricRow['platform']
     ...partial,
   };
 }
+
+describe('overlapMultiplier', () => {
+  it('returns 1.0 when overlap is undefined', () => {
+    assert.equal(overlapMultiplier(undefined), 1.0);
+  });
+  it('returns 1.0 when overlap is 0', () => {
+    assert.equal(overlapMultiplier(0), 1.0);
+  });
+  it('returns 0.6 when overlap is 100', () => {
+    assert.ok(Math.abs(overlapMultiplier(100) - 0.6) < 1e-9);
+  });
+  it('returns 0.8 when overlap is 50', () => {
+    assert.ok(Math.abs(overlapMultiplier(50) - 0.8) < 1e-9);
+  });
+  it('clamps out-of-range values', () => {
+    assert.equal(overlapMultiplier(-10), 1.0);
+    assert.ok(Math.abs(overlapMultiplier(200) - 0.6) < 1e-9);
+  });
+  it('returns 1.0 for non-finite', () => {
+    assert.equal(overlapMultiplier(Number.NaN), 1.0);
+    assert.equal(overlapMultiplier(Number.POSITIVE_INFINITY), 1.0);
+  });
+});
 
 describe('safeDivide', () => {
   it('returns 0 when denominator is 0', () => {
@@ -178,6 +202,74 @@ describe('computeReallocationPlan', () => {
       plan.proposedAllocations['google']! >= 2500 - 0.01,
       `google dropped below 50%: ${plan.proposedAllocations['google']}`,
     );
+  });
+
+  it('dampens shift amount when winner overlaps heavily with loser', () => {
+    const platformROAS: PlatformROAS[] = [
+      base({ platform: 'meta', roas: 5, dataPoints: 10 }),
+      base({ platform: 'google', roas: 0.5, dataPoints: 10 }),
+    ];
+    const withoutOverlap = computeReallocationPlan({
+      totalBudget: 1000,
+      currentAllocations: { meta: 500, google: 500 },
+      platformROAS,
+      lookbackHours: 24,
+      options: { targetRoas: 2, maxShiftPercent: 0.25, minRoasDelta: 0.2, minDataPoints: 3 },
+    });
+    const withOverlap = computeReallocationPlan({
+      totalBudget: 1000,
+      currentAllocations: { meta: 500, google: 500 },
+      platformROAS,
+      lookbackHours: 24,
+      options: { targetRoas: 2, maxShiftPercent: 0.25, minRoasDelta: 0.2, minDataPoints: 3 },
+      overlapMatrix: { google: { meta: 100 } },
+    });
+    const noOverlapTotal = withoutOverlap.shifts.reduce((s, x) => s + x.amount, 0);
+    const overlapTotal = withOverlap.shifts.reduce((s, x) => s + x.amount, 0);
+    assert.ok(
+      overlapTotal < noOverlapTotal,
+      `expected overlap shift (${overlapTotal}) to be smaller than no-overlap (${noOverlapTotal})`,
+    );
+  });
+
+  it('preserves full shift when overlap is 0', () => {
+    const platformROAS: PlatformROAS[] = [
+      base({ platform: 'meta', roas: 5, dataPoints: 10 }),
+      base({ platform: 'google', roas: 0.5, dataPoints: 10 }),
+    ];
+    const noOverlap = computeReallocationPlan({
+      totalBudget: 1000,
+      currentAllocations: { meta: 500, google: 500 },
+      platformROAS,
+      lookbackHours: 24,
+      options: { targetRoas: 2, maxShiftPercent: 0.25, minRoasDelta: 0.2, minDataPoints: 3 },
+    });
+    const zeroOverlap = computeReallocationPlan({
+      totalBudget: 1000,
+      currentAllocations: { meta: 500, google: 500 },
+      platformROAS,
+      lookbackHours: 24,
+      options: { targetRoas: 2, maxShiftPercent: 0.25, minRoasDelta: 0.2, minDataPoints: 3 },
+      overlapMatrix: { google: { meta: 0 } },
+    });
+    const a = noOverlap.shifts[0]?.amount ?? 0;
+    const b = zeroOverlap.shifts[0]?.amount ?? 0;
+    assert.ok(Math.abs(a - b) < 0.01, `0% overlap should equal no-data case: ${a} vs ${b}`);
+  });
+
+  it('surfaces overlapPercent in shift entry when overlap is provided', () => {
+    const plan = computeReallocationPlan({
+      totalBudget: 1000,
+      currentAllocations: { meta: 500, google: 500 },
+      platformROAS: [
+        base({ platform: 'meta', roas: 5, dataPoints: 10 }),
+        base({ platform: 'google', roas: 0.5, dataPoints: 10 }),
+      ],
+      lookbackHours: 24,
+      overlapMatrix: { google: { meta: 42 } },
+    });
+    assert.equal(plan.shifts[0]?.overlapPercent, 42);
+    assert.ok(plan.shifts[0]?.reason.includes('42%'));
   });
 
   it('assigns higher confidence with more data points', () => {

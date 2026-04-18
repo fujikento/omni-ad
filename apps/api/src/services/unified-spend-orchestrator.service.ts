@@ -18,6 +18,7 @@ import {
 } from '@omni-ad/db/schema';
 import { and, eq, gte, inArray } from 'drizzle-orm';
 
+import { getOverlap } from './identity-graph.service.js';
 import { createNotification } from './notification.service.js';
 
 // ---------------------------------------------------------------------------
@@ -84,7 +85,19 @@ export interface ShiftEntry {
   to: Platform;
   amount: number;
   reason: string;
+  /**
+   * Cross-platform audience overlap (0-100) between `from` and `to`.
+   * Undefined when identity-graph data is unavailable.
+   */
+  overlapPercent?: number;
 }
+
+/**
+ * overlap[from][to] = 0-100 percentage of the `from` platform's audience
+ * that also exists on the `to` platform (per identity-graph). Used to
+ * dampen shifts when winner and loser already reach the same users.
+ */
+export type OverlapMatrix = Record<string, Record<string, number>>;
 
 export interface ReallocationPlan {
   generatedAt: string;
@@ -172,6 +185,16 @@ export function computePlatformROAS(rows: MetricRow[]): PlatformROAS[] {
  *   3. Pulled budget is distributed to winners proportional to
  *      (roas - target).
  */
+/**
+ * overlap 0 → full shift (new audience), overlap 100 → 60% shift (saturation).
+ * Pure. Returns 1.0 when overlap is unknown to preserve backward compat.
+ */
+export function overlapMultiplier(overlap: number | undefined): number {
+  if (overlap === undefined || !Number.isFinite(overlap)) return 1.0;
+  const clamped = Math.max(0, Math.min(100, overlap));
+  return 1.0 - 0.4 * (clamped / 100);
+}
+
 export function computeReallocationPlan(params: {
   totalBudget: number;
   currentAllocations: Record<string, number>;
@@ -179,6 +202,7 @@ export function computeReallocationPlan(params: {
   options?: Partial<ReallocationOptions>;
   lookbackHours: number;
   generatedAt?: string;
+  overlapMatrix?: OverlapMatrix;
 }): ReallocationPlan {
   const options: ReallocationOptions = {
     ...DEFAULT_REALLOCATION_OPTIONS,
@@ -255,26 +279,40 @@ export function computeReallocationPlan(params: {
   );
 
   // Apply pulls to losers
+  let actualTotalShifted = 0;
   for (const l of losers) {
     const pull = perLoserPull.get(l.platform) ?? 0;
     if (pull <= 0) continue;
-    proposed[l.platform] = round2((proposed[l.platform] ?? 0) - pull);
 
-    // Distribute this loser's pull to winners proportionally
+    let pulledFromLoser = 0;
+    // Distribute this loser's pull to winners proportionally, damped by
+    // audience overlap (high overlap = smaller shift to avoid saturation).
     for (const w of winners) {
       const winnerWeight = safeDivide(
         Math.max(0, w.roas - options.targetRoas),
         winnerSurplus,
       );
-      const give = pull * winnerWeight;
+      const rawGive = pull * winnerWeight;
+      const overlap = params.overlapMatrix?.[l.platform]?.[w.platform];
+      const multiplier = overlapMultiplier(overlap);
+      const give = rawGive * multiplier;
       if (give <= 0) continue;
       proposed[w.platform] = round2((proposed[w.platform] ?? 0) + give);
+      pulledFromLoser += give;
       shifts.push({
         from: l.platform,
         to: w.platform,
         amount: round2(give),
-        reason: buildShiftReason(l, w, options.targetRoas),
+        reason: buildShiftReason(l, w, options.targetRoas, overlap),
+        ...(overlap !== undefined && { overlapPercent: round2(overlap) }),
       });
+    }
+
+    if (pulledFromLoser > 0) {
+      proposed[l.platform] = round2(
+        (proposed[l.platform] ?? 0) - pulledFromLoser,
+      );
+      actualTotalShifted += pulledFromLoser;
     }
   }
 
@@ -284,7 +322,7 @@ export function computeReallocationPlan(params: {
     proposed,
     shifts,
     confidenceInputs: eligible,
-    totalShifted: totalShift,
+    totalShifted: actualTotalShifted,
     byPlatform,
   });
 }
@@ -367,11 +405,13 @@ function buildShiftReason(
   loser: PlatformROAS,
   winner: PlatformROAS,
   target: number,
+  overlap?: number,
 ): string {
-  return (
+  const base =
     `${loser.platform} ROAS ${loser.roas.toFixed(2)} < 目標 ${target.toFixed(2)}、` +
-    `${winner.platform} ROAS ${winner.roas.toFixed(2)} へ再配分`
-  );
+    `${winner.platform} ROAS ${winner.roas.toFixed(2)} へ再配分`;
+  if (overlap === undefined) return base;
+  return `${base}（audience overlap ${overlap.toFixed(0)}%）`;
 }
 
 function buildReasoning(
@@ -411,6 +451,39 @@ export interface GenerateOptions {
   maxShiftPercent?: number;
   minRoasDelta?: number;
   minDataPoints?: number;
+  /**
+   * When true (default), fetch cross-platform audience overlap from
+   * identity-graph and feed it into the reallocation algorithm. Set to
+   * false to skip the extra DB queries (e.g. in tests or low-identity orgs).
+   */
+  useAudienceOverlap?: boolean;
+}
+
+/**
+ * Fetch pairwise platform overlaps for all (loser, winner) combinations.
+ * Skips self-overlap (same platform) and caches inverse pairs.
+ */
+async function fetchOverlapMatrix(
+  organizationId: string,
+  platforms: Platform[],
+): Promise<OverlapMatrix> {
+  const matrix: OverlapMatrix = {};
+  const unique = Array.from(new Set(platforms));
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = 0; j < unique.length; j++) {
+      if (i === j) continue;
+      const a = unique[i]!;
+      const b = unique[j]!;
+      try {
+        const overlap = await getOverlap(organizationId, a, b);
+        if (!matrix[a]) matrix[a] = {};
+        matrix[a]![b] = overlap.overlapPercentage;
+      } catch {
+        // Identity-graph unavailable or no data — silently skip.
+      }
+    }
+  }
+  return matrix;
 }
 
 export async function generateReallocationPlan(
@@ -476,11 +549,22 @@ export async function generateReallocationPlan(
     currentAllocations[p] = round2(perPlatform);
   }
 
+  // Optionally enrich with cross-platform overlap from identity-graph.
+  const useOverlap = opts.useAudienceOverlap !== false;
+  const overlapMatrix =
+    useOverlap && observedPlatforms.size > 1
+      ? await fetchOverlapMatrix(
+          organizationId,
+          Array.from(observedPlatforms),
+        )
+      : undefined;
+
   return computeReallocationPlan({
     totalBudget,
     currentAllocations,
     platformROAS,
     lookbackHours,
+    ...(overlapMatrix && { overlapMatrix }),
     options: {
       ...(opts.targetRoas !== undefined && { targetRoas: opts.targetRoas }),
       ...(opts.maxShiftPercent !== undefined && {

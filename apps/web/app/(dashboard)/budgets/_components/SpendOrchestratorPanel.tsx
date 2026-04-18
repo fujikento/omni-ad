@@ -14,6 +14,7 @@ type Shift = {
   to: string;
   amount: number;
   reason: string;
+  overlapPercent?: number;
 };
 
 type PlatformROAS = {

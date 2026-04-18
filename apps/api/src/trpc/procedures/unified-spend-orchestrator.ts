@@ -35,6 +35,7 @@ const PlanSchema = z.object({
       to: z.string(),
       amount: z.number(),
       reason: z.string(),
+      overlapPercent: z.number().optional(),
     }),
   ),
   platformROAS: z.array(
