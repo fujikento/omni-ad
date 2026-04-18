@@ -8,6 +8,7 @@ import {
   listSegments,
   getOverlap,
   getOverlapMatrix,
+  getSaturationSummary,
   IdentityNotFoundError,
   SegmentCreationError,
 } from '../../services/identity-graph.service.js';
@@ -176,6 +177,14 @@ export const identityGraphRouter = router({
         handleServiceError(error);
       }
     }),
+
+  saturation: organizationProcedure.query(async ({ ctx }) => {
+    try {
+      return await getSaturationSummary(ctx.organizationId);
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
 
   getOverlapMatrix: organizationProcedure
     .input(

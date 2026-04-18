@@ -327,6 +327,23 @@ export interface OverlapMatrixResult {
   perPlatformTotals: Record<string, number>;
 }
 
+export interface SaturationSummary {
+  totalIdentities: number;
+  /** Histogram: onePlatform = users present on exactly 1, twoPlatforms = exactly 2, etc */
+  distribution: Record<number, number>;
+  /**
+   * Users on 3+ platforms. These are the highest-risk "over-served"
+   * audience — the same person sees your ad on multiple platforms,
+   * potentially wasting spend on repeat exposure.
+   */
+  overServedCount: number;
+  /**
+   * Proportion of total identities that are on 3+ platforms. Used as
+   * a single-number health signal.
+   */
+  overServedPercent: number;
+}
+
 /**
  * Compute pairwise overlap for all combinations of the given platforms.
  * Used by the orchestrator's audience-aware shift dampening and by the
@@ -358,6 +375,50 @@ export async function getOverlapMatrix(
   }
 
   return { platforms: unique, matrix, perPlatformTotals };
+}
+
+/**
+ * Compute cross-platform saturation summary. Counts how many identities
+ * exist on N platforms simultaneously (histogram 1, 2, 3+). Users on
+ * 3+ platforms are flagged as "over-served" — a useful wasted-spend
+ * signal since the same customer is paying to be reached multiple times.
+ */
+export async function getSaturationSummary(
+  organizationId: string,
+): Promise<SaturationSummary> {
+  // Count jsonb keys via cardinality(array(...)). This is stable across
+  // PG versions since 9.4 and avoids relying on optional extensions.
+  const platformCountExpr = sql<number>`coalesce(array_length(array(select jsonb_object_keys(${identityGraph.platformIds})), 1), 0)`;
+
+  const rows = await db
+    .select({
+      platformCount: platformCountExpr,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(identityGraph)
+    .where(eq(identityGraph.organizationId, organizationId))
+    .groupBy(platformCountExpr);
+
+  const distribution: Record<number, number> = {};
+  let total = 0;
+  let overServed = 0;
+  for (const r of rows) {
+    const n = Number(r.platformCount) || 0;
+    const c = Number(r.count) || 0;
+    distribution[n] = c;
+    total += c;
+    if (n >= 3) overServed += c;
+  }
+
+  const overServedPercent =
+    total > 0 ? Math.round((overServed / total) * 10_000) / 100 : 0;
+
+  return {
+    totalIdentities: total,
+    distribution,
+    overServedCount: overServed,
+    overServedPercent,
+  };
 }
 
 export async function getOverlap(

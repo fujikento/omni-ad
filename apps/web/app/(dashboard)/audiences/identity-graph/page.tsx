@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
 import { OverlapMatrixPanel } from './_components/OverlapMatrixPanel';
+import { SaturationPanel } from './_components/SaturationPanel';
 
 // ============================================================
 // Types
@@ -447,6 +448,9 @@ export default function IdentityGraphPage(): React.ReactElement {
           color="text-yellow-500"
         />
       </div>
+
+      {/* Cross-platform saturation — wasted-spend signal */}
+      <SaturationPanel />
 
       {/* Cross-platform audience overlap matrix */}
       <OverlapMatrixPanel />
