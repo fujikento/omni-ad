@@ -317,6 +317,49 @@ export async function getSegment(
   return segment ?? null;
 }
 
+export interface OverlapMatrixResult {
+  platforms: string[];
+  /**
+   * overlap[from][to] = % of identities on `from` that also exist on `to`.
+   * Self-overlap (same platform) is not populated.
+   */
+  matrix: Record<string, Record<string, number>>;
+  perPlatformTotals: Record<string, number>;
+}
+
+/**
+ * Compute pairwise overlap for all combinations of the given platforms.
+ * Used by the orchestrator's audience-aware shift dampening and by the
+ * identity-graph UI heatmap.
+ */
+export async function getOverlapMatrix(
+  organizationId: string,
+  platforms: readonly string[],
+): Promise<OverlapMatrixResult> {
+  const unique = Array.from(new Set(platforms));
+  const matrix: Record<string, Record<string, number>> = {};
+  const perPlatformTotals: Record<string, number> = {};
+
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = 0; j < unique.length; j++) {
+      if (i === j) continue;
+      const a = unique[i]!;
+      const b = unique[j]!;
+      try {
+        const overlap = await getOverlap(organizationId, a, b);
+        if (!matrix[a]) matrix[a] = {};
+        matrix[a]![b] = overlap.overlapPercentage;
+        perPlatformTotals[a] = overlap.platformATotal;
+        perPlatformTotals[b] = overlap.platformBTotal;
+      } catch {
+        // No identities for one or both platforms — skip silently.
+      }
+    }
+  }
+
+  return { platforms: unique, matrix, perPlatformTotals };
+}
+
 export async function getOverlap(
   organizationId: string,
   platformA: string,

@@ -28,6 +28,7 @@ import { PageHeader, StatCard } from '@omni-ad/ui';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useI18n } from '@/lib/i18n';
+import { OverlapMatrixPanel } from './_components/OverlapMatrixPanel';
 
 // ============================================================
 // Types
@@ -446,6 +447,9 @@ export default function IdentityGraphPage(): React.ReactElement {
           color="text-yellow-500"
         />
       </div>
+
+      {/* Cross-platform audience overlap matrix */}
+      <OverlapMatrixPanel />
 
       {/* Platform coverage */}
       <PlatformCoverageMap platforms={platforms} />
