@@ -671,6 +671,162 @@ export async function autoApplyIfEligible(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Incrementality (before/after lift)
+// ---------------------------------------------------------------------------
+
+export interface IncrementalLiftResult {
+  allocationId: string;
+  baseline: {
+    windowHours: number;
+    spend: number;
+    revenue: number;
+    roas: number;
+  };
+  treatment: {
+    windowHours: number;
+    spend: number;
+    revenue: number;
+    roas: number;
+  };
+  /** (treatment ROAS - baseline ROAS) / baseline ROAS — positive = lift. */
+  liftPercent: number;
+  /** (treatment revenue - baseline revenue per-hour × treatment hours) */
+  incrementalRevenue: number;
+  /** Sample size quality flag. */
+  confidence: 'low' | 'medium' | 'high';
+}
+
+/**
+ * Quasi-experimental lift estimate: compares the N-hour window before
+ * allocation.createdAt (baseline) against the N-hour window after
+ * (treatment). Not a true causal estimate — external factors
+ * (seasonality, competitor activity) aren't controlled — but it's a
+ * meaningful signal when N hours is comparable to the decision cadence.
+ *
+ * Returns null when either window lacks sufficient data.
+ */
+export async function computeIncrementalLift(
+  allocationId: string,
+  organizationId: string,
+  windowHours = 24,
+): Promise<IncrementalLiftResult | null> {
+  const allocation = await db.query.budgetAllocations.findFirst({
+    where: and(
+      eq(budgetAllocations.id, allocationId),
+      eq(budgetAllocations.organizationId, organizationId),
+    ),
+  });
+  if (!allocation) return null;
+
+  const appliedAt = allocation.createdAt;
+  const nowHoursSinceApply = (Date.now() - appliedAt.getTime()) / 3_600_000;
+  if (nowHoursSinceApply < windowHours / 2) return null;
+
+  const treatmentEnd = new Date(
+    Math.min(
+      appliedAt.getTime() + windowHours * 3_600_000,
+      Date.now(),
+    ),
+  );
+  const baselineStart = new Date(
+    appliedAt.getTime() - windowHours * 3_600_000,
+  );
+
+  const orgCampaigns = await db
+    .select({ id: campaigns.id })
+    .from(campaigns)
+    .where(eq(campaigns.organizationId, organizationId));
+  const campaignIds = orgCampaigns.map((c) => c.id);
+  if (campaignIds.length === 0) return null;
+
+  const [baselineRows, treatmentRows] = await Promise.all([
+    db
+      .select({
+        spend: metricsHourly.spend,
+        revenue: metricsHourly.revenue,
+      })
+      .from(metricsHourly)
+      .where(
+        and(
+          gte(metricsHourly.timestamp, baselineStart),
+          inArray(metricsHourly.campaignId, campaignIds),
+          sql`${metricsHourly.timestamp} < ${appliedAt}`,
+        ),
+      ),
+    db
+      .select({
+        spend: metricsHourly.spend,
+        revenue: metricsHourly.revenue,
+      })
+      .from(metricsHourly)
+      .where(
+        and(
+          gte(metricsHourly.timestamp, appliedAt),
+          inArray(metricsHourly.campaignId, campaignIds),
+          sql`${metricsHourly.timestamp} < ${treatmentEnd}`,
+        ),
+      ),
+  ]);
+
+  const aggregate = (rows: Array<{ spend: string; revenue: string }>) => {
+    let spend = 0;
+    let revenue = 0;
+    for (const r of rows) {
+      spend += Number(r.spend);
+      revenue += Number(r.revenue);
+    }
+    return { spend, revenue };
+  };
+
+  const baseline = aggregate(baselineRows);
+  const treatment = aggregate(treatmentRows);
+
+  if (baselineRows.length === 0 || treatmentRows.length === 0) return null;
+
+  const baselineRoas = orchestratorSafeDivide(baseline.revenue, baseline.spend);
+  const treatmentRoas = orchestratorSafeDivide(
+    treatment.revenue,
+    treatment.spend,
+  );
+  const liftPercent =
+    baselineRoas > 0
+      ? ((treatmentRoas - baselineRoas) / baselineRoas) * 100
+      : 0;
+
+  const actualTreatmentHours =
+    (treatmentEnd.getTime() - appliedAt.getTime()) / 3_600_000;
+  const baselineRevenuePerHour = orchestratorSafeDivide(
+    baseline.revenue,
+    windowHours,
+  );
+  const incrementalRevenue =
+    treatment.revenue - baselineRevenuePerHour * actualTreatmentHours;
+
+  const samplePoints = Math.min(baselineRows.length, treatmentRows.length);
+  const confidence: 'low' | 'medium' | 'high' =
+    samplePoints >= 48 ? 'high' : samplePoints >= 12 ? 'medium' : 'low';
+
+  return {
+    allocationId,
+    baseline: {
+      windowHours,
+      spend: round2(baseline.spend),
+      revenue: round2(baseline.revenue),
+      roas: round4(baselineRoas),
+    },
+    treatment: {
+      windowHours: Math.round(actualTreatmentHours),
+      spend: round2(treatment.spend),
+      revenue: round2(treatment.revenue),
+      roas: round4(treatmentRoas),
+    },
+    liftPercent: round4(liftPercent),
+    incrementalRevenue: round2(incrementalRevenue),
+    confidence,
+  };
+}
+
 export interface AccuracySummary {
   samples: number;
   meanAbsoluteError: number;

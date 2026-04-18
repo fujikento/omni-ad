@@ -4,6 +4,7 @@ import {
   applyReallocationPlan,
   backfillActualRoas,
   computeActualRoasForAllocation,
+  computeIncrementalLift,
   generateReallocationPlan,
   getAccuracySummary,
   projectCampaignBudgets,
@@ -156,6 +157,25 @@ export const unifiedSpendOrchestratorRouter = router({
         return await projectCampaignBudgets(
           input.allocationId,
           ctx.organizationId,
+        );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  incrementalLift: organizationProcedure
+    .input(
+      z.object({
+        allocationId: z.string().uuid(),
+        windowHours: z.number().int().min(1).max(168).default(24),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        return await computeIncrementalLift(
+          input.allocationId,
+          ctx.organizationId,
+          input.windowHours,
         );
       } catch (error) {
         handleServiceError(error);
