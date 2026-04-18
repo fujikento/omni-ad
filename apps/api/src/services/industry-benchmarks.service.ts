@@ -180,6 +180,19 @@ export async function computeIndustryBenchmarksForDate(
     const ctrSorted = [...bucket.orgCtr].sort((a, b) => a - b);
     const cpaSorted = [...bucket.orgCpa].sort((a, b) => a - b);
 
+    // Per-metric anonymity: CTR and CPA are populated from stricter
+    // subsets than ROAS (only orgs with impressions / conversions
+    // respectively). Applying MIN_SAMPLE_SIZE per metric prevents a
+    // published percentile from fewer than 5 contributing orgs.
+    const ctrP50 =
+      ctrSorted.length >= MIN_SAMPLE_SIZE
+        ? percentile(ctrSorted, 0.5)
+        : null;
+    const cpaP50 =
+      cpaSorted.length >= MIN_SAMPLE_SIZE
+        ? percentile(cpaSorted, 0.5)
+        : null;
+
     await db
       .insert(industryBenchmarks)
       .values({
@@ -190,8 +203,8 @@ export async function computeIndustryBenchmarksForDate(
         roasP25: percentile(roasSorted, 0.25),
         roasP50: percentile(roasSorted, 0.5),
         roasP75: percentile(roasSorted, 0.75),
-        ctrP50: percentile(ctrSorted, 0.5),
-        cpaP50: percentile(cpaSorted, 0.5),
+        ctrP50,
+        cpaP50,
       })
       .onConflictDoUpdate({
         target: [
@@ -204,8 +217,8 @@ export async function computeIndustryBenchmarksForDate(
           roasP25: percentile(roasSorted, 0.25),
           roasP50: percentile(roasSorted, 0.5),
           roasP75: percentile(roasSorted, 0.75),
-          ctrP50: percentile(ctrSorted, 0.5),
-          cpaP50: percentile(cpaSorted, 0.5),
+          ctrP50,
+          cpaP50,
           computedAt: new Date(),
         },
       });

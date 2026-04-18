@@ -122,6 +122,54 @@ describe('shouldAutoApply', () => {
     const d = shouldAutoApply(plan({ confidence: 'low' }), defaultSettings);
     assert.equal(d.autoApply, false);
   });
+
+  // Fail-closed guards against malformed plans (Codex CRITICAL finding)
+  it('blocks when totalBudget is 0 (fail-closed)', () => {
+    const d = shouldAutoApply(plan({ totalBudget: 0 }), defaultSettings);
+    assert.equal(d.autoApply, false);
+    assert.match(d.reason, /totalBudget/);
+  });
+
+  it('blocks when totalBudget is negative (fail-closed)', () => {
+    const d = shouldAutoApply(plan({ totalBudget: -100 }), defaultSettings);
+    assert.equal(d.autoApply, false);
+  });
+
+  it('blocks when totalBudget is NaN (fail-closed)', () => {
+    const d = shouldAutoApply(plan({ totalBudget: Number.NaN }), defaultSettings);
+    assert.equal(d.autoApply, false);
+  });
+
+  it('blocks when any shift amount is NaN (fail-closed)', () => {
+    const d = shouldAutoApply(
+      plan({
+        shifts: [{ from: 'google', to: 'meta', amount: Number.NaN, reason: 'x' }],
+      }),
+      defaultSettings,
+    );
+    assert.equal(d.autoApply, false);
+    assert.match(d.reason, /shift amount/);
+  });
+
+  it('blocks when any shift amount is zero (fail-closed)', () => {
+    const d = shouldAutoApply(
+      plan({
+        shifts: [{ from: 'google', to: 'meta', amount: 0, reason: 'x' }],
+      }),
+      defaultSettings,
+    );
+    assert.equal(d.autoApply, false);
+  });
+
+  it('blocks when any shift amount is negative (fail-closed)', () => {
+    const d = shouldAutoApply(
+      plan({
+        shifts: [{ from: 'google', to: 'meta', amount: -50, reason: 'x' }],
+      }),
+      defaultSettings,
+    );
+    assert.equal(d.autoApply, false);
+  });
 });
 
 describe('computeWeightedRoas', () => {

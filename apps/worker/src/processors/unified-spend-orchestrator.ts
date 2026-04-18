@@ -210,7 +210,44 @@ async function executeDbOnly(
   });
   if (!allocation) return { updated: 0, skippedControl: 0, failed: 0 };
 
-  const platformBudgets = allocation.allocations as Record<string, number>;
+  // CRITICAL: validate JSONB payload before any mutation. Reject
+  // unknown platform keys, negative / non-finite / out-of-range
+  // amounts. Matches the api-side validator in sibling service.
+  const ALLOWED_PLATFORMS = new Set<string>([
+    'meta',
+    'google',
+    'x',
+    'tiktok',
+    'line_yahoo',
+    'amazon',
+    'microsoft',
+  ]);
+  const MAX_PLATFORM_BUDGET = 1_000_000_000;
+  const rawBudgets = allocation.allocations as Record<string, unknown>;
+  const platformBudgets: Record<string, number> = {};
+  if (rawBudgets && typeof rawBudgets === 'object') {
+    for (const [key, value] of Object.entries(rawBudgets)) {
+      if (!ALLOWED_PLATFORMS.has(key)) {
+        logger.warn('Rejected unknown platform key in allocation', {
+          organizationId,
+          allocationId,
+          key,
+        });
+        return { updated: 0, skippedControl: 0, failed: 0 };
+      }
+      const n = typeof value === 'number' ? value : Number(value);
+      if (!Number.isFinite(n) || n < 0 || n > MAX_PLATFORM_BUDGET) {
+        logger.warn('Rejected out-of-range amount in allocation', {
+          organizationId,
+          allocationId,
+          key,
+          value,
+        });
+        return { updated: 0, skippedControl: 0, failed: 0 };
+      }
+      platformBudgets[key] = n;
+    }
+  }
 
   // Control campaigns from active holdout groups
   const holdoutRows = await db
@@ -241,9 +278,13 @@ async function executeDbOnly(
     .from(campaigns)
     .where(eq(campaigns.organizationId, organizationId));
 
+  // Denominators EXCLUDE control campaigns so the final treatment
+  // total matches the approved allocation instead of drifting by
+  // the held-out spend.
   const currentTotals: Record<string, number> = {};
   for (const row of rows) {
     if (!row.platform) continue;
+    if (controlSet.has(row.id)) continue;
     currentTotals[row.platform] =
       (currentTotals[row.platform] ?? 0) + Number(row.dailyBudget);
   }

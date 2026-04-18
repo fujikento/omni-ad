@@ -37,6 +37,78 @@ import { getActiveControlCampaignIds } from './holdout.service.js';
 import { createNotification } from './notification.service.js';
 import { updateBudgetOnPlatform } from './platform-executor.service.js';
 
+// ---------------------------------------------------------------------------
+// Allocation payload validator (CRITICAL DOMAIN)
+// ---------------------------------------------------------------------------
+
+const ALLOWED_PLATFORM_KEYS = new Set<string>([
+  'meta',
+  'google',
+  'x',
+  'tiktok',
+  'line_yahoo',
+  'amazon',
+  'microsoft',
+]);
+
+/**
+ * Max allowed daily budget per platform (¥). Defensive upper bound so
+ * a poisoned budget_allocations.allocations JSONB can never drive a
+ * ¥1e12 write to an ad platform. Tuned higher than any realistic
+ * Japanese SME daily spend but well below Number.MAX_SAFE_INTEGER.
+ */
+const MAX_PLATFORM_BUDGET = 1_000_000_000; // 10 billion JPY
+
+export class InvalidAllocationError extends Error {
+  constructor(message: string) {
+    super(`Invalid allocation payload: ${message}`);
+    this.name = 'InvalidAllocationError';
+  }
+}
+
+/**
+ * Validate a budget_allocations.allocations JSONB payload before ANY
+ * downstream mutation. Returns a typed, cleaned map of platform →
+ * bounded numeric budget. Throws InvalidAllocationError on rejection.
+ *
+ * Rejects:
+ *   - unknown platform keys
+ *   - non-finite / NaN amounts
+ *   - negative amounts
+ *   - amounts > MAX_PLATFORM_BUDGET
+ */
+function validateAllocationPayload(
+  raw: unknown,
+): Record<OrchestratorPlatform, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new InvalidAllocationError('payload must be a plain object');
+  }
+  const clean: Partial<Record<OrchestratorPlatform, number>> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!ALLOWED_PLATFORM_KEYS.has(key)) {
+      throw new InvalidAllocationError(`unknown platform key: ${key}`);
+    }
+    const n = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(n)) {
+      throw new InvalidAllocationError(
+        `non-finite amount for ${key}: ${String(value)}`,
+      );
+    }
+    if (n < 0) {
+      throw new InvalidAllocationError(
+        `negative amount for ${key}: ${n}`,
+      );
+    }
+    if (n > MAX_PLATFORM_BUDGET) {
+      throw new InvalidAllocationError(
+        `amount exceeds ${MAX_PLATFORM_BUDGET} for ${key}: ${n}`,
+      );
+    }
+    clean[key as OrchestratorPlatform] = n;
+  }
+  return clean as Record<OrchestratorPlatform, number>;
+}
+
 // Re-export pure core for backward compatibility with existing callers
 // (tRPC router, tests, UI type definitions).
 export {
@@ -288,7 +360,10 @@ export async function projectCampaignBudgets(
   });
   if (!allocation) return null;
 
-  const platformBudgets = allocation.allocations as Record<string, number>;
+  // CRITICAL DOMAIN: validate JSONB payload before any projection /
+  // mutation. Poisoned rows (negative / NaN / unknown platform keys)
+  // would otherwise drive invalid dailyBudget writes.
+  const platformBudgets = validateAllocationPayload(allocation.allocations);
 
   const orgCampaigns = await db
     .select({
@@ -300,10 +375,6 @@ export async function projectCampaignBudgets(
     .from(campaigns)
     .where(eq(campaigns.organizationId, organizationId));
 
-  // Group campaigns by platform via campaign_platform_deployments would be
-  // ideal, but dailyBudget is on the campaign row. For V1 we treat each
-  // campaign as single-platform, matching the architect flow. Future work:
-  // query campaign_platform_deployments and split per-platform-deployment.
   const changes: CampaignBudgetChange[] = [];
   const atRisk: string[] = [];
   const surging: string[] = [];
@@ -324,9 +395,17 @@ export async function projectCampaignBudgets(
     rowPlatforms.map((r) => [r.campaignId, r.platform] as const),
   );
 
-  // Total current budget per platform
+  // Build platform totals EXCLUDING control campaigns. Otherwise the
+  // denominator used to compute each treatment campaign's proposed
+  // budget would include held-out spend, causing final totals to
+  // drift away from the approved allocation.
+  const controlIds = new Set(
+    await getActiveControlCampaignIds(organizationId),
+  );
+
   const currentTotals: Record<string, number> = {};
   for (const c of orgCampaigns) {
+    if (controlIds.has(c.id)) continue;
     const p = platformByCampaignId.get(c.id);
     if (!p) continue;
     currentTotals[p] = (currentTotals[p] ?? 0) + Number(c.dailyBudget);
@@ -335,6 +414,20 @@ export async function projectCampaignBudgets(
   for (const c of orgCampaigns) {
     const platform = platformByCampaignId.get(c.id);
     if (!platform) continue;
+    // Control campaigns get a no-op projection — their current budget
+    // stays exactly as-is so the holdout experiment stays clean.
+    if (controlIds.has(c.id)) {
+      const current = Number(c.dailyBudget);
+      changes.push({
+        campaignId: c.id,
+        campaignName: c.name,
+        platform,
+        currentDailyBudget: round2(current),
+        proposedDailyBudget: round2(current),
+        deltaPercent: 0,
+      });
+      continue;
+    }
     const current = Number(c.dailyBudget);
     const platformTotal = currentTotals[platform] ?? 0;
     const platformNew = platformBudgets[platform] ?? 0;

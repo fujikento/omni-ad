@@ -433,9 +433,39 @@ export function shouldAutoApply(
     return { autoApply: false, reason: 'no shifts proposed' };
   }
 
+  // Fail-CLOSED guard against malformed plans: a shift cap comparison
+  // can silently pass when the inputs are NaN / negative / zero-budget.
+  // Require every shift amount AND the total budget to be finite &
+  // positive before trusting the percent computation.
+  if (!Number.isFinite(plan.totalBudget) || plan.totalBudget <= 0) {
+    return {
+      autoApply: false,
+      reason: `totalBudget not positive-finite: ${plan.totalBudget}`,
+    };
+  }
+  for (const shift of plan.shifts) {
+    if (!Number.isFinite(shift.amount) || shift.amount <= 0) {
+      return {
+        autoApply: false,
+        reason: `shift amount not positive-finite for ${shift.from}→${shift.to}: ${shift.amount}`,
+      };
+    }
+  }
+
   const totalShifted = plan.shifts.reduce((s, x) => s + x.amount, 0);
-  const shiftPercent =
-    plan.totalBudget > 0 ? (totalShifted / plan.totalBudget) * 100 : 0;
+  if (!Number.isFinite(totalShifted) || totalShifted <= 0) {
+    return {
+      autoApply: false,
+      reason: `totalShifted not positive-finite: ${totalShifted}`,
+    };
+  }
+  const shiftPercent = (totalShifted / plan.totalBudget) * 100;
+  if (!Number.isFinite(shiftPercent)) {
+    return {
+      autoApply: false,
+      reason: 'shiftPercent not finite',
+    };
+  }
   if (shiftPercent > settings.maxBudgetChangePercent) {
     return {
       autoApply: false,

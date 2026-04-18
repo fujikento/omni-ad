@@ -39,31 +39,10 @@ export async function createHoldoutGroup(
   organizationId: string,
   input: CreateHoldoutInput,
 ): Promise<HoldoutGroupSelect> {
-  // Validate that all referenced campaigns belong to the org (tenant leak
-  // prevention — critical domain). The orchestrator uses these IDs to
-  // SKIP shifts, so a bogus ID would silently break the holdout.
   const allIds = [
     ...input.testCampaignIds,
     ...input.controlCampaignIds,
   ];
-  if (allIds.length > 0) {
-    const owned = await db
-      .select({ id: campaigns.id })
-      .from(campaigns)
-      .where(
-        and(
-          eq(campaigns.organizationId, organizationId),
-          inArray(campaigns.id, allIds),
-        ),
-      );
-    const ownedSet = new Set(owned.map((c) => c.id));
-    const foreign = allIds.filter((id) => !ownedSet.has(id));
-    if (foreign.length > 0) {
-      throw new Error(
-        `Campaign ids not owned by organization: ${foreign.join(', ')}`,
-      );
-    }
-  }
 
   const testSet = new Set(input.testCampaignIds);
   const overlap = input.controlCampaignIds.filter((id) => testSet.has(id));
@@ -73,20 +52,46 @@ export async function createHoldoutGroup(
     );
   }
 
-  const [row] = await db
-    .insert(holdoutGroups)
-    .values({
-      organizationId,
-      name: input.name,
-      description: input.description ?? null,
-      testCampaignIds: input.testCampaignIds,
-      controlCampaignIds: input.controlCampaignIds,
-      active: true,
-    })
-    .returning();
+  // Atomic ownership check + insert: a row-locking transaction prevents
+  // a TOCTOU window where a campaign could move organizations between
+  // the SELECT and the INSERT. Without the lock, a cross-org ID could
+  // get persisted and later leak into holdout reads.
+  return db.transaction(async (tx) => {
+    if (allIds.length > 0) {
+      const owned = await tx
+        .select({ id: campaigns.id })
+        .from(campaigns)
+        .where(
+          and(
+            eq(campaigns.organizationId, organizationId),
+            inArray(campaigns.id, allIds),
+          ),
+        )
+        .for('share');
+      const ownedSet = new Set(owned.map((c) => c.id));
+      const foreign = allIds.filter((id) => !ownedSet.has(id));
+      if (foreign.length > 0) {
+        throw new Error(
+          `Campaign ids not owned by organization: ${foreign.join(', ')}`,
+        );
+      }
+    }
 
-  if (!row) throw new Error('Failed to create holdout group');
-  return normalize(row);
+    const [row] = await tx
+      .insert(holdoutGroups)
+      .values({
+        organizationId,
+        name: input.name,
+        description: input.description ?? null,
+        testCampaignIds: input.testCampaignIds,
+        controlCampaignIds: input.controlCampaignIds,
+        active: true,
+      })
+      .returning();
+
+    if (!row) throw new Error('Failed to create holdout group');
+    return normalize(row);
+  });
 }
 
 export async function listHoldoutGroups(
