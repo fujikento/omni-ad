@@ -47,7 +47,9 @@ export {
   massProductionChunkJobSchema,
   abTestEvaluationJobSchema,
   creativeOptimizationJobSchema,
+  unifiedSpendOrchestratorJobSchema,
   type MassProductionChunkJob,
   type ABTestEvaluationJob,
   type CreativeOptimizationJob,
+  type UnifiedSpendOrchestratorJob,
 } from './jobs.js';

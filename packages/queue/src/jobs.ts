@@ -210,6 +210,16 @@ export const creativeOptimizationJobSchema = z.object({
   organizationId: z.string().uuid(),
 });
 
+// Unified Spend Orchestrator Jobs (scheduled: empty payload;
+// manual: organizationId for one-off runs)
+export const unifiedSpendOrchestratorJobSchema = z.object({
+  organizationId: z.string().uuid().optional(),
+  lookbackHours: z.number().int().min(1).max(168).optional(),
+});
+export type UnifiedSpendOrchestratorJob = z.infer<
+  typeof unifiedSpendOrchestratorJobSchema
+>;
+
 // Job type union
 export type SyncCampaignJob = z.infer<typeof syncCampaignJobSchema>;
 export type SyncAdGroupJob = z.infer<typeof syncAdGroupJobSchema>;
