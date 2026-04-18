@@ -9,6 +9,7 @@
 
 import { db } from '@omni-ad/db';
 import {
+  aiDecisionLog,
   aiSettings,
   budgetAllocations,
   campaigns,
@@ -292,6 +293,7 @@ export async function applyReallocationPlan(
   organizationId: string,
   plan: ReallocationPlan,
   userId: string,
+  mode: 'manual' | 'auto' = 'manual',
 ): Promise<ApplyPlanResult> {
   const predictedRoas = computeWeightedRoas(
     plan.platformROAS,
@@ -307,7 +309,10 @@ export async function applyReallocationPlan(
       totalBudget: plan.totalBudget.toFixed(2),
       predictedRoas: Number.isFinite(predictedRoas) ? predictedRoas : null,
       actualRoas: null,
-      algorithmVersion: 'unified-spend-orchestrator-v1',
+      algorithmVersion:
+        mode === 'auto'
+          ? 'unified-spend-orchestrator-v1-auto'
+          : 'unified-spend-orchestrator-v1',
     })
     .returning();
 
@@ -315,10 +320,42 @@ export async function applyReallocationPlan(
     throw new Error('Failed to persist reallocation plan');
   }
 
+  // Audit trail in ai_decision_log so analysts can correlate orchestrator
+  // decisions with downstream ROAS and learn from systematically bad
+  // calls (e.g. "every Monday morning shift to TikTok underperforms").
+  const reasoning =
+    `${plan.shifts.length} shifts, predicted ROAS Δ ${plan.predictedRoasImprovement.toFixed(3)}, ` +
+    `confidence ${plan.confidence}. ${plan.reasoning}`;
+  const confidenceScore =
+    plan.confidence === 'high' ? 0.9 : plan.confidence === 'medium' ? 0.6 : 0.3;
+
+  await db.insert(aiDecisionLog).values({
+    organizationId,
+    decisionType: 'budget_adjust',
+    campaignId: null,
+    reasoning,
+    recommendation: {
+      shifts: plan.shifts,
+      proposedAllocations: plan.proposedAllocations,
+      lookbackHours: plan.lookbackHours,
+      creativePoolWarnings: plan.creativePoolWarnings ?? [],
+    },
+    action: {
+      mode,
+      appliedBy: userId,
+      allocationId: row.id,
+    },
+    status: 'executed',
+    confidenceScore,
+  });
+
   await createNotification({
     organizationId,
     type: 'info',
-    title: '予算再配分プランを記録しました',
+    title:
+      mode === 'auto'
+        ? '予算を自動再配分しました'
+        : '予算再配分プランを記録しました',
     message: `${plan.shifts.length}件のシフト。信頼度: ${plan.confidence}。`,
     source: 'unified_spend_orchestrator',
     metadata: {
@@ -326,8 +363,12 @@ export async function applyReallocationPlan(
       shifts: plan.shifts.length,
       predictedRoasImprovement: plan.predictedRoasImprovement,
       confidence: plan.confidence,
-      algorithmVersion: 'unified-spend-orchestrator-v1',
+      algorithmVersion:
+        mode === 'auto'
+          ? 'unified-spend-orchestrator-v1-auto'
+          : 'unified-spend-orchestrator-v1',
       appliedBy: userId,
+      mode,
     },
   });
 
@@ -494,7 +535,12 @@ export async function autoApplyIfEligible(
     };
   }
 
-  const result = await applyReallocationPlan(organizationId, plan, userId);
+  const result = await applyReallocationPlan(
+    organizationId,
+    plan,
+    userId,
+    'auto',
+  );
   return {
     attempted: true,
     applied: true,

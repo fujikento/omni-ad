@@ -13,14 +13,19 @@
  */
 
 import {
+  getQueue,
+  QUEUE_NAMES,
   unifiedSpendOrchestratorJobSchema,
   type UnifiedSpendOrchestratorJob,
 } from '@omni-ad/queue';
 import { db } from '@omni-ad/db';
 import {
+  aiDecisionLog,
   aiSettings,
   budgetAllocations,
   campaigns,
+  creativeVariants,
+  creatives,
   identityGraph,
   metricsHourly,
   notifications,
@@ -139,13 +144,15 @@ async function runForOrg(
     });
 
     if (decision.autoApply) {
-      await persistPlan(organizationId, plan);
+      const allocationId = await persistPlan(organizationId, plan);
+      await writeDecisionLog(organizationId, plan, allocationId, 'auto');
       await emitNotification(organizationId, plan, 'applied');
       logger.info('Plan auto-applied', {
         organizationId,
         shifts: plan.shifts.length,
         reason: decision.reason,
       });
+      await maybeQueueCreativeRefill(organizationId, plan, settings);
       await backfillActualRoas(organizationId);
       return;
     }
@@ -160,7 +167,136 @@ async function runForOrg(
     await emitNotification(organizationId, plan, 'suggested');
   }
 
+  if (settings) {
+    await maybeQueueCreativeRefill(organizationId, plan, settings);
+  }
+
   await backfillActualRoas(organizationId);
+}
+
+async function enrichCreativePool(
+  organizationId: string,
+  plan: ReallocationPlan,
+): Promise<ReallocationPlan> {
+  const winnerPlatforms = Array.from(new Set(plan.shifts.map((s) => s.to)));
+  if (winnerPlatforms.length === 0) return plan;
+
+  const rows = await db
+    .select({
+      platform: creativeVariants.platform,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(creativeVariants)
+    .innerJoin(creatives, eq(creatives.id, creativeVariants.creativeId))
+    .where(
+      and(
+        eq(creatives.organizationId, organizationId),
+        inArray(creativeVariants.platform, winnerPlatforms),
+      ),
+    )
+    .groupBy(creativeVariants.platform);
+
+  const counts: Record<string, number> = {};
+  for (const p of winnerPlatforms) counts[p] = 0;
+  for (const r of rows) counts[r.platform] = Number(r.count);
+
+  const MIN_POOL = 6;
+  const warnings = winnerPlatforms
+    .filter((p) => (counts[p] ?? 0) < MIN_POOL)
+    .map((p) => ({
+      platform: p,
+      creativeCount: counts[p] ?? 0,
+      recommendedMinimum: MIN_POOL,
+      message: `${p} のクリエイティブが ${counts[p] ?? 0}/${MIN_POOL} 本。予算増でも CTR が伸びづらい可能性。`,
+    }));
+
+  if (warnings.length > 0) {
+    return { ...plan, creativePoolWarnings: warnings };
+  }
+  return plan;
+}
+
+async function maybeQueueCreativeRefill(
+  organizationId: string,
+  plan: ReallocationPlan,
+  settings: { creativeAutoRotate: boolean },
+): Promise<void> {
+  if (!settings.creativeAutoRotate) return;
+  const warnings = plan.creativePoolWarnings ?? [];
+  if (warnings.length === 0) return;
+
+  const queue = getQueue(QUEUE_NAMES.CREATIVE_MASS_PRODUCTION);
+  for (const w of warnings) {
+    try {
+      // Enqueue a synthesis job — worker's creative-mass-production
+      // processor picks it up and generates variants. We intentionally
+      // send a terse payload; upstream chunk jobs expect a batchId flow,
+      // so this signals an intent that downstream services handle.
+      await queue.add(
+        `auto-refill-${organizationId}-${w.platform}-${Date.now()}`,
+        {
+          organizationId,
+          batchId: '00000000-0000-0000-0000-000000000000',
+          chunkIndex: 0,
+          productInfo: {
+            name: `Auto refill for ${w.platform}`,
+            description: `Pool at ${w.creativeCount}/${w.recommendedMinimum} — triggered by orchestrator`,
+            usp: 'auto-refill',
+            targetAudience: 'existing campaigns',
+          },
+          platform: w.platform,
+          language: 'ja',
+          keigoLevel: 'polite',
+          combinations: [],
+        },
+        { delay: 5_000 },
+      );
+      logger.info('Queued creative auto-refill', {
+        organizationId,
+        platform: w.platform,
+        currentCount: w.creativeCount,
+      });
+    } catch (err) {
+      logger.warn('Failed to queue creative auto-refill', {
+        organizationId,
+        platform: w.platform,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+}
+
+async function writeDecisionLog(
+  organizationId: string,
+  plan: ReallocationPlan,
+  allocationId: string,
+  mode: 'auto' | 'manual',
+): Promise<void> {
+  const reasoning =
+    `${plan.shifts.length} shifts, predicted ROAS Δ ${plan.predictedRoasImprovement.toFixed(3)}, ` +
+    `confidence ${plan.confidence}. ${plan.reasoning}`;
+  const confidenceScore =
+    plan.confidence === 'high' ? 0.9 : plan.confidence === 'medium' ? 0.6 : 0.3;
+
+  await db.insert(aiDecisionLog).values({
+    organizationId,
+    decisionType: 'budget_adjust',
+    campaignId: null,
+    reasoning,
+    recommendation: {
+      shifts: plan.shifts,
+      proposedAllocations: plan.proposedAllocations,
+      lookbackHours: plan.lookbackHours,
+      creativePoolWarnings: plan.creativePoolWarnings ?? [],
+    },
+    action: {
+      mode,
+      appliedBy: 'orchestrator-scheduler',
+      allocationId,
+    },
+    status: 'executed',
+    confidenceScore,
+  });
 }
 
 async function generatePlan(
@@ -232,7 +368,7 @@ async function generatePlan(
         )
       : undefined;
 
-  return computeReallocationPlan({
+  const plan = computeReallocationPlan({
     totalBudget,
     currentAllocations,
     platformROAS,
@@ -244,6 +380,8 @@ async function generatePlan(
       }),
     },
   });
+
+  return enrichCreativePool(organizationId, plan);
 }
 
 function emptyPlan(lookbackHours: number): ReallocationPlan {
@@ -331,20 +469,24 @@ async function computeOverlapPair(
 async function persistPlan(
   organizationId: string,
   plan: ReallocationPlan,
-): Promise<void> {
+): Promise<string> {
   const predictedRoas = computeWeightedRoas(
     plan.platformROAS,
     plan.proposedAllocations,
   );
-  await db.insert(budgetAllocations).values({
-    organizationId,
-    date: new Date().toISOString().slice(0, 10),
-    allocations: plan.proposedAllocations,
-    totalBudget: plan.totalBudget.toFixed(2),
-    predictedRoas: Number.isFinite(predictedRoas) ? predictedRoas : null,
-    actualRoas: null,
-    algorithmVersion: 'unified-spend-orchestrator-v1-scheduled',
-  });
+  const [row] = await db
+    .insert(budgetAllocations)
+    .values({
+      organizationId,
+      date: new Date().toISOString().slice(0, 10),
+      allocations: plan.proposedAllocations,
+      totalBudget: plan.totalBudget.toFixed(2),
+      predictedRoas: Number.isFinite(predictedRoas) ? predictedRoas : null,
+      actualRoas: null,
+      algorithmVersion: 'unified-spend-orchestrator-v1-scheduled',
+    })
+    .returning({ id: budgetAllocations.id });
+  return row?.id ?? '';
 }
 
 async function emitNotification(
