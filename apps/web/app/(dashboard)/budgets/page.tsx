@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import {
-  ArrowRight,
   CalendarDays,
-  Gauge,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -224,39 +222,6 @@ function AllocationPieChart({ allocations }: { allocations: PlatformAllocation[]
   );
 }
 
-function AllocationDiffTable({ allocations }: { allocations: PlatformAllocation[] }): React.ReactElement {
-  return (
-    <div className="space-y-3">
-      {allocations.map((a) => {
-        const diff = a.recommended - a.current;
-        const pctChange = ((diff / a.current) * 100).toFixed(1);
-        const isPositive = diff >= 0;
-        return (
-          <div key={a.platform} className="flex items-center gap-3">
-            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: a.color }} />
-            <span className="w-16 text-sm font-medium text-foreground">{a.platform}</span>
-            <span className="w-16 text-right text-sm text-muted-foreground">
-              {(a.current / 1000).toFixed(0)}K
-            </span>
-            <ArrowRight size={14} className="text-muted-foreground" />
-            <span className="w-16 text-right text-sm font-medium text-foreground">
-              {(a.recommended / 1000).toFixed(0)}K
-            </span>
-            <span
-              className={cn(
-                'ml-auto text-xs font-medium',
-                isPositive ? 'text-green-600' : 'text-red-600',
-              )}
-            >
-              {isPositive ? '+' : ''}{pctChange}%
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 interface SliderProps {
   label: string;
   value: number;
@@ -298,7 +263,6 @@ function BudgetSlider({ label, value, min, max, color, onChange }: SliderProps):
 export default function BudgetsPage(): React.ReactElement {
   const { t } = useI18n();
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [showRecommendation, setShowRecommendation] = useState(false);
 
   // What-If simulator state
   const [simBudgets, setSimBudgets] = useState<Record<string, number>>({
@@ -325,10 +289,7 @@ export default function BudgetsPage(): React.ReactElement {
   async function handleOptimize(): Promise<void> {
     setIsOptimizing(true);
     try {
-      // Trigger a fresh reallocation computation via the orchestrator.
-      // The SpendOrchestratorPanel re-renders with the new plan.
       await utils.unifiedSpendOrchestrator.preview.invalidate();
-      setShowRecommendation(true);
     } finally {
       setIsOptimizing(false);
     }
@@ -367,54 +328,24 @@ export default function BudgetsPage(): React.ReactElement {
         </div>
       )}
 
-      {/* Unified Spend Orchestrator — real-time cross-platform ROAS rebalancer */}
+      {/* Unified Spend Orchestrator — sole AI recommendation surface.
+          The legacy "AI recommendation" panel was removed; SpendOrchestratorPanel
+          is now the canonical source for proposed reallocations. */}
       <SpendOrchestratorPanel />
 
-      {/* Current allocation + AI recommendation */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Current allocation donut */}
-        <div className="rounded-lg border border-border bg-card shadow-xs p-6">
-          <h2 className="text-lg font-semibold text-foreground">{t('budgets.currentAllocation')}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t('budgets.channelAllocationStatus')}</p>
-          {isLoading ? (
-            <div className="mt-6 flex h-64 animate-pulse items-center justify-center rounded-md bg-muted/30">
-              <div className="h-4 w-24 rounded bg-muted" />
-            </div>
-          ) : (
-            <div className="mt-4">
-              <AllocationPieChart allocations={allocations} />
-            </div>
-          )}
-        </div>
-
-        {/* AI recommendation panel */}
-        <div className="rounded-lg border border-border bg-card shadow-xs p-6">
-          <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">{t('budgets.aiRecommendation')}</h2>
+      {/* Current allocation donut — read-only snapshot of the active split */}
+      <div className="rounded-lg border border-border bg-card shadow-xs p-6">
+        <h2 className="text-lg font-semibold text-foreground">{t('budgets.currentAllocation')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t('budgets.channelAllocationStatus')}</p>
+        {isLoading ? (
+          <div className="mt-6 flex h-64 animate-pulse items-center justify-center rounded-md bg-muted/30">
+            <div className="h-4 w-24 rounded bg-muted" />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('budgets.performanceBasedOptimal')}
-          </p>
-          {!showRecommendation ? (
-            <div className="mt-6 flex h-64 items-center justify-center rounded-md border border-dashed border-border bg-muted/30">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <Gauge size={48} className="text-muted-foreground/30" />
-                <p className="text-sm">{t('budgets.runToSeeRecommendation')}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <AllocationDiffTable allocations={allocations} />
-              <div className="mt-4 rounded-md bg-primary/5 p-3">
-                <p className="text-sm font-medium text-primary">{t('budgets.aiAnalysisResult')}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t('budgets.aiAnalysisDetail')}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="mt-4">
+            <AllocationPieChart allocations={allocations} />
+          </div>
+        )}
       </div>
 
       {/* ROAS forecast */}
