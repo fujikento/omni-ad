@@ -5,6 +5,7 @@ import {
   backfillActualRoas,
   computeActualRoasForAllocation,
   computeIncrementalLift,
+  executeAllocation,
   generateReallocationPlan,
   getAccuracySummary,
   projectCampaignBudgets,
@@ -157,6 +158,26 @@ export const unifiedSpendOrchestratorRouter = router({
         return await projectCampaignBudgets(
           input.allocationId,
           ctx.organizationId,
+        );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  execute: rbacProcedure('budgets:manage')
+    .input(
+      z.object({
+        allocationId: z.string().uuid(),
+        mode: z.enum(['dry-run', 'db-only', 'full']).default('dry-run'),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await executeAllocation(
+          input.allocationId,
+          ctx.organizationId,
+          ctx.userId,
+          input.mode,
         );
       } catch (error) {
         handleServiceError(error);

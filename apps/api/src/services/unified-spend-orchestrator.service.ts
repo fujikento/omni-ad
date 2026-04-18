@@ -12,6 +12,7 @@ import {
   aiDecisionLog,
   aiSettings,
   budgetAllocations,
+  campaignPlatformDeployments,
   campaigns,
   creativeVariants,
   creatives,
@@ -32,7 +33,9 @@ import {
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 import { getOverlap } from './identity-graph.service.js';
+import { getActiveControlCampaignIds } from './holdout.service.js';
 import { createNotification } from './notification.service.js';
+import { updateBudgetOnPlatform } from './platform-executor.service.js';
 
 // Re-export pure core for backward compatibility with existing callers
 // (tRPC router, tests, UI type definitions).
@@ -360,6 +363,242 @@ export async function projectCampaignBudgets(
     ),
     atRiskCampaigns: atRisk,
     surgingCampaigns: surging,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Execution (CRITICAL DOMAIN — real money)
+// ---------------------------------------------------------------------------
+
+export type ExecuteMode = 'dry-run' | 'db-only' | 'full';
+
+export interface ExecuteOutcome {
+  campaignId: string;
+  campaignName: string;
+  platform: OrchestratorPlatform;
+  currentDailyBudget: number;
+  proposedDailyBudget: number;
+  deltaPercent: number;
+  status:
+    | 'would-update'
+    | 'updated-db'
+    | 'updated-db-and-platform'
+    | 'skipped-control'
+    | 'skipped-no-deployment'
+    | 'failed';
+  error?: string;
+}
+
+export interface ExecuteResult {
+  allocationId: string;
+  mode: ExecuteMode;
+  changes: ExecuteOutcome[];
+  summary: {
+    total: number;
+    wouldUpdate: number;
+    updatedDb: number;
+    updatedPlatform: number;
+    skippedControl: number;
+    skippedNoDeployment: number;
+    failed: number;
+  };
+}
+
+/**
+ * Execute a previously-applied allocation against actual campaigns.
+ * CRITICAL DOMAIN — real ad spend. Three modes:
+ *
+ *  - dry-run:  compute projection only. No writes. Default.
+ *  - db-only:  update campaigns.dailyBudget in the local DB. No push
+ *              to platform APIs. Useful for testing the math without
+ *              touching live ad spend.
+ *  - full:     update DB + push updateCampaign to each platform adapter.
+ *              Real money moves.
+ *
+ * Control campaigns (members of any active holdout_groups) are
+ * excluded from all modifications so the lift experiment stays
+ * clean. Campaigns without a platform deployment are skipped with
+ * a marked status (can't push to a platform we haven't deployed to).
+ */
+export async function executeAllocation(
+  allocationId: string,
+  organizationId: string,
+  userId: string,
+  mode: ExecuteMode = 'dry-run',
+): Promise<ExecuteResult> {
+  const projection = await projectCampaignBudgets(allocationId, organizationId);
+  if (!projection) {
+    return {
+      allocationId,
+      mode,
+      changes: [],
+      summary: {
+        total: 0,
+        wouldUpdate: 0,
+        updatedDb: 0,
+        updatedPlatform: 0,
+        skippedControl: 0,
+        skippedNoDeployment: 0,
+        failed: 0,
+      },
+    };
+  }
+
+  const controlIds = new Set(
+    await getActiveControlCampaignIds(organizationId),
+  );
+
+  // Prefetch deployment external IDs for all candidate campaigns in one
+  // query to avoid N+1. Only used in 'full' mode but cheap and keeps
+  // the hot loop uncluttered.
+  const candidateIds = projection.changes.map((c) => c.campaignId);
+  const deployments =
+    candidateIds.length > 0
+      ? await db
+          .select({
+            id: campaignPlatformDeployments.id,
+            campaignId: campaignPlatformDeployments.campaignId,
+            platform: campaignPlatformDeployments.platform,
+            externalCampaignId:
+              campaignPlatformDeployments.externalCampaignId,
+          })
+          .from(campaignPlatformDeployments)
+          .where(
+            inArray(campaignPlatformDeployments.campaignId, candidateIds),
+          )
+      : [];
+
+  const deploymentByCampaign = new Map<
+    string,
+    { id: string; externalCampaignId: string | null; platform: string }
+  >();
+  for (const d of deployments) {
+    deploymentByCampaign.set(d.campaignId, {
+      id: d.id,
+      externalCampaignId: d.externalCampaignId,
+      platform: d.platform,
+    });
+  }
+
+  const changes: ExecuteOutcome[] = [];
+  let wouldUpdate = 0;
+  let updatedDb = 0;
+  let updatedPlatform = 0;
+  let skippedControl = 0;
+  let skippedNoDeployment = 0;
+  let failed = 0;
+
+  for (const c of projection.changes) {
+    const outcome: ExecuteOutcome = {
+      campaignId: c.campaignId,
+      campaignName: c.campaignName,
+      platform: c.platform,
+      currentDailyBudget: c.currentDailyBudget,
+      proposedDailyBudget: c.proposedDailyBudget,
+      deltaPercent: c.deltaPercent,
+      status: 'would-update',
+    };
+
+    if (controlIds.has(c.campaignId)) {
+      outcome.status = 'skipped-control';
+      skippedControl += 1;
+      changes.push(outcome);
+      continue;
+    }
+
+    if (mode === 'dry-run') {
+      wouldUpdate += 1;
+      changes.push(outcome);
+      continue;
+    }
+
+    // db-only and full: update local campaign record.
+    try {
+      await db
+        .update(campaigns)
+        .set({
+          dailyBudget: c.proposedDailyBudget.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(campaigns.id, c.campaignId),
+            eq(campaigns.organizationId, organizationId),
+          ),
+        );
+      outcome.status = 'updated-db';
+      updatedDb += 1;
+    } catch (err) {
+      outcome.status = 'failed';
+      outcome.error = `DB update: ${err instanceof Error ? err.message : String(err)}`;
+      failed += 1;
+      changes.push(outcome);
+      continue;
+    }
+
+    if (mode === 'full') {
+      const deployment = deploymentByCampaign.get(c.campaignId);
+      if (!deployment || !deployment.externalCampaignId) {
+        outcome.status = 'skipped-no-deployment';
+        skippedNoDeployment += 1;
+        changes.push(outcome);
+        continue;
+      }
+      try {
+        await updateBudgetOnPlatform(
+          organizationId,
+          deployment.id,
+          c.proposedDailyBudget,
+        );
+        outcome.status = 'updated-db-and-platform';
+        updatedPlatform += 1;
+      } catch (err) {
+        outcome.status = 'failed';
+        outcome.error = `Platform push: ${err instanceof Error ? err.message : String(err)}`;
+        failed += 1;
+      }
+    }
+
+    changes.push(outcome);
+  }
+
+  // Audit log (one row per execution, not per campaign — avoid spam)
+  await db.insert(aiDecisionLog).values({
+    organizationId,
+    decisionType: 'budget_adjust',
+    campaignId: null,
+    reasoning:
+      `Orchestrator executeAllocation mode=${mode}: ` +
+      `${updatedDb} db / ${updatedPlatform} platform / ` +
+      `${skippedControl} control / ${skippedNoDeployment} no-deploy / ${failed} failed`,
+    recommendation: {
+      allocationId,
+      mode,
+      changes: changes.map((c) => ({
+        campaignId: c.campaignId,
+        platform: c.platform,
+        delta: c.deltaPercent,
+        status: c.status,
+      })),
+    },
+    action: { executedBy: userId, mode },
+    status: 'executed',
+    confidenceScore: 1,
+  });
+
+  return {
+    allocationId,
+    mode,
+    changes,
+    summary: {
+      total: changes.length,
+      wouldUpdate,
+      updatedDb,
+      updatedPlatform,
+      skippedControl,
+      skippedNoDeployment,
+      failed,
+    },
   };
 }
 
