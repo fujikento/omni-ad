@@ -24,8 +24,10 @@ import {
   aiSettings,
   budgetAllocations,
   campaigns,
+  campaignPlatformDeployments,
   creativeVariants,
   creatives,
+  holdoutGroups,
   identityGraph,
   metricsHourly,
   notifications,
@@ -146,11 +148,23 @@ async function runForOrg(
     if (decision.autoApply) {
       const allocationId = await persistPlan(organizationId, plan);
       await writeDecisionLog(organizationId, plan, allocationId, 'auto');
+
+      // Scheduled auto-apply writes to the local DB only. Platform push
+      // stays human-in-loop (UI click via tRPC execute with mode='full').
+      // Rationale: irreversible ad-spend mutations should not fire in an
+      // unattended cron without explicit operator confirmation.
+      const executeSummary = await executeDbOnly(
+        organizationId,
+        allocationId,
+      );
+
       await emitNotification(organizationId, plan, 'applied');
       logger.info('Plan auto-applied', {
         organizationId,
         shifts: plan.shifts.length,
         reason: decision.reason,
+        dbUpdates: executeSummary.updated,
+        controlSkipped: executeSummary.skippedControl,
       });
       await maybeQueueCreativeRefill(organizationId, plan, settings);
       await backfillActualRoas(organizationId);
@@ -173,6 +187,124 @@ async function runForOrg(
 
   await backfillActualRoas(organizationId);
 }
+
+/**
+ * Worker-side db-only execute: updates campaigns.dailyBudget per the
+ * projection. Excludes control campaigns. Does NOT push to platform
+ * adapters — that's the manual/UI-triggered 'full' mode.
+ *
+ * Duplicates a narrow slice of apps/api's executeAllocation so the
+ * worker doesn't need an apps/api dependency. Kept minimal: if the
+ * full UX surface grows, extract to @omni-ad/ai-engine/execution or
+ * a new @omni-ad/orchestrator-core package.
+ */
+async function executeDbOnly(
+  organizationId: string,
+  allocationId: string,
+): Promise<{ updated: number; skippedControl: number; failed: number }> {
+  const allocation = await db.query.budgetAllocations.findFirst({
+    where: and(
+      eq(budgetAllocations.id, allocationId),
+      eq(budgetAllocations.organizationId, organizationId),
+    ),
+  });
+  if (!allocation) return { updated: 0, skippedControl: 0, failed: 0 };
+
+  const platformBudgets = allocation.allocations as Record<string, number>;
+
+  // Control campaigns from active holdout groups
+  const holdoutRows = await db
+    .select({ controlIds: holdoutGroups.controlCampaignIds })
+    .from(holdoutGroups)
+    .where(
+      and(
+        eq(holdoutGroups.organizationId, organizationId),
+        eq(holdoutGroups.active, true),
+      ),
+    );
+  const controlSet = new Set<string>();
+  for (const r of holdoutRows) {
+    for (const id of r.controlIds as string[]) controlSet.add(id);
+  }
+
+  // Per-campaign budget and deployment platform
+  const rows = await db
+    .select({
+      id: campaigns.id,
+      dailyBudget: campaigns.dailyBudget,
+      platform: sql<string>`(
+        SELECT platform FROM campaign_platform_deployments
+        WHERE campaign_id = ${campaigns.id}
+        LIMIT 1
+      )`,
+    })
+    .from(campaigns)
+    .where(eq(campaigns.organizationId, organizationId));
+
+  const currentTotals: Record<string, number> = {};
+  for (const row of rows) {
+    if (!row.platform) continue;
+    currentTotals[row.platform] =
+      (currentTotals[row.platform] ?? 0) + Number(row.dailyBudget);
+  }
+
+  let updated = 0;
+  let skippedControl = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    if (!row.platform) continue;
+    if (controlSet.has(row.id)) {
+      skippedControl += 1;
+      continue;
+    }
+    const current = Number(row.dailyBudget);
+    const platformTotal = currentTotals[row.platform] ?? 0;
+    const platformNew = platformBudgets[row.platform] ?? 0;
+    const proposed =
+      platformTotal > 0 ? (current / platformTotal) * platformNew : 0;
+    if (Math.abs(proposed - current) < 0.01) continue;
+
+    try {
+      await db
+        .update(campaigns)
+        .set({
+          dailyBudget: proposed.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(campaigns.id, row.id),
+            eq(campaigns.organizationId, organizationId),
+          ),
+        );
+      updated += 1;
+    } catch (err) {
+      logger.warn('Campaign DB update failed', {
+        campaignId: row.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      failed += 1;
+    }
+  }
+
+  // Aggregate audit log (not per-campaign to avoid spam)
+  await db.insert(aiDecisionLog).values({
+    organizationId,
+    decisionType: 'budget_adjust',
+    campaignId: null,
+    reasoning: `Worker db-only execute: ${updated} updated, ${skippedControl} control-skipped, ${failed} failed`,
+    recommendation: { allocationId, scope: 'worker-db-only' },
+    action: { executedBy: 'orchestrator-scheduler', mode: 'db-only' },
+    status: 'executed',
+    confidenceScore: 1,
+  });
+
+  return { updated, skippedControl, failed };
+}
+
+// Reference kept: reads to campaignPlatformDeployments for lift helpers
+void campaignPlatformDeployments;
 
 async function enrichCreativePool(
   organizationId: string,
