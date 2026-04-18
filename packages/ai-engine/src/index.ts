@@ -56,6 +56,7 @@ export {
   shouldAutoApply,
   type AutoApplyDecision,
   type AutoApplySettings,
+  type CreativePoolWarning,
   type MetricRow as OrchestratorMetricRow,
   type OverlapMatrix,
   type Platform as OrchestratorPlatform,

@@ -12,6 +12,8 @@ import {
   aiSettings,
   budgetAllocations,
   campaigns,
+  creativeVariants,
+  creatives,
   metricsHourly,
 } from '@omni-ad/db/schema';
 import {
@@ -20,12 +22,13 @@ import {
   computeWeightedRoas,
   orchestratorSafeDivide,
   shouldAutoApply,
+  type CreativePoolWarning,
   type OrchestratorMetricRow,
   type OrchestratorPlatform,
   type OverlapMatrix,
   type ReallocationPlan,
 } from '@omni-ad/ai-engine';
-import { and, desc, eq, gte, inArray } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 import { getOverlap } from './identity-graph.service.js';
 import { createNotification } from './notification.service.js';
@@ -42,6 +45,7 @@ export {
   shouldAutoApply,
   type AutoApplyDecision,
   type AutoApplySettings,
+  type CreativePoolWarning,
   type OverlapMatrix,
   type PlatformROAS,
   type ReallocationOptions,
@@ -178,7 +182,7 @@ export async function generateReallocationPlan(
         )
       : undefined;
 
-  return computeReallocationPlan({
+  const plan = computeReallocationPlan({
     totalBudget,
     currentAllocations,
     platformROAS,
@@ -200,6 +204,68 @@ export async function generateReallocationPlan(
       }),
     },
   });
+
+  // Enrich with creative-pool warnings for winner platforms. If a
+  // platform is gaining budget but has fewer than the minimum creative
+  // count, CTR will regress as spend increases without creative rotation.
+  const winnerPlatforms = Array.from(
+    new Set(plan.shifts.map((s) => s.to)),
+  );
+  if (winnerPlatforms.length > 0) {
+    const poolCounts = await checkCreativePool(
+      organizationId,
+      winnerPlatforms,
+    );
+    const warnings: CreativePoolWarning[] = [];
+    const MIN_POOL = 6;
+    for (const platform of winnerPlatforms) {
+      const count = poolCounts[platform] ?? 0;
+      if (count < MIN_POOL) {
+        warnings.push({
+          platform,
+          creativeCount: count,
+          recommendedMinimum: MIN_POOL,
+          message: `${platform} のクリエイティブが ${count}/${MIN_POOL} 本。予算増でも CTR が伸びづらい可能性。`,
+        });
+      }
+    }
+    if (warnings.length > 0) {
+      plan.creativePoolWarnings = warnings;
+    }
+  }
+
+  return plan;
+}
+
+/**
+ * Count active creative variants per platform for an organization.
+ * Returns 0 for platforms with no variants.
+ */
+export async function checkCreativePool(
+  organizationId: string,
+  platforms: OrchestratorPlatform[],
+): Promise<Record<string, number>> {
+  if (platforms.length === 0) return {};
+
+  const rows = await db
+    .select({
+      platform: creativeVariants.platform,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(creativeVariants)
+    .innerJoin(creatives, eq(creatives.id, creativeVariants.creativeId))
+    .where(
+      and(
+        eq(creatives.organizationId, organizationId),
+        inArray(creativeVariants.platform, platforms),
+      ),
+    )
+    .groupBy(creativeVariants.platform);
+
+  const result: Record<string, number> = {};
+  for (const p of platforms) result[p] = 0;
+  for (const r of rows) result[r.platform] = Number(r.count);
+  return result;
 }
 
 function emptyPlan(lookbackHours: number, totalBudget: number): ReallocationPlan {

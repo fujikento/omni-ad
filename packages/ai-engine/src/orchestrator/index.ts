@@ -75,6 +75,13 @@ export interface ShiftEntry {
 
 export type OverlapMatrix = Record<string, Record<string, number>>;
 
+export interface CreativePoolWarning {
+  platform: Platform;
+  creativeCount: number;
+  recommendedMinimum: number;
+  message: string;
+}
+
 export interface ReallocationPlan {
   generatedAt: string;
   lookbackHours: number;
@@ -86,6 +93,12 @@ export interface ReallocationPlan {
   predictedRoasImprovement: number;
   confidence: 'low' | 'medium' | 'high';
   reasoning: string;
+  /**
+   * Populated by DB-bound wrappers (generateReallocationPlan). The pure
+   * core leaves this undefined — creative pool size is DB state, not a
+   * function of the metrics input.
+   */
+  creativePoolWarnings?: CreativePoolWarning[];
 }
 
 export interface AutoApplySettings {

@@ -58,6 +58,16 @@ const PlanSchema = z.object({
   predictedRoasImprovement: z.number(),
   confidence: z.enum(['low', 'medium', 'high']),
   reasoning: z.string(),
+  creativePoolWarnings: z
+    .array(
+      z.object({
+        platform: z.string(),
+        creativeCount: z.number(),
+        recommendedMinimum: z.number(),
+        message: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export const unifiedSpendOrchestratorRouter = router({

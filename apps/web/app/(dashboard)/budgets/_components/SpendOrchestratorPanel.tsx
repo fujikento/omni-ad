@@ -30,6 +30,13 @@ type PlatformROAS = {
   dataPoints: number;
 };
 
+type CreativePoolWarning = {
+  platform: string;
+  creativeCount: number;
+  recommendedMinimum: number;
+  message: string;
+};
+
 type Plan = {
   generatedAt: string;
   lookbackHours: number;
@@ -41,6 +48,7 @@ type Plan = {
   predictedRoasImprovement: number;
   confidence: Confidence;
   reasoning: string;
+  creativePoolWarnings?: CreativePoolWarning[];
 };
 
 const CONFIDENCE_STYLES: Record<Confidence, { label: string; badge: string }> = {
@@ -250,6 +258,35 @@ export const SpendOrchestratorPanel = memo(function SpendOrchestratorPanel(): Re
                   </li>
                 ))}
               </ul>
+            </div>
+          ) : null}
+
+          {plan.creativePoolWarnings && plan.creativePoolWarnings.length > 0 ? (
+            <div className="mt-5 rounded-md border border-warning/40 bg-warning/5 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-warning">
+                クリエイティブ不足警告
+              </h3>
+              <ul className="space-y-1.5">
+                {plan.creativePoolWarnings.map((w) => (
+                  <li
+                    key={w.platform}
+                    className="flex items-start gap-2 text-sm text-foreground"
+                  >
+                    <span className="rounded bg-warning/15 px-1.5 py-0.5 font-mono text-xs font-medium text-warning">
+                      {w.platform}
+                    </span>
+                    <span className="flex-1">{w.message}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {w.creativeCount}/{w.recommendedMinimum}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                <a href="/creatives/mass-production" className="text-primary hover:underline">
+                  一括生成で補充する →
+                </a>
+              </p>
             </div>
           ) : null}
 
