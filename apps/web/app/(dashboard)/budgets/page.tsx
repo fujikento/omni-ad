@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Line,
   LineChart,
@@ -277,6 +277,10 @@ export default function BudgetsPage(): React.ReactElement {
   const budgetQuery = trpc.budgets.current.useQuery(undefined, { retry: false });
   const historyQuery = trpc.budgets.history.useQuery({ limit: 14 }, { retry: false });
   const monthlyPacingQuery = trpc.budgets.monthlyPacing.useQuery(undefined, { retry: false });
+  const orchestratorQuery = trpc.unifiedSpendOrchestrator.preview.useQuery(
+    { lookbackHours: 24 },
+    { retry: false, refetchOnWindowFocus: false },
+  );
 
   const allocations = (budgetQuery.data as PlatformAllocation[] | undefined) ?? [];
   const forecasts: ForecastEntry[] = [];
@@ -300,6 +304,24 @@ export default function BudgetsPage(): React.ReactElement {
   }
 
   const totalSimBudget = Object.values(simBudgets).reduce((sum, v) => sum + v, 0);
+
+  // Map platform key (UI label) → measured ROAS from orchestrator preview.
+  // Keys used in simBudgets (Google / Meta / LINE / X / Yahoo!) don't match
+  // the DB platform enum (google / meta / line_yahoo / x), so we normalize.
+  const platformRoasMap: Record<string, number> = (() => {
+    const map: Record<string, number> = {};
+    const roasByDbKey: Record<string, number> = {};
+    for (const p of orchestratorQuery.data?.platformROAS ?? []) {
+      roasByDbKey[p.platform] = p.roas;
+    }
+    map['Google'] = roasByDbKey['google'] ?? 0;
+    map['Meta'] = roasByDbKey['meta'] ?? 0;
+    map['TikTok'] = roasByDbKey['tiktok'] ?? 0;
+    map['LINE'] = roasByDbKey['line_yahoo'] ?? 0;
+    map['X'] = roasByDbKey['x'] ?? 0;
+    map['Yahoo!'] = roasByDbKey['line_yahoo'] ?? 0;
+    return map;
+  })();
 
   return (
     <div className="space-y-6">
@@ -431,17 +453,26 @@ export default function BudgetsPage(): React.ReactElement {
 
           <div>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart
+              <ComposedChart
                 data={Object.entries(simBudgets).map(([platform, value]) => ({
                   platform,
                   budget: value,
-                  predictedRoas: forecasts.find((f) => f.platform === platform)?.predictedRoas ?? 0,
+                  measuredRoas: platformRoasMap[platform] ?? 0,
                 }))}
                 margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="platform" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <YAxis
+                  yAxisId="budget"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                />
+                <YAxis
+                  yAxisId="roas"
+                  orientation="right"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  tickFormatter={(v: number) => `${v.toFixed(1)}x`}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
@@ -450,12 +481,29 @@ export default function BudgetsPage(): React.ReactElement {
                     color: 'hsl(var(--foreground))',
                   }}
                   formatter={(value: number, name: string) =>
-                    name === 'budget' ? `${(value / 1000).toFixed(0)}K` : `${value.toFixed(1)}x`
+                    name === 'budget' || name === t('budgets.budgetJpy')
+                      ? `${(value / 1000).toFixed(0)}K`
+                      : `${value.toFixed(2)}x`
                   }
                 />
                 <Legend />
-                <Bar dataKey="budget" name={t('budgets.budgetJpy')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Bar
+                  yAxisId="budget"
+                  dataKey="budget"
+                  name={t('budgets.budgetJpy')}
+                  fill="hsl(var(--primary))"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Line
+                  yAxisId="roas"
+                  type="monotone"
+                  dataKey="measuredRoas"
+                  name="ROAS (直近24h)"
+                  stroke="hsl(var(--success))"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
