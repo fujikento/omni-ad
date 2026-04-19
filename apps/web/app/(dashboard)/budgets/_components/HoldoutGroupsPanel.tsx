@@ -1,9 +1,10 @@
 'use client';
 
 import { memo, useState } from 'react';
-import { FlaskConical, Loader2 } from 'lucide-react';
+import { FlaskConical, Loader2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { CreateHoldoutModal } from './CreateHoldoutModal';
 
 type HoldoutGroup = {
   id: string;
@@ -84,6 +85,7 @@ function LiftRow({ groupId }: { groupId: string }): React.ReactElement {
 
 export const HoldoutGroupsPanel = memo(function HoldoutGroupsPanel(): React.ReactElement {
   const [expanded, setExpanded] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const query = trpc.holdout.list.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -100,13 +102,25 @@ export const HoldoutGroupsPanel = memo(function HoldoutGroupsPanel(): React.Reac
             Holdout 実験と因果 Lift
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="text-xs font-medium text-primary hover:underline"
-        >
-          {expanded ? '閉じる' : '詳細'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <Plus size={12} />
+            新規作成
+          </button>
+          {groups.length > 3 ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              {expanded ? '閉じる' : '詳細'}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <p className="mt-1 text-sm text-muted-foreground">
@@ -173,6 +187,11 @@ export const HoldoutGroupsPanel = memo(function HoldoutGroupsPanel(): React.Reac
           ) : null}
         </ul>
       )}
+
+      <CreateHoldoutModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
     </div>
   );
 });
