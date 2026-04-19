@@ -7,6 +7,8 @@ import {
   createSegment,
   listSegments,
   getOverlap,
+  getOverlapMatrix,
+  getSaturationSummary,
   IdentityNotFoundError,
   SegmentCreationError,
 } from '../../services/identity-graph.service.js';
@@ -171,6 +173,39 @@ export const identityGraphRouter = router({
           input.platformA,
           input.platformB,
         );
+      } catch (error) {
+        handleServiceError(error);
+      }
+    }),
+
+  saturation: organizationProcedure.query(async ({ ctx }) => {
+    try {
+      return await getSaturationSummary(ctx.organizationId);
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
+
+  getOverlapMatrix: organizationProcedure
+    .input(
+      z
+        .object({
+          platforms: z.array(z.string().min(1)).min(2).max(10).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const platforms = input?.platforms ?? [
+          'meta',
+          'google',
+          'tiktok',
+          'line_yahoo',
+          'x',
+          'amazon',
+          'microsoft',
+        ];
+        return await getOverlapMatrix(ctx.organizationId, platforms);
       } catch (error) {
         handleServiceError(error);
       }

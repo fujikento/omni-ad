@@ -10,7 +10,6 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronLeft,
-  Film,
   Fingerprint,
   FlaskConical,
   Gauge,
@@ -24,8 +23,6 @@ import {
   ScrollText,
   Settings,
   ShieldAlert,
-  ShoppingCart,
-  Sparkles,
   Swords,
   TrendingUp,
   User,
@@ -82,7 +79,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titleKey: 'nav.aiOps',
     items: [
-      { labelKey: 'nav.aiAutopilot', href: '/ai-pilot', icon: <Sparkles size={18} />, activeIndicator: true },
       { labelKey: 'nav.competitors', href: '/competitors', icon: <Swords size={18} /> },
       { labelKey: 'nav.autoRules', href: '/auto-rules', icon: <Workflow size={18} /> },
     ],
@@ -91,9 +87,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: 'nav.adManagement',
     items: [
       { labelKey: 'nav.campaigns', href: '/campaigns', icon: <LayoutDashboard size={18} /> },
-      { labelKey: 'nav.groupBuy', href: '/campaigns/group-buy', icon: <ShoppingCart size={18} /> },
       { labelKey: 'nav.creatives', href: '/creatives', icon: <BrainCircuit size={18} /> },
-      { labelKey: 'nav.videoStudio', href: '/creatives/video-studio', icon: <Film size={18} /> },
       { labelKey: 'nav.creativeOptimization', href: '/creatives/optimization', icon: <RefreshCw size={18} /> },
       { labelKey: 'nav.audiences', href: '/audiences', icon: <Users size={18} /> },
       { labelKey: 'nav.identityGraph', href: '/audiences/identity-graph', icon: <Fingerprint size={18} /> },
@@ -134,7 +128,7 @@ const SEVERITY_DOT_CLASS: Record<NotificationSeverity, string> = {
 function isRouteActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   // Treat nested routes as active except when href is a parent of multiple
-  // siblings (e.g. /campaigns should not match /campaigns/group-buy).
+  // siblings (e.g. /campaigns should not match nested campaign sub-pages).
   if (href === '/campaigns') return pathname === '/campaigns';
   if (href === '/creatives') return pathname === '/creatives';
   if (href === '/audiences') return pathname === '/audiences';

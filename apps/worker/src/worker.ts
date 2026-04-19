@@ -15,6 +15,8 @@ import { processCreativeMassProduction } from './processors/creative-mass-produc
 import { processAbTestEvaluation } from './processors/ab-test-evaluation.js';
 import { processCreativeOptimization } from './processors/creative-optimization.js';
 import { processTokenRefresh } from './processors/token-refresh.js';
+import { processUnifiedSpendOrchestrator } from './processors/unified-spend-orchestrator.js';
+import { processIndustryBenchmarks } from './processors/industry-benchmarks.js';
 import { registerSchedulers } from './schedulers/index.js';
 
 const workers: Worker[] = [];
@@ -133,6 +135,16 @@ async function startWorkers(): Promise<void> {
       QUEUE_NAMES.TOKEN_REFRESH,
       processTokenRefresh,
       QUEUE_CONFIGS[QUEUE_NAMES.TOKEN_REFRESH].concurrency
+    ),
+    createWorker(
+      QUEUE_NAMES.UNIFIED_SPEND_ORCHESTRATOR,
+      processUnifiedSpendOrchestrator,
+      QUEUE_CONFIGS[QUEUE_NAMES.UNIFIED_SPEND_ORCHESTRATOR].concurrency
+    ),
+    createWorker(
+      QUEUE_NAMES.INDUSTRY_BENCHMARKS,
+      processIndustryBenchmarks,
+      QUEUE_CONFIGS[QUEUE_NAMES.INDUSTRY_BENCHMARKS].concurrency
     )
   );
 

@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import {
-  ArrowRight,
   CalendarDays,
-  Gauge,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -12,9 +10,9 @@ import {
 } from 'lucide-react';
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Line,
   LineChart,
@@ -30,6 +28,8 @@ import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { showToast } from '@/lib/show-toast';
 import { useI18n } from '@/lib/i18n';
+import { HoldoutGroupsPanel } from './_components/HoldoutGroupsPanel';
+import { SpendOrchestratorPanel } from './_components/SpendOrchestratorPanel';
 
 // -- Types --
 
@@ -223,39 +223,6 @@ function AllocationPieChart({ allocations }: { allocations: PlatformAllocation[]
   );
 }
 
-function AllocationDiffTable({ allocations }: { allocations: PlatformAllocation[] }): React.ReactElement {
-  return (
-    <div className="space-y-3">
-      {allocations.map((a) => {
-        const diff = a.recommended - a.current;
-        const pctChange = ((diff / a.current) * 100).toFixed(1);
-        const isPositive = diff >= 0;
-        return (
-          <div key={a.platform} className="flex items-center gap-3">
-            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: a.color }} />
-            <span className="w-16 text-sm font-medium text-foreground">{a.platform}</span>
-            <span className="w-16 text-right text-sm text-muted-foreground">
-              {(a.current / 1000).toFixed(0)}K
-            </span>
-            <ArrowRight size={14} className="text-muted-foreground" />
-            <span className="w-16 text-right text-sm font-medium text-foreground">
-              {(a.recommended / 1000).toFixed(0)}K
-            </span>
-            <span
-              className={cn(
-                'ml-auto text-xs font-medium',
-                isPositive ? 'text-green-600' : 'text-red-600',
-              )}
-            >
-              {isPositive ? '+' : ''}{pctChange}%
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 interface SliderProps {
   label: string;
   value: number;
@@ -297,7 +264,6 @@ function BudgetSlider({ label, value, min, max, color, onChange }: SliderProps):
 export default function BudgetsPage(): React.ReactElement {
   const { t } = useI18n();
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [showRecommendation, setShowRecommendation] = useState(false);
 
   // What-If simulator state
   const [simBudgets, setSimBudgets] = useState<Record<string, number>>({
@@ -312,6 +278,10 @@ export default function BudgetsPage(): React.ReactElement {
   const budgetQuery = trpc.budgets.current.useQuery(undefined, { retry: false });
   const historyQuery = trpc.budgets.history.useQuery({ limit: 14 }, { retry: false });
   const monthlyPacingQuery = trpc.budgets.monthlyPacing.useQuery(undefined, { retry: false });
+  const orchestratorQuery = trpc.unifiedSpendOrchestrator.preview.useQuery(
+    { lookbackHours: 24 },
+    { retry: false, refetchOnWindowFocus: false },
+  );
 
   const allocations = (budgetQuery.data as PlatformAllocation[] | undefined) ?? [];
   const forecasts: ForecastEntry[] = [];
@@ -319,13 +289,15 @@ export default function BudgetsPage(): React.ReactElement {
   const monthlyPacing = (monthlyPacingQuery.data as MonthlyPacing | undefined) ?? null;
   const isLoading = budgetQuery.isLoading;
 
-  function handleOptimize(): void {
+  const utils = trpc.useUtils();
+
+  async function handleOptimize(): Promise<void> {
     setIsOptimizing(true);
-    // Simulate optimization delay
-    setTimeout(() => {
+    try {
+      await utils.unifiedSpendOrchestrator.preview.invalidate();
+    } finally {
       setIsOptimizing(false);
-      setShowRecommendation(true);
-    }, 2000);
+    }
   }
 
   function updateSimBudget(platform: string, value: number): void {
@@ -333,6 +305,24 @@ export default function BudgetsPage(): React.ReactElement {
   }
 
   const totalSimBudget = Object.values(simBudgets).reduce((sum, v) => sum + v, 0);
+
+  // Map platform key (UI label) → measured ROAS from orchestrator preview.
+  // Keys used in simBudgets (Google / Meta / LINE / X / Yahoo!) don't match
+  // the DB platform enum (google / meta / line_yahoo / x), so we normalize.
+  const platformRoasMap: Record<string, number> = (() => {
+    const map: Record<string, number> = {};
+    const roasByDbKey: Record<string, number> = {};
+    for (const p of orchestratorQuery.data?.platformROAS ?? []) {
+      roasByDbKey[p.platform] = p.roas;
+    }
+    map['Google'] = roasByDbKey['google'] ?? 0;
+    map['Meta'] = roasByDbKey['meta'] ?? 0;
+    map['TikTok'] = roasByDbKey['tiktok'] ?? 0;
+    map['LINE'] = roasByDbKey['line_yahoo'] ?? 0;
+    map['X'] = roasByDbKey['x'] ?? 0;
+    map['Yahoo!'] = roasByDbKey['line_yahoo'] ?? 0;
+    return map;
+  })();
 
   return (
     <div className="space-y-6">
@@ -361,51 +351,27 @@ export default function BudgetsPage(): React.ReactElement {
         </div>
       )}
 
-      {/* Current allocation + AI recommendation */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Current allocation donut */}
-        <div className="rounded-lg border border-border bg-card shadow-xs p-6">
-          <h2 className="text-lg font-semibold text-foreground">{t('budgets.currentAllocation')}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t('budgets.channelAllocationStatus')}</p>
-          {isLoading ? (
-            <div className="mt-6 flex h-64 animate-pulse items-center justify-center rounded-md bg-muted/30">
-              <div className="h-4 w-24 rounded bg-muted" />
-            </div>
-          ) : (
-            <div className="mt-4">
-              <AllocationPieChart allocations={allocations} />
-            </div>
-          )}
-        </div>
+      {/* Unified Spend Orchestrator — sole AI recommendation surface.
+          The legacy "AI recommendation" panel was removed; SpendOrchestratorPanel
+          is now the canonical source for proposed reallocations. */}
+      <SpendOrchestratorPanel />
 
-        {/* AI recommendation panel */}
-        <div className="rounded-lg border border-border bg-card shadow-xs p-6">
-          <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">{t('budgets.aiRecommendation')}</h2>
+      {/* Causal lift experiments via holdout groups */}
+      <HoldoutGroupsPanel />
+
+      {/* Current allocation donut — read-only snapshot of the active split */}
+      <div className="rounded-lg border border-border bg-card shadow-xs p-6">
+        <h2 className="text-lg font-semibold text-foreground">{t('budgets.currentAllocation')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t('budgets.channelAllocationStatus')}</p>
+        {isLoading ? (
+          <div className="mt-6 flex h-64 animate-pulse items-center justify-center rounded-md bg-muted/30">
+            <div className="h-4 w-24 rounded bg-muted" />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('budgets.performanceBasedOptimal')}
-          </p>
-          {!showRecommendation ? (
-            <div className="mt-6 flex h-64 items-center justify-center rounded-md border border-dashed border-border bg-muted/30">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <Gauge size={48} className="text-muted-foreground/30" />
-                <p className="text-sm">{t('budgets.runToSeeRecommendation')}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <AllocationDiffTable allocations={allocations} />
-              <div className="mt-4 rounded-md bg-primary/5 p-3">
-                <p className="text-sm font-medium text-primary">{t('budgets.aiAnalysisResult')}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t('budgets.aiAnalysisDetail')}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="mt-4">
+            <AllocationPieChart allocations={allocations} />
+          </div>
+        )}
       </div>
 
       {/* ROAS forecast */}
@@ -491,17 +457,26 @@ export default function BudgetsPage(): React.ReactElement {
 
           <div>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart
+              <ComposedChart
                 data={Object.entries(simBudgets).map(([platform, value]) => ({
                   platform,
                   budget: value,
-                  predictedRoas: forecasts.find((f) => f.platform === platform)?.predictedRoas ?? 0,
+                  measuredRoas: platformRoasMap[platform] ?? 0,
                 }))}
                 margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="platform" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <YAxis
+                  yAxisId="budget"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                />
+                <YAxis
+                  yAxisId="roas"
+                  orientation="right"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  tickFormatter={(v: number) => `${v.toFixed(1)}x`}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
@@ -510,12 +485,29 @@ export default function BudgetsPage(): React.ReactElement {
                     color: 'hsl(var(--foreground))',
                   }}
                   formatter={(value: number, name: string) =>
-                    name === 'budget' ? `${(value / 1000).toFixed(0)}K` : `${value.toFixed(1)}x`
+                    name === 'budget' || name === t('budgets.budgetJpy')
+                      ? `${(value / 1000).toFixed(0)}K`
+                      : `${value.toFixed(2)}x`
                   }
                 />
                 <Legend />
-                <Bar dataKey="budget" name={t('budgets.budgetJpy')} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Bar
+                  yAxisId="budget"
+                  dataKey="budget"
+                  name={t('budgets.budgetJpy')}
+                  fill="hsl(var(--primary))"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Line
+                  yAxisId="roas"
+                  type="monotone"
+                  dataKey="measuredRoas"
+                  name="ROAS (直近24h)"
+                  stroke="hsl(var(--success))"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>

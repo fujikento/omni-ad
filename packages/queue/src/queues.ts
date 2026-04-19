@@ -16,6 +16,8 @@ export const QUEUE_NAMES = {
   AB_TEST_EVALUATION: 'ab-test-evaluation',
   CREATIVE_OPTIMIZATION: 'creative-optimization',
   TOKEN_REFRESH: 'token-refresh',
+  UNIFIED_SPEND_ORCHESTRATOR: 'unified-spend-orchestrator',
+  INDUSTRY_BENCHMARKS: 'industry-benchmarks',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -199,6 +201,28 @@ export const QUEUE_CONFIGS: Record<QueueName, QueueConfig> = {
       backoff: { type: 'exponential', delay: 5_000 },
       removeOnComplete: { count: 100 },
       removeOnFail: { count: 500 },
+    },
+  },
+  [QUEUE_NAMES.UNIFIED_SPEND_ORCHESTRATOR]: {
+    name: QUEUE_NAMES.UNIFIED_SPEND_ORCHESTRATOR,
+    options: {},
+    concurrency: 1,
+    defaultJobOptions: {
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 30_000 },
+      removeOnComplete: { count: 200 },
+      removeOnFail: { count: 500 },
+    },
+  },
+  [QUEUE_NAMES.INDUSTRY_BENCHMARKS]: {
+    name: QUEUE_NAMES.INDUSTRY_BENCHMARKS,
+    options: {},
+    concurrency: 1,
+    defaultJobOptions: {
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 60_000 },
+      removeOnComplete: { count: 50 },
+      removeOnFail: { count: 200 },
     },
   },
 };

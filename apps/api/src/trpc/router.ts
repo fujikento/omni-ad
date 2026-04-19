@@ -25,6 +25,9 @@ import { videoProjectsRouter } from "./procedures/video-projects.js";
 import { groupBuyRouter } from "./procedures/group-buy.js";
 import { identityGraphRouter } from "./procedures/identity-graph.js";
 import { monthlyFunnelRouter } from "./procedures/monthly-funnel.js";
+import { unifiedSpendOrchestratorRouter } from "./procedures/unified-spend-orchestrator.js";
+import { holdoutRouter } from "./procedures/holdout.js";
+import { industryBenchmarksRouter } from "./procedures/industry-benchmarks.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -53,6 +56,9 @@ export const appRouter = router({
   groupBuy: groupBuyRouter,
   identityGraph: identityGraphRouter,
   monthlyFunnel: monthlyFunnelRouter,
+  unifiedSpendOrchestrator: unifiedSpendOrchestratorRouter,
+  holdout: holdoutRouter,
+  industryBenchmarks: industryBenchmarksRouter,
 });
 
 export type AppRouter = typeof appRouter;

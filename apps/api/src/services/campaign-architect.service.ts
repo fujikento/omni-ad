@@ -7,6 +7,7 @@
 
 import type { CampaignWithDeployments } from './campaign.service.js';
 import { createCampaign, deployCampaign } from './campaign.service.js';
+import { generateMassCreatives } from './creative-mass-production.service.js';
 import { createNotification } from './notification.service.js';
 
 // ---------------------------------------------------------------------------
@@ -296,6 +297,7 @@ export async function deployCampaignPlan(
   productUrl?: string,
 ): Promise<CampaignWithDeployments[]> {
   const createdCampaigns: CampaignWithDeployments[] = [];
+  const creativeBatchIds: Array<{ campaignId: string; batchId: string }> = [];
 
   // Calculate a 30-day flight window starting tomorrow
   const startDate = new Date(Date.now() + 86_400_000)
@@ -344,11 +346,30 @@ export async function deployCampaignPlan(
       userId,
     );
 
-    // TODO: Auto-generate creatives from AI recommendations
+    // Auto-generate creatives from AI recommendations (best-effort).
+    // Creative generation failure must not block campaign deployment — the
+    // campaign is already created and deployed downstream; creative pipeline
+    // runs async via mass-production workers.
     if (planned.creativeRecommendations.length > 0) {
-      // Log for now; a future iteration will pipe these into creative generation
-      // Creative recommendations logged for future auto-generation pipeline
-      void planned.creativeRecommendations;
+      try {
+        const batchResult = await generateMassCreatives(
+          organizationId,
+          userId,
+          buildMassProductionInput(planned, plan, platform),
+        );
+        creativeBatchIds.push({
+          campaignId: campaign.id,
+          batchId: batchResult.batchId,
+        });
+      } catch (err) {
+        console.warn(
+          'campaign-architect: auto creative generation failed',
+          {
+            campaignId: campaign.id,
+            error: err instanceof Error ? err.message : String(err),
+          },
+        );
+      }
     }
 
     // Deploy to the specified platform
@@ -374,10 +395,54 @@ export async function deployCampaignPlan(
     metadata: {
       campaignCount: createdCampaigns.length,
       platforms: plan.recommendedPlatforms.map((p) => p.platform),
+      creativeBatchIds,
     },
   });
 
   return createdCampaigns;
+}
+
+// ---------------------------------------------------------------------------
+// Creative Auto-Generation Helpers
+// ---------------------------------------------------------------------------
+
+function buildMassProductionInput(
+  planned: PlannedCampaign,
+  plan: CampaignPlan,
+  platform: SupportedPlatform,
+): import('./creative-mass-production.service.js').MassProductionInput {
+  const keigoRaw = plan.creativeDirection.keigoLevel;
+  const keigoLevel: 'casual' | 'polite' | 'formal' =
+    keigoRaw === 'casual' || keigoRaw === 'formal' ? keigoRaw : 'polite';
+
+  const audienceTokens = [
+    ...planned.targeting.interests,
+    ...planned.targeting.locations,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const headlineAngles = planned.creativeRecommendations
+    .slice(0, 8)
+    .filter((s) => s && s.trim().length > 0);
+
+  return {
+    name: `${planned.name} – auto`,
+    productInfo: {
+      name: planned.name,
+      description: plan.summary.slice(0, 500),
+      usp: plan.creativeDirection.themes.join(' / ').slice(0, 200),
+      targetAudience: audienceTokens || plan.creativeDirection.toneGuide,
+    },
+    platforms: [platform],
+    language: 'ja',
+    keigoLevel,
+    headlineAngles,
+    bodyApproaches: ['benefit', 'story', 'question'],
+    ctaVariations: ['start-now', 'free-trial', 'details'],
+    imageStyles: ['professional', 'minimal'],
+    targetCount: Math.min(Math.max(headlineAngles.length * 3, 6), 30),
+  };
 }
 
 // ---------------------------------------------------------------------------

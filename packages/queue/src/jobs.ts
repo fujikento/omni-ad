@@ -210,6 +210,28 @@ export const creativeOptimizationJobSchema = z.object({
   organizationId: z.string().uuid(),
 });
 
+// Unified Spend Orchestrator Jobs (scheduled: empty payload;
+// manual: organizationId for one-off runs)
+export const unifiedSpendOrchestratorJobSchema = z.object({
+  organizationId: z.string().uuid().optional(),
+  lookbackHours: z.number().int().min(1).max(168).optional(),
+});
+export type UnifiedSpendOrchestratorJob = z.infer<
+  typeof unifiedSpendOrchestratorJobSchema
+>;
+
+// Industry Benchmarks Jobs (scheduled daily; targetDate optional for
+// backfill / manual runs — defaults to yesterday in the processor)
+export const industryBenchmarksJobSchema = z.object({
+  targetDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
+export type IndustryBenchmarksJob = z.infer<
+  typeof industryBenchmarksJobSchema
+>;
+
 // Job type union
 export type SyncCampaignJob = z.infer<typeof syncCampaignJobSchema>;
 export type SyncAdGroupJob = z.infer<typeof syncAdGroupJobSchema>;

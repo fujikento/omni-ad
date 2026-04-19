@@ -304,6 +304,123 @@ export async function listSegments(
   };
 }
 
+export async function getSegment(
+  segmentId: string,
+  organizationId: string,
+): Promise<SegmentSelect | null> {
+  const segment = await db.query.unifiedSegments.findFirst({
+    where: and(
+      eq(unifiedSegments.id, segmentId),
+      eq(unifiedSegments.organizationId, organizationId),
+    ),
+  });
+  return segment ?? null;
+}
+
+export interface OverlapMatrixResult {
+  platforms: string[];
+  /**
+   * overlap[from][to] = % of identities on `from` that also exist on `to`.
+   * Self-overlap (same platform) is not populated.
+   */
+  matrix: Record<string, Record<string, number>>;
+  perPlatformTotals: Record<string, number>;
+}
+
+export interface SaturationSummary {
+  totalIdentities: number;
+  /** Histogram: onePlatform = users present on exactly 1, twoPlatforms = exactly 2, etc */
+  distribution: Record<number, number>;
+  /**
+   * Users on 3+ platforms. These are the highest-risk "over-served"
+   * audience — the same person sees your ad on multiple platforms,
+   * potentially wasting spend on repeat exposure.
+   */
+  overServedCount: number;
+  /**
+   * Proportion of total identities that are on 3+ platforms. Used as
+   * a single-number health signal.
+   */
+  overServedPercent: number;
+}
+
+/**
+ * Compute pairwise overlap for all combinations of the given platforms.
+ * Used by the orchestrator's audience-aware shift dampening and by the
+ * identity-graph UI heatmap.
+ */
+export async function getOverlapMatrix(
+  organizationId: string,
+  platforms: readonly string[],
+): Promise<OverlapMatrixResult> {
+  const unique = Array.from(new Set(platforms));
+  const matrix: Record<string, Record<string, number>> = {};
+  const perPlatformTotals: Record<string, number> = {};
+
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = 0; j < unique.length; j++) {
+      if (i === j) continue;
+      const a = unique[i]!;
+      const b = unique[j]!;
+      try {
+        const overlap = await getOverlap(organizationId, a, b);
+        if (!matrix[a]) matrix[a] = {};
+        matrix[a]![b] = overlap.overlapPercentage;
+        perPlatformTotals[a] = overlap.platformATotal;
+        perPlatformTotals[b] = overlap.platformBTotal;
+      } catch {
+        // No identities for one or both platforms — skip silently.
+      }
+    }
+  }
+
+  return { platforms: unique, matrix, perPlatformTotals };
+}
+
+/**
+ * Compute cross-platform saturation summary. Counts how many identities
+ * exist on N platforms simultaneously (histogram 1, 2, 3+). Users on
+ * 3+ platforms are flagged as "over-served" — a useful wasted-spend
+ * signal since the same customer is paying to be reached multiple times.
+ */
+export async function getSaturationSummary(
+  organizationId: string,
+): Promise<SaturationSummary> {
+  // Count jsonb keys via cardinality(array(...)). This is stable across
+  // PG versions since 9.4 and avoids relying on optional extensions.
+  const platformCountExpr = sql<number>`coalesce(array_length(array(select jsonb_object_keys(${identityGraph.platformIds})), 1), 0)`;
+
+  const rows = await db
+    .select({
+      platformCount: platformCountExpr,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(identityGraph)
+    .where(eq(identityGraph.organizationId, organizationId))
+    .groupBy(platformCountExpr);
+
+  const distribution: Record<number, number> = {};
+  let total = 0;
+  let overServed = 0;
+  for (const r of rows) {
+    const n = Number(r.platformCount) || 0;
+    const c = Number(r.count) || 0;
+    distribution[n] = c;
+    total += c;
+    if (n >= 3) overServed += c;
+  }
+
+  const overServedPercent =
+    total > 0 ? Math.round((overServed / total) * 10_000) / 100 : 0;
+
+  return {
+    totalIdentities: total,
+    distribution,
+    overServedCount: overServed,
+    overServedPercent,
+  };
+}
+
 export async function getOverlap(
   organizationId: string,
   platformA: string,
