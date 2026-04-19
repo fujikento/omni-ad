@@ -349,15 +349,15 @@ function CampaignHealthCard({ campaign }: { campaign: CampaignHealth }): React.R
         <HealthScoreRing score={campaign.healthScore} />
         <span className={cn(
           'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
-          STATUS_CLASSES[campaign.status],
+          STATUS_CLASSES[campaign.status] ?? STATUS_CLASSES.active,
         )}>
-          {t(STATUS_LABEL_KEYS[campaign.status])}
+          {t(STATUS_LABEL_KEYS[campaign.status] ?? STATUS_LABEL_KEYS.active)}
         </span>
       </div>
       <div>
         <p className="text-sm font-semibold text-foreground line-clamp-1">{campaign.name}</p>
         <div className="mt-1 flex flex-wrap gap-1">
-          {campaign.platforms.map((p) => (
+          {(campaign.platforms ?? []).map((p) => (
             <span
               key={p}
               className={cn(
@@ -372,13 +372,13 @@ function CampaignHealthCard({ campaign }: { campaign: CampaignHealth }): React.R
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(campaign.dailySpend)}{t('dashboard.perDay')}
+          {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(campaign.dailySpend ?? 0)}{t('dashboard.perDay')}
         </span>
         <span className={cn(
           'font-semibold',
-          campaign.roas >= 3 ? 'text-green-600' : campaign.roas >= 1 ? 'text-yellow-600' : 'text-red-600',
+          (campaign.roas ?? 0) >= 3 ? 'text-green-600' : (campaign.roas ?? 0) >= 1 ? 'text-yellow-600' : 'text-red-600',
         )}>
-          ROAS {campaign.roas.toFixed(1)}x
+          ROAS {(campaign.roas ?? 0).toFixed(1)}x
         </span>
       </div>
     </a>
