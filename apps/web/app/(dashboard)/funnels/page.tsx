@@ -96,7 +96,7 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
           <div>
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">{t('funnels.platform')}</p>
             <div className="flex flex-wrap gap-1">
-              {stage.platforms.map((p) => (
+              {(stage.platforms ?? []).map((p) => (
                 <span key={p} className="rounded bg-background px-2 py-0.5 text-xs font-medium text-foreground shadow-sm">
                   {PLATFORM_LABELS[p]}
                 </span>
@@ -108,8 +108,8 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
           <div>
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">{t('funnels.campaignsLabel')}</p>
             <div className="space-y-1">
-              {stage.campaigns.map((c) => (
-                <div key={c.id} className="rounded bg-background px-3 py-1.5 text-xs text-foreground shadow-sm">
+              {(stage.campaigns ?? []).map((c, i) => (
+                <div key={c.id ?? `campaign-${i}`} className="rounded bg-background px-3 py-1.5 text-xs text-foreground shadow-sm">
                   {c.name}
                 </div>
               ))}
@@ -129,19 +129,21 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
             <div className="text-center">
               <p className="text-xs text-muted-foreground">{t('metrics.impressions')}</p>
               <p className="text-sm font-semibold text-foreground">
-                {(stage.metrics.impressions / 1000).toFixed(0)}K
+                {((stage.metrics?.impressions ?? 0) / 1000).toFixed(0)}K
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">{t('metrics.clicks')}</p>
               <p className="text-sm font-semibold text-foreground">
-                {(stage.metrics.clicks / 1000).toFixed(1)}K
+                {((stage.metrics?.clicks ?? 0) / 1000).toFixed(1)}K
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">CV</p>
               <p className="text-sm font-semibold text-foreground">
-                {stage.metrics.conversions > 0 ? stage.metrics.conversions.toLocaleString() : '--'}
+                {(stage.metrics?.conversions ?? 0) > 0
+                  ? (stage.metrics?.conversions ?? 0).toLocaleString()
+                  : '--'}
               </p>
             </div>
           </div>
@@ -152,9 +154,9 @@ function StageCard({ stage, isLast }: { stage: FunnelStage; isLast: boolean }): 
       {!isLast && (
         <div className="flex flex-col items-center py-2">
           <ArrowDown size={20} className="text-muted-foreground" />
-          {stage.metrics.dropOffRate > 0 && (
+          {(stage.metrics?.dropOffRate ?? 0) > 0 && (
             <span className="text-xs font-medium text-red-500">
-              -{stage.metrics.dropOffRate}% {t('funnels.dropOff')}
+              -{stage.metrics?.dropOffRate}% {t('funnels.dropOff')}
             </span>
           )}
         </div>
@@ -344,7 +346,7 @@ export default function FunnelsPage(): React.ReactElement {
         <div className="flex flex-col items-center">
           {funnel.stages.map((stage, index) => (
             <StageCard
-              key={stage.id}
+              key={stage.id ?? `stage-${index}`}
               stage={stage}
               isLast={index === funnel.stages.length - 1}
             />
@@ -355,10 +357,10 @@ export default function FunnelsPage(): React.ReactElement {
       {/* Summary metrics */}
       {!isLoading && funnel && funnel.stages.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {funnel.stages.map((stage) => {
+          {funnel.stages.map((stage, index) => {
             const impressions = stage.metrics?.impressions ?? 0;
             return (
-              <div key={stage.id} className="rounded-lg border border-border bg-card p-4 text-center">
+              <div key={stage.id ?? `stage-summary-${index}`} className="rounded-lg border border-border bg-card p-4 text-center">
                 <p className="text-xs font-medium text-muted-foreground">{stage.name}</p>
                 <p className="mt-1 text-2xl font-bold text-foreground">
                   {(impressions / 1000).toFixed(0)}K
