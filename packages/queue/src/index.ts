@@ -48,8 +48,10 @@ export {
   abTestEvaluationJobSchema,
   creativeOptimizationJobSchema,
   unifiedSpendOrchestratorJobSchema,
+  industryBenchmarksJobSchema,
   type MassProductionChunkJob,
   type ABTestEvaluationJob,
   type CreativeOptimizationJob,
   type UnifiedSpendOrchestratorJob,
+  type IndustryBenchmarksJob,
 } from './jobs.js';

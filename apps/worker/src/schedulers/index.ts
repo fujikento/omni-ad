@@ -68,5 +68,17 @@ export async function registerSchedulers(): Promise<void> {
     { name: 'scheduled-orchestrator', data: {} },
   );
 
-  console.log('Registered 7 job schedulers');
+  // Industry benchmarks: once per day at 03:00 JST via 24h interval.
+  // Aggregates yesterday's data across all orgs with industry tags.
+  const benchmarksQueue = new Queue(
+    QUEUE_NAMES.INDUSTRY_BENCHMARKS,
+    { connection },
+  );
+  await benchmarksQueue.upsertJobScheduler(
+    'industry-benchmarks-scheduler',
+    { every: 24 * 60 * 60 * 1000 },
+    { name: 'scheduled-industry-benchmarks', data: {} },
+  );
+
+  console.log('Registered 8 job schedulers');
 }
