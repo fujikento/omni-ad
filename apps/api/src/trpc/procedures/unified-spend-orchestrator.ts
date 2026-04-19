@@ -87,7 +87,7 @@ export const unifiedSpendOrchestratorRouter = router({
       }
     }),
 
-  apply: rbacProcedure('budgets:manage')
+  applyPlan: rbacProcedure('budgets:manage')
     .input(z.object({ plan: PlanSchema }))
     .mutation(async ({ ctx, input }) => {
       try {

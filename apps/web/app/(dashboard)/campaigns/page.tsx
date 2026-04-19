@@ -50,10 +50,55 @@ export default function CampaignsPage(): React.ReactElement {
   const pauseMutation = trpc.campaigns.pause.useMutation();
   const resumeMutation = trpc.campaigns.resume.useMutation();
 
-  const campaigns: Campaign[] = useMemo(
-    () => (campaignsQuery.data as Campaign[] | undefined) ?? [],
-    [campaignsQuery.data],
-  );
+  // Adapt raw DB rows (totalBudget, dailyBudget, platformDeployments[])
+  // to the UI Campaign shape (budget.{total,currency}, platforms[]).
+  // tRPC campaigns.list returns the unified DB shape — the UI was built
+  // against a mock type and never got its adapter. Guards also handle
+  // missing fields so a partial row doesn't crash the KPI reduce().
+  const campaigns: Campaign[] = useMemo(() => {
+    const raw = campaignsQuery.data as unknown[] | undefined;
+    if (!raw) return [];
+    return raw.map((r): Campaign => {
+      const row = r as {
+        id?: string;
+        name?: string;
+        status?: CampaignStatus;
+        objective?: Objective;
+        totalBudget?: string | number;
+        dailyBudget?: string | number;
+        targetRoas?: number | null;
+        updatedAt?: string | Date;
+        platformDeployments?: Array<{ platform?: Platform }>;
+      };
+      const platforms = Array.isArray(row.platformDeployments)
+        ? (row.platformDeployments
+            .map((d) => d.platform)
+            .filter((p): p is Platform => Boolean(p)))
+        : [];
+      return {
+        id: row.id ?? '',
+        name: row.name ?? '',
+        status: (row.status ?? 'draft') as CampaignStatus,
+        objective: (row.objective ?? 'conversion') as Objective,
+        platforms,
+        budget: {
+          total: Number(row.totalBudget ?? 0),
+          currency: 'JPY',
+          dailyLimit:
+            row.dailyBudget !== undefined
+              ? Number(row.dailyBudget)
+              : undefined,
+        },
+        roas: Number(row.targetRoas ?? 0),
+        updatedAt:
+          typeof row.updatedAt === 'string'
+            ? row.updatedAt
+            : row.updatedAt instanceof Date
+              ? row.updatedAt.toISOString()
+              : new Date().toISOString(),
+      };
+    });
+  }, [campaignsQuery.data]);
   const isLoading = campaignsQuery.isLoading;
 
   // Apply filters

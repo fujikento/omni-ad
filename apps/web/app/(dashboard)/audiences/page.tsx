@@ -253,8 +253,16 @@ export default function AudiencesPage(): React.ReactElement {
     ? segments.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : segments;
 
-  function formatDate(dateStr: string): string {
-    return new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(dateStr));
+  function formatDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('ja-JP', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(d);
   }
 
   return (

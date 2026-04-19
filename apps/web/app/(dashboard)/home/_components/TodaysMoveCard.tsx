@@ -41,7 +41,7 @@ export const TodaysMoveCard = memo(function TodaysMoveCard(): React.ReactElement
   );
 
   const utils = trpc.useUtils();
-  const applyMutation = trpc.unifiedSpendOrchestrator.apply.useMutation({
+  const applyMutation = trpc.unifiedSpendOrchestrator.applyPlan.useMutation({
     onSuccess: () => {
       showToast('予算再配分プランを適用しました');
       void utils.unifiedSpendOrchestrator.preview.invalidate();

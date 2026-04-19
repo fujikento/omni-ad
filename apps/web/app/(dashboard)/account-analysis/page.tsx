@@ -136,7 +136,8 @@ export default function AccountAnalysisListPage(): React.ReactElement {
           </h2>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {otherPlatforms.map((conn) => {
-              const statusCfg = STATUS_CONFIG[conn.status];
+              const statusCfg =
+                STATUS_CONFIG[conn.status] ?? STATUS_CONFIG.disconnected;
               return (
                 <div
                   key={conn.platform}

@@ -283,10 +283,82 @@ export default function BudgetsPage(): React.ReactElement {
     { retry: false, refetchOnWindowFocus: false },
   );
 
-  const allocations = (budgetQuery.data as PlatformAllocation[] | undefined) ?? [];
+  // budgets.current returns a budgetAllocations row {allocations: Record<string,number>}.
+  // Transform to PlatformAllocation[] for the pie chart.
+  const allocations: PlatformAllocation[] = (() => {
+    const raw = budgetQuery.data as
+      | { allocations?: Record<string, number> }
+      | PlatformAllocation[]
+      | null
+      | undefined;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    const map = raw.allocations ?? {};
+    const LABELS: Record<string, keyof typeof PLATFORM_COLORS> = {
+      meta: 'Meta',
+      google: 'Google',
+      tiktok: 'TikTok',
+      line_yahoo: 'LINE',
+      x: 'X',
+      amazon: 'Yahoo!',
+      microsoft: 'Yahoo!',
+    };
+    return Object.entries(map).map(([platform, amount]) => {
+      const labelKey = LABELS[platform] ?? 'Meta';
+      return {
+        platform: labelKey,
+        current: Number(amount) || 0,
+        recommended: Number(amount) || 0,
+        color: PLATFORM_COLORS[labelKey] ?? 'hsl(var(--muted-foreground))',
+      };
+    });
+  })();
   const forecasts: ForecastEntry[] = [];
   const history = (historyQuery.data as HistoricalEntry[] | undefined) ?? [];
-  const monthlyPacing = (monthlyPacingQuery.data as MonthlyPacing | undefined) ?? null;
+  // Adapt API shape { summary: { totalMonthlyBudget, totalSpentThisMonth,
+  // projectedMonthEnd, overUnderProjection }, ... } → UI MonthlyPacing.
+  const monthlyPacing: MonthlyPacing | null = (() => {
+    const raw = monthlyPacingQuery.data as
+      | {
+          summary?: {
+            totalMonthlyBudget?: number;
+            totalSpentThisMonth?: number;
+            projectedMonthEnd?: number;
+            overUnderProjection?: number;
+          };
+        }
+      | MonthlyPacing
+      | undefined;
+    if (!raw) return null;
+    // Already in UI shape (has status)
+    if ('status' in raw && typeof raw.status === 'string') {
+      return raw as MonthlyPacing;
+    }
+    const s = (raw as { summary?: Record<string, number> }).summary;
+    if (!s) return null;
+    const total = Number(s.totalMonthlyBudget ?? 0);
+    const spent = Number(s.totalSpentThisMonth ?? 0);
+    const projected = Number(s.projectedMonthEnd ?? 0);
+    const overUnder = Number(s.overUnderProjection ?? 0);
+    const today = new Date();
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const daysRemaining = Math.max(0, endOfMonth.getDate() - today.getDate());
+    const projectedOverage = total > 0 ? (overUnder / total) * 100 : 0;
+    const status: PacingStatus =
+      projectedOverage > 10
+        ? 'danger'
+        : projectedOverage > 0
+          ? 'caution'
+          : 'normal';
+    return {
+      spent,
+      total: total || 1,
+      daysRemaining,
+      projectedSpend: projected,
+      projectedOverage: Math.round(Math.max(0, projectedOverage)),
+      status,
+    };
+  })();
   const isLoading = budgetQuery.isLoading;
 
   const utils = trpc.useUtils();

@@ -397,8 +397,16 @@ export default function IdentityGraphPage(): React.ReactElement {
     retry: false,
   });
 
-  const segments: UnifiedSegment[] =
-    (segmentsQuery.data as UnifiedSegment[] | undefined) ?? [];
+  // tRPC listSegments returns { segments, total } — extract the array.
+  const segments: UnifiedSegment[] = (() => {
+    const raw = segmentsQuery.data as
+      | { segments?: UnifiedSegment[] }
+      | UnifiedSegment[]
+      | undefined;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    return raw.segments ?? [];
+  })();
 
   // Datasets below require backend endpoints that are not wired yet.
   // Start empty so each section renders its own empty state.

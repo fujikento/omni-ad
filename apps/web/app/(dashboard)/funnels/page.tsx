@@ -355,15 +355,18 @@ export default function FunnelsPage(): React.ReactElement {
       {/* Summary metrics */}
       {!isLoading && funnel && funnel.stages.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {funnel.stages.map((stage) => (
-            <div key={stage.id} className="rounded-lg border border-border bg-card p-4 text-center">
-              <p className="text-xs font-medium text-muted-foreground">{stage.name}</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">
-                {(stage.metrics.impressions / 1000).toFixed(0)}K
-              </p>
-              <p className="text-xs text-muted-foreground">{t('metrics.impressions')}</p>
-            </div>
-          ))}
+          {funnel.stages.map((stage) => {
+            const impressions = stage.metrics?.impressions ?? 0;
+            return (
+              <div key={stage.id} className="rounded-lg border border-border bg-card p-4 text-center">
+                <p className="text-xs font-medium text-muted-foreground">{stage.name}</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">
+                  {(impressions / 1000).toFixed(0)}K
+                </p>
+                <p className="text-xs text-muted-foreground">{t('metrics.impressions')}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 

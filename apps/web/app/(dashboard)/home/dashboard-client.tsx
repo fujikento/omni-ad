@@ -621,7 +621,32 @@ export function DashboardClient(): React.ReactElement {
     ? formatTimeAgo(new Date(lastFetchedAt), t)
     : null;
 
-  const kpiData: KpiCardData[] = (overviewQuery.data as KpiCardData[] | undefined) ?? [];
+  // Adapt dashboard.overview object → KpiCardData[] for the grid.
+  // API returns { todaySpend, todayRevenue, todayRoas, activeCampaignCount,
+  // alerts, budgetPacing } — we flatten the top numbers into cards.
+  const kpiData: KpiCardData[] = (() => {
+    const raw = overviewQuery.data as
+      | {
+          todaySpend?: number;
+          todayRevenue?: number;
+          todayRoas?: number;
+          activeCampaignCount?: number;
+        }
+      | undefined;
+    if (!raw) return [];
+    const yen = (n: number) =>
+      new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
+        currency: 'JPY',
+        maximumFractionDigits: 0,
+      }).format(n);
+    return [
+      { label: '本日の広告費', value: yen(raw.todaySpend ?? 0), icon: null },
+      { label: '本日の売上', value: yen(raw.todayRevenue ?? 0), icon: null },
+      { label: 'ROAS', value: `${(raw.todayRoas ?? 0).toFixed(2)}x`, icon: null },
+      { label: 'アクティブ施策', value: String(raw.activeCampaignCount ?? 0), icon: null },
+    ];
+  })();
   const campaignHealth: CampaignHealth[] = (healthQuery.data as CampaignHealth[] | undefined) ?? [];
   const activityData: ActivityItem[] = (activityQuery.data as unknown as ActivityItem[] | undefined) ?? [];
   const budgetPacing: BudgetPacing | null = null;

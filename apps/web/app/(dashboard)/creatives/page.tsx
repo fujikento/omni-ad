@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronRight,
   FileVideo,
-  Film,
   Image as ImageIcon,
   Loader2,
   RefreshCw,
@@ -797,7 +796,45 @@ export default function CreativesPage(): React.ReactElement {
 
   const creativesQuery = trpc.creatives.list.useQuery(undefined, { retry: false });
 
-  const creatives = (creativesQuery.data as Creative[] | undefined) ?? [];
+  // Adapt raw DB creatives rows to the UI Creative shape. The API
+  // returns { id, type, baseContent, aiGenerated, performanceScore, ... }
+  // but the UI expects { headline, description, format, platforms[], ... }.
+  // Guards prevent undefined.map crashes on partial rows.
+  const creatives: Creative[] = ((creativesQuery.data as unknown[] | undefined) ?? []).map((r) => {
+    const row = r as {
+      id?: string;
+      type?: string;
+      baseContent?: {
+        headline?: string;
+        description?: string;
+        body?: string;
+        thumbnail?: string;
+        platforms?: Platform[];
+      } | null;
+      performanceScore?: number | null;
+    };
+    const content = row.baseContent ?? {};
+    const format: CreativeFormat =
+      row.type === 'video'
+        ? 'video'
+        : row.type === 'carousel'
+          ? 'carousel'
+          : row.type === 'text'
+            ? 'text'
+            : 'image';
+    return {
+      id: row.id ?? '',
+      headline: content.headline ?? '(タイトル未設定)',
+      description: content.description ?? content.body ?? '',
+      format,
+      platforms: Array.isArray(content.platforms) ? content.platforms : [],
+      thumbnail: content.thumbnail ?? '',
+      score: Math.round((row.performanceScore ?? 0) * 100),
+      impressions: 0,
+      clicks: 0,
+      ctr: 0,
+    };
+  });
   const batches: CreativeBatch[] = [];
   const isLoading = creativesQuery.isLoading;
 
@@ -811,13 +848,6 @@ export default function CreativesPage(): React.ReactElement {
         description={t('creatives.description')}
         actions={
           <>
-            <Link
-              href="/creatives/video-studio"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
-            >
-              <Film size={14} />
-              {t('creatives.videoStudio')}
-            </Link>
             <Link
               href="/creatives/optimization"
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"

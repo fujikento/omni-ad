@@ -94,7 +94,7 @@ export const SpendOrchestratorPanel = memo(function SpendOrchestratorPanel(): Re
   );
 
   const utils = trpc.useUtils();
-  const applyMutation = trpc.unifiedSpendOrchestrator.apply.useMutation({
+  const applyMutation = trpc.unifiedSpendOrchestrator.applyPlan.useMutation({
     onSuccess: (data) => {
       showToast(
         `再配分プラン適用: ${data?.shiftsApplied ?? 0}件のシフト記録`,
